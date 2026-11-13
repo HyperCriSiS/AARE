@@ -152,8 +152,6 @@ class CarUiState {
     /** The next calendar events, soonest first, for the dashboard. */
     var events by mutableStateOf<List<NextEvent>>(emptyList())
     val nextEvent: NextEvent? get() = events.firstOrNull()
-    /** The dashboard's third card swiped away, by what it showed: it comes back with something new. */
-    var dismissedSideCard by mutableStateOf<String?>(null)
     /** The phone call ringing or on, if any. */
     var call by mutableStateOf<CarCall?>(null)
     /** The apps opened last, newest first (ids): the rail shows the recent ones. */

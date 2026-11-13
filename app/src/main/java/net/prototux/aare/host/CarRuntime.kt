@@ -315,7 +315,7 @@ class CarRuntime(
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
-            "media_video" -> main.post { mediaVideo = settings.mediaVideo }
+            "video_apps" -> main.post { videoApps = settings.videoApps }
             "show_weather", "show_calendar" -> main.post {
                 dashboardInfo?.cancel()
                 dashboardInfo = scope.launch { watchDashboardInfo() }
@@ -323,8 +323,8 @@ class CarRuntime(
         }
     }
 
-    /** [Settings.mediaVideo], kept current for the car screen. */
-    private var mediaVideo by mutableStateOf(settings.mediaVideo)
+    /** [Settings.videoApps], kept current for the car screen. */
+    private var videoApps by mutableStateOf(settings.videoApps)
 
     /** The weather and calendar refresh loop, restarted when either is switched on or off. */
     private var dashboardInfo: Job? = null
@@ -701,9 +701,9 @@ class CarRuntime(
                         when (app.kind) {
                             CarAppKind.MEDIA -> {
                                 val m = mediaApps.firstOrNull { it.packageName == app.packageName }
-                                // Parked: the phone's screen, a video playing there, can take the art's place.
+                                // Parked: the app itself, its video, can take the art's place (the camera button, per app).
                                 val video = if (phoneScreenAllowed && !ui.drivingRestricted) {
-                                    PhoneVideoSlot(mediaVideo, { settings.mediaVideo = !mediaVideo }) { v -> PhoneVideo(this, v) }
+                                    PhoneVideoSlot(app.packageName in videoApps, { val p = app.packageName; settings.videoApps = if (p in videoApps) videoApps - p else videoApps + p }) { v -> PhoneVideo(this, app.packageName, v) }
                                 } else null
                                 if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }
                             }

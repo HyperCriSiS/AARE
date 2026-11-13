@@ -1,14 +1,26 @@
 package net.prototux.aare.mirror
 
+import net.prototux.aare.ui.car.HostedAppSurface
+import net.prototux.aare.launch.AppLauncher
+import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import android.graphics.SurfaceTexture
 import android.view.Surface
 import android.view.TextureView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -19,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import net.prototux.aare.R
@@ -28,8 +39,8 @@ import net.prototux.aare.media.Placeholder
 import net.prototux.aare.ui.car.LocalFullScreen
 
 /**
- * The phone's screen as a media app's picture, parked: [content] draws it, [shown] says whether it
- * takes the art's place, [toggle] switches between the two.
+ * A media app's own picture (its video), parked: [content] draws it, [shown] says whether it takes
+ * the art's place, [toggle] switches between the two.
  */
 class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier) -> Unit)
 
@@ -37,34 +48,49 @@ class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @C
 val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
 
 /**
- * The phone screen, live, for a video playing there. A double tap shows it over the whole car
- * screen, rail included; a tap there brings the rail back.
+ * The media app [packageName] itself, running on a display of exactly this size through the
+ * privileged helper (Shizuku or root), whatever the phone shows: a video fills it, and touches go
+ * to the app. The corner button shows it over the whole car screen, rail included, and back. While
+ * it runs here the app isn't on the phone's screen; it goes back there when this closes.
  */
 @Composable
-internal fun PhoneVideo(runtime: CarRuntime, modifier: Modifier) {
+internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier) {
+    val context = LocalContext.current
     val full = LocalFullScreen.current
-    val locked = rememberKeyguardLocked()
-    var mirroring by remember { mutableStateOf(true) }
-    // Gone (driving, another screen): so is its full-screen copy.
-    DisposableEffect(full) { onDispose { full?.value = null } }
+    val available = remember { AppLauncher.available(context) }
+    // Its own helper process, apart from the phone apps': releasing one leaves the other running.
+    val launcher = remember(packageName) { AppLauncher(context, "video") }
+    var started by remember(packageName) { mutableStateOf(false) }
+    // Gone (driving, another screen): so are its full-screen copy and its display.
+    DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
     Box(modifier.background(Color.Black)) {
-        when {
-            locked -> Placeholder(stringResource(R.string.mirror_locked_placeholder), loading = false, icon = Icons.Rounded.Lock)
-            !mirroring -> Placeholder(stringResource(R.string.mirror_need_car_audio), loading = false, icon = Icons.Rounded.PhoneAndroid)
-            // Shown full screen: one mirror at a time.
-            full?.value == null -> MirrorSurface(runtime, Modifier.fillMaxSize()) { mirroring = it }
+        if (!available) {
+            Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid)
+            return@Box
         }
-        Box(Modifier.matchParentSize().pointerInput(full) {
-            detectTapGestures(onDoubleTap = {
-                full?.value = {
+        // Full screen, the one display moves onto the copy over everything.
+        if (full?.value == null) HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+        if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
+        if (full != null) {
+            CornerButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), Modifier.align(Alignment.TopEnd)) {
+                full.value = {
                     Box(Modifier.fillMaxSize()) {
-                        MirrorSurface(runtime, Modifier.fillMaxSize())
-                        Box(Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { full.value = null } })
+                        HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize())
+                        CornerButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), Modifier.align(Alignment.TopEnd)) { full.value = null }
                     }
                 }
-            })
-        })
+            }
+        }
     }
+}
+
+/** A small round button over a video's corner. */
+@Composable
+private fun CornerButton(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+    Box(
+        modifier.padding(10.dp).size(48.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, label, tint = Color.White) }
 }
 
 /** The phone screen drawn into a texture. [onMirroring] says whether it could start (a consent or a helper). */

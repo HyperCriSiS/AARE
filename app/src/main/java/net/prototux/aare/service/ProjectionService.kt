@@ -51,6 +51,7 @@ import net.prototux.aare.media.MediaHub
 import net.prototux.aare.transport.LocalSocketTransport
 import net.prototux.aare.transport.TcpServer
 import net.prototux.aare.transport.UsbAccessoryTransport
+import net.prototux.aare.transport.UsbReattach
 import net.prototux.aare.transport.wireless.WirelessConnector
 import net.prototux.aare.ui.MainActivity
 
@@ -93,6 +94,8 @@ class ProjectionService : Service() {
     private var usbPermissionReceiver: BroadcastReceiver? = null
     /** When the running session started, so a link that worked for a while gets a fresh retry budget. */
     private var sessionStart = 0L
+    /** The certificate the current or last session offered. */
+    private var offered: CertificateStore.Entry? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wirelessJob: Job? = null
     /** onDestroy ran: a session closing late must not touch this instance any more. */
@@ -349,12 +352,15 @@ class ProjectionService : Service() {
         }
         lastSessionWireless = wireless
         val cert = certs.pick(settings.certificateIndex)
+        offered = cert
         log("connecting ${transport.name} with certificate \"${cert.name}\"")
         acquireWakeLock()
         sessionStart = SystemClock.elapsedRealtime()
         val s = CarSession(this, transport, cert.identity, settings, media, { projection }, wireless, peerKey, trustOnFirstUse, sessionListener, mirror)
         session = s
-        _state.update { it.copy(connected = true, transport = transport.name, certificate = cert.name, lastError = null, pendingTrust = null) }
+        // The Trust button stays: a car that retries after a refusal (USB does, every few seconds) or
+        // fails differently next time would otherwise take it away and leave only the notification.
+        _state.update { it.copy(connected = true, transport = transport.name, certificate = cert.name, lastError = null) }
         s.start()
     }
 
@@ -387,7 +393,10 @@ class ProjectionService : Service() {
                 else -> getString(R.string.notif_cert_untrusted_message)
             }
             pinRefusal?.let { notifyUntrusted(it) }
-            if (certificateRejected) {
+            // A Google-issued certificate is the one strict head units want and lenient ones accept:
+            // a hang-up during its handshake is a cable pulled or replugged, not a reason to move on.
+            // A head unit that says it refuses it gets the next one all the same.
+            if (certificateRejected && rotates(offered?.isGoogleIssued == true, session.authRejected)) {
                 // Offer the next certificate next time: strict head units only accept Google-issued ones.
                 settings.certificateIndex = settings.certificateIndex + 1
                 log("head unit rejected the certificate; next connection offers \"${certs.pick(settings.certificateIndex).name}\"")
@@ -400,14 +409,18 @@ class ProjectionService : Service() {
             }
             pinRefusal?.let { log("head unit ${it.peerKey} showed certificate SHA-256 ${it.fingerprint}") }
             log("disconnected: $why")
-            _state.update { it.copy(connected = false, status = getString(R.string.notif_status_not_connected), video = "", lastError = why.takeIf { r -> "stopped" !in r && "ended" !in r }, pendingTrust = pinRefusal) }
+            _state.update { it.copy(connected = false, status = getString(R.string.notif_status_not_connected), video = "", lastError = why.takeIf { r -> "stopped" !in r && "ended" !in r },
+                // A new refusal replaces it; a session that got past the handshake means it is settled.
+                pendingTrust = pinRefusal ?: it.pendingTrust.takeIf { session.headUnitName.isEmpty() }) }
             updateNotification(getString(R.string.notif_status_not_connected))
             // A USB link that dropped while still plugged in usually comes back: retry a few times.
             // Not a refused certificate: it would be refused again until the user trusts it.
             // The budget counts drops in a row, not per plug-in: a head unit that drops each link at once is not retried forever.
             if (SystemClock.elapsedRealtime() - sessionStart > USB_RETRY_RESET_MS) usbRetries = 0
             val acc = usbAccessory
-            if (acc != null && pinRefusal == null && usbRetries++ < 3 && getSystemService(UsbManager::class.java).accessoryList?.contains(acc) == true) {
+            if (acc != null && pinRefusal == null && usbRetries++ < 3 &&
+                UsbReattach.stillAttached(UsbReattach.id(acc)) { getSystemService(UsbManager::class.java).accessoryList?.map(UsbReattach::id) }
+            ) {
                 // openUsb checks hasPermission() again and asks for it if it was lost.
                 main.postDelayed({ if (this@ProjectionService.session == null) openUsb(acc) }, 1_500)
             } else {
@@ -719,3 +732,9 @@ class ProjectionService : Service() {
         }
     }
 }
+
+/**
+ * Whether a refused certificate gives way to the next one: always, except a Google-issued one the
+ * head unit only hung up on ([explicit] false), which is a cable pulled rather than a refusal.
+ */
+internal fun rotates(googleIssued: Boolean, explicit: Boolean): Boolean = !googleIssued || explicit

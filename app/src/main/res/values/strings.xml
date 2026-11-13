@@ -474,4 +474,31 @@
     <string name="carapp_error_stopped">%1$s stopped</string>
     <string name="carapp_error_google_only">%1$s only accepts Google\'s Android Auto. It needs to allow AARE (see the app list on the phone).</string>
     <string name="carapp_error_cant_start">%1$s couldn\'t start: %2$s</string>
+    <!-- Split screen: the two pane options after a long press on a rail app, and the divider -->
+    <string name="split_open_left">Open on the left</string>
+    <string name="split_open_right">Open on the right</string>
+    <string name="split_divider">Drag to resize, to an edge to close</string>
+    <string name="media_action_show_video">Show the phone\'s video</string>
+    <string name="media_action_show_art">Show the cover</string>
+    <string name="setup_section_rail">Car rail</string>
+    <string name="setup_rail_hint">The apps in the car\'s side bar, in this order; it scrolls when they don\'t fit. With none picked, it shows the last navigation and media apps and Phone.</string>
+    <string name="setup_section_shortcuts">Shortcuts</string>
+    <string name="setup_shortcuts_hint">Hold the app list button in the car to open these. Like in the bar: swipe one sideways to open it in that pane, hold it to choose.</string>
+    <string name="setup_section_app_list_filter">App list in the car</string>
+    <string name="setup_toggle_hide_pinned_title">Leave out the rail\'s and the shortcuts\' apps</string>
+    <string name="setup_toggle_hide_pinned_subtitle">Off, the app list shows every app.</string>
+    <string name="common_remove">Remove</string>
+    <string name="common_done">Done</string>
+    <string name="common_add_apps">Add apps</string>
+    <string name="video_full_screen">Full screen</string>
+    <string name="video_exit_full_screen">Leave full screen</string>
+    <string name="standalone_failed">Couldn\'t start the app on the car screen.</string>
+    <string name="backup_title">Back up settings</string>
+    <string name="backup_hint">Saves AARE\'s settings, the trusted cars and the vehicle rules to a file, and loads them back, here or on another phone. Certificates stay out: download or import them again there.</string>
+    <string name="backup_export">Export</string>
+    <string name="backup_import">Import</string>
+    <string name="backup_exported">Settings exported</string>
+    <string name="backup_imported">Settings imported</string>
+    <string name="backup_failed">Couldn\'t write the file</string>
+    <string name="backup_not_a_backup">Not an AARE settings file</string>
 </resources>

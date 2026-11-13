@@ -32,6 +32,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -50,7 +52,8 @@ import kotlinx.coroutines.withContext
  * CarIcon objects (a nav app refreshes every second: no flicker allowed).
  *
  * The CarIcon tint wins; otherwise [monochromeTint] is applied to resource (vector) icons only,
- * like Android Auto does for action buttons. Photos/bitmaps are never tinted without a tint.
+ * like Android Auto does for action buttons. Photos/bitmaps are never tinted without a tint,
+ * except a white glyph on a light car screen ([whiteGlyphTint]).
  */
 @Composable
 internal fun CarIconView(
@@ -77,7 +80,7 @@ internal fun CarIconView(
                 Box(clipped)
                 return
             }
-            val filterColor = tint ?: monochromeTint?.takeIf { icon.isResource() }
+            val filterColor = tint ?: monochromeTint?.takeIf { icon.isResource() } ?: whiteGlyphTint(bitmap)
             Image(
                 bitmap,
                 contentDescription,
@@ -217,4 +220,33 @@ private object IconCache {
     fun put(key: Any, value: ImageBitmap) {
         cache.put(key, value)
     }
+}
+
+/**
+ * Car apps mostly draw their glyphs white, for Android Auto's dark screen. On a light car screen
+ * such an icon (white on a transparent ground, with no tint of its own) disappears on a light card,
+ * so it takes the content color there. Colored icons and photos keep their colors.
+ */
+@Composable
+private fun whiteGlyphTint(bitmap: ImageBitmap): Color? {
+    if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) return null
+    val white = remember(bitmap) {
+        runCatching {
+            val b = bitmap.asAndroidBitmap()
+            IntArray(b.width * b.height).also { b.getPixels(it, 0, b.width, 0, 0, b.width, b.height) }
+        }.map(::isWhiteGlyph).getOrDefault(false)
+    }
+    return if (white) LocalContentColor.current else null
+}
+
+/** Whether [argb] pixels are a white glyph: every visible pixel close to white, with clear space around them. */
+internal fun isWhiteGlyph(argb: IntArray): Boolean {
+    var visible = 0
+    for (p in argb) {
+        if (p ushr 24 < 64) continue
+        visible++
+        if (minOf(p shr 16 and 0xff, p shr 8 and 0xff, p and 0xff) < 200) return false
+    }
+    // A glyph leaves much of its box clear; a white tile or photo fills it.
+    return visible > 0 && visible < argb.size * 0.85
 }

@@ -20,8 +20,8 @@ import kotlin.concurrent.thread
  */
 object UpdateChecker {
     private const val TAG = "AareUpdate"
-    private const val LATEST = "https://api.github.com/repos/prototux/AARE/releases/latest"
-    private const val RELEASES = "https://github.com/prototux/AARE/releases/latest"
+    private const val LATEST = "https://api.github.com/repos/HyperCriSiS/AARE/releases/latest"
+    private const val RELEASES = "https://github.com/HyperCriSiS/AARE/releases/latest"
     private const val DAY_MS = 24 * 60 * 60 * 1000L
 
     /** A release newer than the installed one. [version] has no leading "v". */

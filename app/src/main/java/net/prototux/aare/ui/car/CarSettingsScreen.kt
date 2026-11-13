@@ -36,7 +36,12 @@ import net.prototux.aare.ui.theme.LocalCarDimens
  * stays in AARE on the phone.
  */
 @Composable
-internal fun CarSettingsScreen(settings: Settings, modifier: Modifier) {
+internal fun CarSettingsScreen(
+    settings: Settings,
+    /** False on a session that can't show the phone screen (the developer server): no switch for it then. */
+    phoneScreenAllowed: Boolean,
+    modifier: Modifier,
+) {
     var theme by remember { mutableStateOf(settings.carTheme) }
     var rail by remember { mutableStateOf(settings.railPosition) }
     var style by remember { mutableStateOf(settings.carStyle) }
@@ -45,6 +50,10 @@ internal fun CarSettingsScreen(settings: Settings, modifier: Modifier) {
     var audio by remember { mutableStateOf(settings.carAudio) }
     var darkBar by remember { mutableStateOf(settings.darkBar) }
     var passenger by remember { mutableStateOf(settings.ignoreDriving) }
+    var weather by remember { mutableStateOf(settings.showWeather) }
+    var calendar by remember { mutableStateOf(settings.showCalendar) }
+    var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
+
     LazyColumn(
         modifier.background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(horizontal = 32.dp, vertical = 24.dp),
@@ -68,6 +77,10 @@ internal fun CarSettingsScreen(settings: Settings, modifier: Modifier) {
         }
         item { SwitchRow(stringResource(R.string.setup_switch_dark_bar), darkBar) { darkBar = it; settings.darkBar = it } }
         item { SwitchRow(stringResource(R.string.setup_switch_passenger), passenger) { passenger = it; settings.ignoreDriving = it } }
+        item { SwitchRow(stringResource(R.string.setup_toggle_weather_title), weather) { weather = it; settings.showWeather = it } }
+        item { SwitchRow(stringResource(R.string.setup_toggle_calendar_title), calendar) { calendar = it; settings.showCalendar = it } }
+        if (phoneScreenAllowed) item { SwitchRow(stringResource(R.string.phone_toggle_enable_title), phoneScreen) { phoneScreen = it; settings.phoneScreen = it } }
+
         item { SwitchRow(stringResource(R.string.setup_switch_message_notifications), banners) { banners = it; settings.messageBanners = it } }
         item { SwitchRow(stringResource(R.string.msg_toggle_read_aloud_title), aloud) { aloud = it; settings.readMessagesAloud = it } }
         item { SwitchRow(stringResource(R.string.setup_switch_audio_next_connection), audio) { audio = it; settings.carAudio = it } }

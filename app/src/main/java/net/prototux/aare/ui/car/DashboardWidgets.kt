@@ -1,14 +1,17 @@
 package net.prototux.aare.ui.car
 
 import android.text.format.DateFormat
+import android.text.format.DateUtils
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import net.prototux.aare.R
 import net.prototux.aare.car.NextEvent
 import net.prototux.aare.car.Weather
+import net.prototux.aare.car.startsToday
 
 /** WMO weather codes (Open-Meteo) to an icon. */
 private fun weatherIcon(w: Weather): ImageVector = when (w.code) {
@@ -63,32 +67,56 @@ internal fun WeatherChip(weather: Weather?) {
     }
 }
 
-/** The next calendar event, with a shortcut to navigate to its place. */
+/**
+ * The next calendar events: the first large, with a shortcut to navigate to its place, the ones
+ * after it as lines underneath, as many as the card has room for. One event alone stays centered.
+ */
 @Composable
-internal fun CalendarCard(event: NextEvent, onNavigate: (String) -> Unit, modifier: Modifier) {
-    val context = LocalContext.current
-    val time = if (event.allDay) stringResource(R.string.dash_event_today) else DateFormat.getTimeFormat(context).format(event.startMs)
-    Column(modifier.padding(24.dp), verticalArrangement = Arrangement.Center) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Event, null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(10.dp))
-            Text(time, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(event.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        if (event.location.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
-            Row(
-                Modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.secondaryContainer)
-                    .clickable { onNavigate(event.location) }.padding(horizontal = 14.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Rounded.Navigation, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(event.location, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+internal fun CalendarCard(events: List<NextEvent>, onNavigate: (String) -> Unit, modifier: Modifier) {
+    val event = events.firstOrNull() ?: return
+    BoxWithConstraints(modifier.padding(24.dp)) {
+        // About 170 dp for the first event with its place, 48 dp for each line after it.
+        val more = events.drop(1).take(((maxHeight - 170.dp) / 48.dp).toInt().coerceAtLeast(0))
+        Column(Modifier.fillMaxSize(), verticalArrangement = if (more.isEmpty()) Arrangement.Center else Arrangement.Top) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Event, null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(10.dp))
+                Text(eventTime(event), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(event.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (event.location.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    Modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.secondaryContainer)
+                        .clickable { onNavigate(event.location) }.padding(horizontal = 14.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Rounded.Navigation, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(event.location, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            more.forEach { e ->
+                Spacer(Modifier.height(20.dp))
+                Text(eventTime(e), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(e.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+    }
+}
+
+/** When [e] starts: the time today, "Today" for an all-day event today, and the weekday for tomorrow. */
+@Composable
+private fun eventTime(e: NextEvent): String {
+    val context = LocalContext.current
+    val today = startsToday(e)
+    return when {
+        e.allDay && today -> stringResource(R.string.dash_event_today)
+        e.allDay -> DateUtils.formatDateTime(context, e.startMs, DateUtils.FORMAT_SHOW_WEEKDAY or DateUtils.FORMAT_UTC)
+        today -> DateFormat.getTimeFormat(context).format(e.startMs)
+        else -> DateUtils.formatDateTime(context, e.startMs, DateUtils.FORMAT_SHOW_WEEKDAY or DateUtils.FORMAT_ABBREV_WEEKDAY or DateUtils.FORMAT_SHOW_TIME)
     }
 }
 

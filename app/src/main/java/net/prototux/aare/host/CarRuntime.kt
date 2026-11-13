@@ -22,11 +22,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import net.prototux.aare.DiagLog
@@ -35,7 +37,10 @@ import net.prototux.aare.Settings
 import net.prototux.aare.car.Calls
 import net.prototux.aare.car.DashboardInfo
 import net.prototux.aare.media.MediaHub
+import net.prototux.aare.mirror.LocalPhoneVideo
 import net.prototux.aare.mirror.MirrorScreen
+import net.prototux.aare.mirror.PhoneVideo
+import net.prototux.aare.mirror.PhoneVideoSlot
 import net.prototux.aare.notify.CarNotificationListener
 import net.prototux.aare.notify.MessagingScreen
 import net.prototux.aare.launch.AppLauncher
@@ -50,6 +55,10 @@ import net.prototux.aare.ui.car.CarScreen
 import net.prototux.aare.ui.car.CarSettingsScreen
 import net.prototux.aare.ui.car.CarShell
 import net.prototux.aare.ui.car.CarUiState
+import net.prototux.aare.ui.car.shows
+import net.prototux.aare.ui.car.snapSplit
+import net.prototux.aare.ui.car.splitWith
+import net.prototux.aare.ui.car.withoutApps
 import net.prototux.aare.ui.car.NotificationsScreen
 import net.prototux.aare.ui.car.NowPlaying
 import net.prototux.aare.ui.car.CarDataScreen
@@ -141,7 +150,7 @@ class CarRuntime(
             val id = idOf(from)
             // Car apps stay connected in the background, and AARE hosts any car app (not only Play-approved
             // ones): only the app on screen, or in the assistant bar, calls straight away; any other is asked.
-            val onScreen = id != null && ((ui.screen as? CarScreen.App)?.appId == id || ui.assistantAppId == id)
+            val onScreen = id != null && (ui.screen.shows(id) || ui.assistantAppId == id)
             when {
                 code -> {
                     notice(context.getString(R.string.notif_not_calling_title), context.getString(R.string.notif_not_calling_text, from.info.label))
@@ -182,7 +191,11 @@ class CarRuntime(
 
     override fun finish(app: CarAppConnection) {
         val id = idOf(app) ?: return
-        if ((ui.screen as? CarScreen.App)?.appId == id) ui.screen = CarScreen.Dashboard
+        // In a split, the other app takes the whole screen.
+        when (val s = ui.screen) {
+            is CarScreen.Split -> if (s.shows(id)) ui.screen = CarScreen.App(if (s.left == id) s.right else s.left)
+            else -> if (s.shows(id)) ui.screen = CarScreen.Dashboard
+        }
         if (ui.assistantAppId == id) ui.assistantAppId = null
         // The dashboard's map card would start it again at once. Don't start another one in its
         // place either: two apps that both finish on start would take turns forever.
@@ -308,9 +321,21 @@ class CarRuntime(
             "car_theme", "rail_position", "car_style", "dark_bar", "ignore_driving" -> main.post { applyScreenSettings() }
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
             // Apps shown or hidden from the phone: update the car's app list now.
-            "hidden_apps", "phone_screen", "assistant_pkg", "app_order" -> main.post { refreshApps() }
+            "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned" -> main.post { refreshApps() }
+            // Switched from the car's settings: show or drop them now, not at the next refresh.
+            "video_apps" -> main.post { videoApps = settings.videoApps }
+            "show_weather", "show_calendar" -> main.post {
+                dashboardInfo?.cancel()
+                dashboardInfo = scope.launch { watchDashboardInfo() }
+            }
         }
     }
+
+    /** [Settings.videoApps], kept current for the car screen. */
+    private var videoApps by mutableStateOf(settings.videoApps)
+
+    /** The weather and calendar refresh loop, restarted when either is switched on or off. */
+    private var dashboardInfo: Job? = null
 
     // ------------------------------------------------------------------ apps
 
@@ -331,7 +356,7 @@ class CarRuntime(
         })
         scope.launch { media.apps.collectLatest { refreshApps() } }
         scope.launch { watchCalls() }
-        scope.launch { watchDashboardInfo() }
+        dashboardInfo = scope.launch { watchDashboardInfo() }
         scope.launch {
             CarNotificationListener.guidance.collect { g ->
                 // A navigation app hosted on the car screen shows its own guidance.
@@ -431,6 +456,12 @@ class CarRuntime(
         }
         ui.apps.clear()
         ui.apps.addAll(entries)
+        fun ids(keys: List<String>) = keys.mapNotNull { k -> entries.firstOrNull { orderKey(it) == k }?.id }
+        ui.railAppIds = ids(settings.railApps)
+        ui.shortcutAppIds = ids(settings.shortcutApps)
+        ui.launcherHidesPinned = settings.launcherHidesPinned
+        // An app gone from a pane would leave it blank.
+        ui.screen = ui.screen.withoutApps { id -> entries.none { it.id == id } }
         // Restore the last navigation and media apps, so the dashboard isn't empty. Not a navigation app that
         // finished itself: its map card would stay blank instead of offering the picker.
         if (ui.activeNavAppId == null) {
@@ -454,8 +485,8 @@ class CarRuntime(
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { DashboardInfo.weather(where) }?.let { ui.weather = it; lastWeather = now }
                 }
             }
-            ui.nextEvent = if (settings.showCalendar)
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { DashboardInfo.nextEvent(context) } else null
+            ui.events = if (settings.showCalendar)
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { DashboardInfo.nextEvents(context) } else emptyList()
             kotlinx.coroutines.delay(5 * 60_000)
         }
     }
@@ -466,7 +497,7 @@ class CarRuntime(
         val conn = connection(nav.id) ?: return false
         conn.connect(Intent(CarContext.ACTION_NAVIGATE).setData(android.net.Uri.parse("geo:0,0?q=" + android.net.Uri.encode(place))))
         ui.activeNavAppId = nav.id
-        ui.screen = CarScreen.App(nav.id)
+        if (!ui.screen.shows(nav.id)) ui.screen = CarScreen.App(nav.id)
         return true
     }
 
@@ -535,7 +566,7 @@ class CarRuntime(
     private fun idOf(conn: CarAppConnection): String? = connections.entries.firstOrNull { it.value === conn }?.key
 
     private fun show(conn: CarAppConnection) {
-        idOf(conn)?.let { ui.screen = CarScreen.App(it) }
+        idOf(conn)?.let { if (!ui.screen.shows(it)) ui.screen = CarScreen.App(it) }
     }
 
     fun acquireVisible(conn: CarAppConnection) {
@@ -571,7 +602,7 @@ class CarRuntime(
     fun remember(title: String, text: String, icon: Bitmap?, actions: List<Pair<String, () -> Unit>>) {
         ui.history.add(0, CarNotice("h${++noticeSeq}", title, text, icon, actions))
         while (ui.history.size > 30) ui.history.removeAt(ui.history.lastIndex)
-        if ((ui.screen as? CarScreen.App)?.appId != NOTIFICATIONS_ID) ui.unseen++
+        if (!ui.screen.shows(NOTIFICATIONS_ID)) ui.unseen++
     }
 
     fun notice(title: String, text: String, icon: Bitmap? = null, durationMs: Long = 4_000, actions: List<Pair<String, () -> Unit>> = emptyList(), message: Boolean = false) {
@@ -586,6 +617,32 @@ class CarRuntime(
         override fun openApp(app: CarAppEntry) {
             // No screen of its own and not a recent app: the projection stays as it is until the car takes focus.
             if (app.kind == CarAppKind.EXIT) { exitToCar?.invoke(); return }
+            start(app)
+            ui.screen = CarScreen.App(app.id)
+        }
+
+        override fun openInPane(app: CarAppEntry, left: Boolean) {
+            if (app.kind == CarAppKind.EXIT) { exitToCar?.invoke(); return }
+            // Recent apps can include one hidden or removed since: it would leave its pane blank.
+            val next = splitWith(ui.screen, app.id, left, ui.recentAppIds.filter { ui.app(it) != null })
+            // The other pane may be a recent app that isn't running any more.
+            if (next is CarScreen.Split) ui.app(if (left) next.right else next.left)?.let { start(it) }
+            start(app)
+            ui.splitActiveLeft = left
+            ui.screen = next
+        }
+
+        override fun releaseDivider(fraction: Float) {
+            val split = ui.screen as? CarScreen.Split ?: return
+            val next = snapSplit(split, fraction)
+            if (next != split) {
+                ui.screen = next
+                ui.splitFraction = 0.5f
+            } else ui.splitFraction = fraction
+        }
+
+        /** Gets [app] ready to show (connected, or chosen as the active nav or media app) and makes it the most recent. */
+        private fun start(app: CarAppEntry) {
             when (app.kind) {
                 CarAppKind.MEDIA -> {
                     ui.activeMediaAppId = app.id
@@ -599,7 +656,6 @@ class CarRuntime(
                 }
                 else -> connection(app.id)?.connect()
             }
-            ui.screen = CarScreen.App(app.id)
             ui.recentAppIds.remove(app.id)
             ui.recentAppIds.add(0, app.id)
             while (ui.recentAppIds.size > 6) ui.recentAppIds.removeAt(ui.recentAppIds.lastIndex)
@@ -639,7 +695,7 @@ class CarRuntime(
         if (entry != null && conn != null) {
             // Like Android Auto's assistant: a bar over whatever is on screen, not the app full screen. Set before
             // the intent goes out: the app may open the microphone before the bar is drawn (see openMicrophone).
-            if ((ui.screen as? CarScreen.App)?.appId != entry.id) ui.assistantAppId = entry.id
+            if (!ui.screen.shows(entry.id)) ui.assistantAppId = entry.id
             conn.connect(Intent(Intent.ACTION_VOICE_COMMAND).setComponent(conn.info.service))
             return
         }
@@ -651,18 +707,39 @@ class CarRuntime(
         }
     }
 
-    /** Set by a screen with its own back stack (a conversation in a messaging app): true if it handled back. */
-    var screenBack: (() -> Boolean)? = null
+    /**
+     * Back handlers of screens with their own back stack (a conversation in a messaging app, the
+     * browser, the phone screen), by app id: in a split, Back must reach the pane touched last.
+     * Each returns true if it handled back.
+     */
+    private val screenBacks = HashMap<String, () -> Boolean>()
+
+    fun setScreenBack(appId: String, back: () -> Boolean) { screenBacks[appId] = back }
+
+    /** Drops [back] unless the app's next screen already installed its own. */
+    fun clearScreenBack(appId: String, back: () -> Boolean) { if (screenBacks[appId] === back) screenBacks.remove(appId) }
 
     /** Back key from the car. */
     fun back() {
         if (ui.assistantAppId != null) { ui.assistantAppId = null; return }
-        if (screenBack?.invoke() == true) return
+        val target = when (val s = ui.screen) {
+            is CarScreen.App -> s.appId
+            is CarScreen.Split -> if (ui.splitActiveLeft) s.left else s.right
+            else -> null
+        }
+        if (target != null && screenBacks[target]?.invoke() == true) return
         when (val s = ui.screen) {
             is CarScreen.App -> {
                 val conn = connections[s.appId]
                 // An app still connecting or that failed has no screen to go back in: leave it.
                 if (conn != null && conn.status == CarAppConnection.Status.READY) conn.back() else ui.screen = CarScreen.Dashboard
+            }
+            is CarScreen.Split -> {
+                // Back goes to the pane touched last; with nothing to go back in there, that pane closes.
+                val id = if (ui.splitActiveLeft) s.left else s.right
+                val conn = connections[id]
+                if (conn != null && conn.status == CarAppConnection.Status.READY) conn.back()
+                else ui.screen = CarScreen.App(if (id == s.left) s.right else s.left)
             }
             CarScreen.Launcher -> ui.screen = CarScreen.Dashboard
             CarScreen.Dashboard -> Unit
@@ -684,7 +761,12 @@ class CarRuntime(
                         when (app.kind) {
                             CarAppKind.MEDIA -> {
                                 val m = mediaApps.firstOrNull { it.packageName == app.packageName }
-                                if (m != null) media.Screen(m, ui.drivingRestricted, mod)
+                                // Parked: the app itself, its video, can take the art's place (the camera button, per app).
+                                val toggleVideo = { val p = app.packageName; settings.videoApps = if (p in videoApps) videoApps - p else videoApps + p }
+                                val video = if (phoneScreenAllowed && !ui.drivingRestricted) {
+                                    PhoneVideoSlot(app.packageName in videoApps, toggleVideo) { v -> PhoneVideo(this, app.packageName, v, onCover = toggleVideo) }
+                                } else null
+                                if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }
                             }
                             CarAppKind.MESSAGING -> MessagingScreen(app, ui.drivingRestricted, this, mod)
                             CarAppKind.PHONE_SCREEN -> MirrorScreen(this, ui.drivingRestricted, mod)
@@ -692,7 +774,7 @@ class CarRuntime(
                             CarAppKind.BROWSER -> BrowserScreen(this, ui.drivingRestricted, settings.browserUrl, mod)
                             CarAppKind.CAR_DATA -> CarDataScreen(mod)
                             CarAppKind.PHONE -> PhoneScreen(this, mod)
-                            CarAppKind.SETTINGS -> CarSettingsScreen(settings, mod)
+                            CarAppKind.SETTINGS -> CarSettingsScreen(settings, phoneScreenAllowed, mod)
                             CarAppKind.NOTIFICATIONS -> NotificationsScreen(ui, mod)
                             else -> shownConnection(app.id)?.let { CarAppScreen(it, this, mod) }
                         }

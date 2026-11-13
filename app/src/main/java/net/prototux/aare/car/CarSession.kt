@@ -340,8 +340,13 @@ class CarSession(
     /** Media paused by an unsolicited transient focus loss, to resume on the next gain (main thread). */
     private var pausedByCar = false
 
+    /** The head unit refused the phone certificate in so many words, not by hanging up during the handshake. */
+    @Volatile var authRejected = false
+        private set
+
     override fun onClosed(session: AapSession, reason: String, error: Throwable?) {
         val rejected = session.certificateRejected
+        authRejected = session.authRejected
         val refusal = session.pinRefusal
         main.post {
             teardown()

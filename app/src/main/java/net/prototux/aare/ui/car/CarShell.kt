@@ -1,5 +1,9 @@
 package net.prototux.aare.ui.car
 
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -7,7 +11,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +31,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
@@ -54,16 +59,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -71,6 +80,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +90,20 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import kotlin.math.roundToInt
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.composed
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.compositionLocalOf
 import net.prototux.aare.R
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.CarTheme
@@ -104,8 +130,23 @@ fun CarShell(
         CarPlayShell(state, actions, appContent, navMap, overlay, modifier)
         return
     }
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
-        BoxWithConstraints(Modifier.fillMaxSize().then(modifier)) {
+    // A long press on a rail app asks which pane to open it in (see PaneChooser).
+    var paneChoice by remember { mutableStateOf<PaneChoice?>(null) }
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    // A long press on the launcher button shows the shortcuts next to it (see ShortcutList).
+    var shortcutsAt by remember { mutableStateOf<Pair<Offset, Boolean>?>(null) }
+    val menus = remember(state) {
+        RailMenus(
+            choosePane = { app, center, horizontal -> paneChoice = PaneChoice(app, center - origin, horizontal, state.railOnRight) },
+            showShortcuts = { center, horizontal -> shortcutsAt = center - origin to horizontal },
+        )
+    }
+    // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
+    BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
+    LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
+    val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
+    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.
             val area = DpSize(maxWidth, maxHeight)
@@ -121,12 +162,74 @@ fun CarShell(
                     if (state.railOnRight) Rail(state, actions, horizontal = false, area)
                 }
             }
+            shortcutsAt?.let { (at, horizontal) -> ShortcutList(state, actions, at, horizontal) { shortcutsAt = null } }
+            paneChoice?.let { c ->
+                PaneChooser(c, onPick = { left -> paneChoice = null; actions.openInPane(c.app, left) }, onDismiss = { paneChoice = null })
+            }
+            fullScreen.value?.let { content -> Box(Modifier.fillMaxSize().background(Color.Black)) { content() } }
             overlay(Modifier.align(Alignment.BottomCenter))
             NoticeOverlay(state, actions, Modifier.align(Alignment.TopCenter))
             CallOverlay(state, actions, Modifier.align(Alignment.TopCenter))
         }
+    } }
+}
+
+/**
+ * The launcher button's shortcuts, picked on the phone, beside the held button ([at], in the
+ * shell's coordinates) and over everything else. Each works like a rail app: a tap opens it, a
+ * sideways swipe opens it in that pane, a long press offers the panes. A tap elsewhere closes it.
+ */
+/** Columns of the shortcuts' grid for [count] apps: the smallest square that holds them, at most four wide. */
+internal fun shortcutColumns(count: Int): Int = (1..4).firstOrNull { it * it >= count } ?: 4
+
+@Composable
+private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, horizontal: Boolean, onDone: () -> Unit) {
+    val menus = LocalRailMenus.current
+    val apps = state.shortcutAppIds.mapNotNull(state::app)
+    val gap = with(LocalDensity.current) { (LocalCarDimens.current.railButton / 2 + 12.dp).toPx() }
+    val half = with(LocalDensity.current) { (LocalCarDimens.current.railButton / 2).toPx() }
+    val shape = RoundedCornerShape(20.dp)
+    Box(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures { onDone() } }) {
+        Column(
+            Modifier
+                // Placed once measured: beside a side rail's button, its bottom level with the
+                // button's; above a bottom bar's. Kept on screen, scrolling when taller than it.
+                .layout { m, c ->
+                    val p = m.measure(c.copy(minWidth = 0, minHeight = 0))
+                    val x = when {
+                        horizontal -> at.x - p.width / 2
+                        state.railOnRight -> at.x - gap - p.width
+                        else -> at.x + gap
+                    }
+                    val y = if (horizontal) at.y - gap - p.height else at.y + half - p.height
+                    layout(c.maxWidth, c.maxHeight) {
+                        p.place(x.roundToInt().coerceIn(0, maxOf(0, c.maxWidth - p.width)), y.roundToInt().coerceIn(0, maxOf(0, c.maxHeight - p.height)))
+                    }
+                }
+                .shadow(12.dp, shape).clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
+                .verticalScroll(rememberScrollState()).padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // A small window of apps in a square-ish grid: 2×2, 3×3, then four columns.
+            apps.chunked(shortcutColumns(apps.size)).forEach { line ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    line.forEach { app ->
+                        val pane = RailPane(
+                            choose = { center -> onDone(); menus.choosePane(app, center, horizontal) },
+                            open = { left -> onDone(); actions.openInPane(app, left) },
+                        )
+                        RailApp(app, Icons.Rounded.Apps, state.screen.shows(app.id), pane) { onDone(); actions.openApp(app) }
+                    }
+                }
+            }
+        }
     }
 }
+
+/** What the car shell draws over the whole car screen, rail included (a video double-tapped), or null. Null outside the shell. */
+val LocalFullScreen = compositionLocalOf<MutableState<(@Composable () -> Unit)?>?> { null }
 
 @Composable
 private fun ContentArea(
@@ -147,9 +250,19 @@ private fun ContentArea(
     val inputMode = LocalInputModeManager.current.inputMode
     LaunchedEffect(state.screen) { runCatching { focusEntry.requestFocus() } }
     LaunchedEffect(inputMode) { if (!contentFocused) runCatching { focusEntry.requestFocus() } }
+    // Each app's screen is movable content, so it moves between full screen and a pane (or from one
+    // pane to the other) instead of being torn down and built again: the phone screen, a standalone
+    // app and the browser would lose their picture, process or page. For the same reason app
+    // screens and splits share one content key and don't cross-fade: a fade composes both at once.
+    val currentAppContent by rememberUpdatedState(appContent)
+    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
+    val appScreen: @Composable (CarAppEntry, Modifier) -> Unit = { app, mod ->
+        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
+    }
     AnimatedContent(
         targetState = state.screen,
         transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
+        contentKey = { if (it is CarScreen.App || it is CarScreen.Split) "apps" else it },
         modifier = modifier.fillMaxHeight().onFocusChanged { contentFocused = it.hasFocus }
             .focusRequester(focusEntry).focusGroup(),
         label = "screen",
@@ -162,8 +275,9 @@ private fun ContentArea(
             CarScreen.Launcher -> Launcher(state, actions, Modifier.fillMaxSize())
             is CarScreen.App -> {
                 val app = state.app(screen.appId)
-                if (app != null) appContent(app, Modifier.fillMaxSize()) else Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
+                if (app != null) appScreen(app, Modifier.fillMaxSize()) else Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
             }
+            is CarScreen.Split -> SplitPane(screen, state, actions, appScreen, Modifier.fillMaxSize())
         }
     }
 }
@@ -189,16 +303,16 @@ private fun Rail(state: CarUiState, actions: CarActions, horizontal: Boolean, ar
 internal data class SideRailFit(val recentSlots: Int, val status: Boolean, val settings: Boolean)
 
 /**
- * Fits the side rail to its [height] inside the padding. Everything takes about 614 dp (clock and
- * bell 72, phone status and weather 54, the four apps 328, menu and mic 160), so on shorter screens
+ * Fits the side rail to its [height] inside the padding. Everything takes about 534 dp (clock and
+ * bell 72, phone status and weather 54, the four apps 276, menu and mic 132), so on shorter screens
  * the phone status and weather go first, then Settings (the launcher has it); below that the apps
- * scroll. Dropping items rather than shrinking them keeps every button a full touch target.
+ * scroll. Dropping items rather than shrinking them keeps every button its full size.
  */
 internal fun sideRailFit(height: Dp) = SideRailFit(
-    // A recent app only on tall screens: what an 800 dp screen leaves inside the padding.
-    recentSlots = if (height >= 768.dp) 1 else 0,
-    status = height >= 614.dp,
-    settings = height >= 560.dp,
+    // A recent app when one more button (64 dp and its gap) fits besides everything else.
+    recentSlots = if (height >= 602.dp) 1 else 0,
+    status = height >= 534.dp,
+    settings = height >= 480.dp,
 )
 
 @Composable
@@ -208,7 +322,13 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     val media = state.app(state.activeMediaAppId)
     val phone = state.apps.firstOrNull { it.kind == CarAppKind.PHONE }
     val settings = state.apps.firstOrNull { it.kind == CarAppKind.SETTINGS }
-    fun on(app: CarAppEntry?) = app != null && state.screen == CarScreen.App(app.id)
+    fun on(app: CarAppEntry?) = app != null && state.screen.shows(app.id)
+    // Held: offer the two panes for it, next to the icon.
+    val menus = LocalRailMenus.current
+    // A bottom bar scrolls sideways, so a sideways swipe there scrolls instead of picking a pane.
+    val hold: (CarAppEntry) -> RailPane = { app ->
+        RailPane({ center -> menus.choosePane(app, center, horizontal) }, if (horizontal) null else { left: Boolean -> actions.openInPane(app, left) })
+    }
     // Like Android Auto's taskbar: the apps used last, besides the fixed ones (one on a side rail, for height).
     val fixed = setOfNotNull(nav?.id, media?.id, phone?.id, settings?.id)
     val recent = state.recentAppIds.filter { it !in fixed }.mapNotNull(state::app)
@@ -216,16 +336,24 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     // weather there, the launcher has them all. Landscape bars keep everything.
     val tightBar = horizontal && area.height > area.width && area.width < 800.dp
     val tighterBar = tightBar && area.width < 640.dp
-    val apps: @Composable (Int, Boolean) -> Unit = { recentSlots, withSettings ->
-        RailApp(nav, Icons.Rounded.Map, on(nav)) { nav?.let(actions::openApp) ?: actions.openLauncher() }
-        RailApp(media, Icons.Rounded.MusicNote, on(media)) { media?.let(actions::openApp) ?: actions.openLauncher() }
-        recent.take(recentSlots).forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app)) { actions.openApp(app) } }
-        phone?.let { RailApp(it, Icons.Rounded.Call, on(it)) { actions.openApp(it) } }
-        settings?.takeIf { withSettings }?.let { RailApp(it, Icons.Rounded.Settings, on(it)) { actions.openApp(it) } }
+    // Picked on the phone: those, all of them, scrolling when they don't fit.
+    val picked = state.railAppIds.mapNotNull(state::app)
+    val apps: @Composable (Int, Boolean) -> Unit = auto@{ recentSlots, withSettings ->
+        if (picked.isNotEmpty()) {
+            picked.forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app), hold(app)) { actions.openApp(app) } }
+            return@auto
+        }
+        RailApp(nav, Icons.Rounded.Map, on(nav), nav?.let(hold)) { nav?.let(actions::openApp) ?: actions.openLauncher() }
+        RailApp(media, Icons.Rounded.MusicNote, on(media), media?.let(hold)) { media?.let(actions::openApp) ?: actions.openLauncher() }
+        recent.take(recentSlots).forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app), hold(app)) { actions.openApp(app) } }
+        phone?.let { RailApp(it, Icons.Rounded.Call, on(it), hold(it)) { actions.openApp(it) } }
+        settings?.takeIf { withSettings }?.let { RailApp(it, Icons.Rounded.Settings, on(it), hold(it)) { actions.openApp(it) } }
     }
+    // Held: the shortcuts picked on the phone, if any.
+    val shortcuts = RailPane({ center -> menus.showShortcuts(center, horizontal) }).takeIf { state.shortcutAppIds.isNotEmpty() }
     val menu: @Composable () -> Unit = {
-        if (state.screen == CarScreen.Dashboard) RailButton(Icons.Rounded.Apps, stringResource(R.string.dash_menu_apps), selected = false) { actions.openLauncher() }
-        else RailButton(Icons.Rounded.Home, stringResource(R.string.dash_menu_home), selected = false) { actions.goHome() }
+        if (state.screen == CarScreen.Dashboard) RailButton(Icons.Rounded.Apps, stringResource(R.string.dash_menu_apps), selected = false, shortcuts) { actions.openLauncher() }
+        else RailButton(Icons.Rounded.Home, stringResource(R.string.dash_menu_home), selected = false, shortcuts) { actions.goHome() }
     }
     val mic: @Composable () -> Unit = { MicButton(state.listening) { actions.assistant() } }
     val bell = { state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp) }
@@ -243,14 +371,14 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { apps(if (tightBar) 0 else 2, !tighterBar) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) { apps(if (tightBar) 0 else 2, !tighterBar) }
             }
             if (state.driverOnRight) driverEnd() else status()
         }
     } else {
-        val fit = sideRailFit(area.height - 32.dp)
+        val fit = sideRailFit(area.height - 24.dp)
         Column(
-            Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = 16.dp),
+            Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Clock()
@@ -263,15 +391,17 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             NotificationBell(state) { bell() }
             // The apps are the only weighted child, so they are measured last and are the part that
             // gives up space: menu and mic (the only way home on touch-only units) keep their size.
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            // Grouped under the clock like a dock, so spare height collects above the menu instead
+            // of opening gaps around the apps.
+            Box(Modifier.weight(1f).padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
                 Column(
                     Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) { apps(fit.recentSlots, fit.settings) }
             }
             menu()
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             mic()
         }
     }
@@ -294,33 +424,82 @@ internal fun Clock() {
 }
 
 @Composable
-private fun RailButton(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
+private fun RailButton(icon: ImageVector, label: String, selected: Boolean, pane: RailPane? = null, onClick: () -> Unit) {
     val d = LocalCarDimens.current
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        Modifier.size(d.touchTarget).clip(RoundedCornerShape(24.dp)).background(bg).carFocusHighlight(RoundedCornerShape(24.dp)).clickable(onClick = onClick),
+        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(bg).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(d.iconSize))
+        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(d.railIcon))
     }
 }
 
 @Composable
-private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean, onClick: () -> Unit) {
+private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean, pane: RailPane?, onClick: () -> Unit) {
     val d = LocalCarDimens.current
     if (app?.icon == null) {
-        RailButton(fallback, app?.label ?: "", selected, onClick)
+        RailButton(fallback, app?.label ?: "", selected, pane, onClick)
         return
     }
     val ring = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(
-        Modifier.size(d.touchTarget).clip(RoundedCornerShape(24.dp)).background(ring).carFocusHighlight(RoundedCornerShape(24.dp)).clickable(onClick = onClick),
+        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(ring).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Image(app.icon.asImageBitmap(), app.label, Modifier.size(48.dp).clip(CircleShape))
+        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(CircleShape))
     }
 }
+
+/**
+ * What a rail app offers besides a tap: a long press hands [choose] the button's center (root
+ * coordinates), and a sideways swipe calls [open] with the side.
+ */
+private class RailPane(val choose: (Offset) -> Unit, val open: ((left: Boolean) -> Unit)? = null)
+
+/** The shell's menus over everything: the panes for an app at a point, and the launcher's shortcuts next to a button. */
+private class RailMenus(val choosePane: (CarAppEntry, Offset, Boolean) -> Unit, val showShortcuts: (Offset, Boolean) -> Unit)
+
+private val LocalRailMenus = staticCompositionLocalOf { RailMenus({ _, _, _ -> }, { _, _ -> }) }
+
+/**
+ * A tap opens. With [pane], a long press offers the panes and a sideways swipe opens the app in
+ * the pane on that side.
+ */
+private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier = composed {
+    var center by remember { mutableStateOf(Offset.Zero) }
+    val current by rememberUpdatedState(pane)
+    onGloballyPositioned { center = it.boundsInRoot().center }
+        .then(if (pane?.open == null) Modifier else Modifier.pointerInput(Unit) {
+            // Little room to swipe on a rail at the screen's edge: a short swipe is enough.
+            val min = 24.dp.toPx()
+            // Judged from where the finger went down to where it lifted, not from drag events: a
+            // car's touch screen may report a quick swipe with few moves or none in between. Seen
+            // before the click handler, so a swipe's lift isn't also a tap.
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                // Once the finger has moved sideways, it is a swipe, however slow: its moves are
+                // consumed so the click handler drops both the tap and the long press.
+                var swiping = false
+                while (true) {
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                    val d = change.position - down.position
+                    if (!swiping && abs(d.x) > viewConfiguration.touchSlop && abs(d.x) > abs(d.y)) swiping = true
+                    if (change.pressed) {
+                        if (swiping) change.consume()
+                        continue
+                    }
+                    swipeSide(d.x, d.y, min)?.let { left -> change.consume(); current?.open?.invoke(left) }
+                    break
+                }
+            }
+        })
+        .combinedClickable(onClick = onClick, onLongClick = pane?.let { p -> { p.choose(center) } })
+}
+
+/** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
+internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null
 
 @Composable
 private fun MicButton(listening: Boolean, onClick: () -> Unit) {
@@ -328,10 +507,10 @@ private fun MicButton(listening: Boolean, onClick: () -> Unit) {
     val bg = if (listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
     val fg = if (listening) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
     Box(
-        Modifier.size(d.touchTarget).clip(CircleShape).background(bg).carFocusHighlight(CircleShape).clickable(onClick = onClick),
+        Modifier.size(d.railButton).clip(CircleShape).background(bg).carFocusHighlight(CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.assistant_mic_label), tint = fg, modifier = Modifier.size(d.iconSize))
+        Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.assistant_mic_label), tint = fg, modifier = Modifier.size(d.railIcon))
     }
 }
 
@@ -355,7 +534,7 @@ internal fun Dashboard(
                 val event = state.nextEvent
                 val latest = state.history.firstOrNull()
                 when {
-                    event != null -> Card(Modifier.fillMaxWidth().height(180.dp)) { CalendarCard(event, actions::navigateTo, Modifier.fillMaxSize()) }
+                    event != null -> Card(Modifier.fillMaxWidth().height(180.dp)) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
                     latest != null -> Card(Modifier.fillMaxWidth().height(180.dp), onClick = {
                         state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp)
                     }) { LatestNotification(latest, state.drivingRestricted) }
@@ -375,7 +554,7 @@ internal fun Dashboard(
                 val event = state.nextEvent
                 val latest = state.history.firstOrNull()
                 when {
-                    event != null -> Card(Modifier.weight(0.9f).fillMaxHeight()) { CalendarCard(event, actions::navigateTo, Modifier.fillMaxSize()) }
+                    event != null -> Card(Modifier.weight(0.9f).fillMaxHeight()) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
                     latest != null -> Card(Modifier.weight(0.9f).fillMaxHeight(), onClick = {
                         state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp)
                     }) { LatestNotification(latest, state.drivingRestricted) }
@@ -390,7 +569,7 @@ internal fun Dashboard(
                 } else {
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gutter)) {
                         MediaCard(state, actions, compact = false, modifier = Modifier.weight(1.3f).fillMaxWidth())
-                        Card(Modifier.weight(1f).fillMaxWidth()) { CalendarCard(event, actions::navigateTo, Modifier.fillMaxSize()) }
+                        Card(Modifier.weight(1f).fillMaxWidth()) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
                     }
                 }
             }
@@ -533,22 +712,50 @@ private fun MediaCard(state: CarUiState, actions: CarActions, compact: Boolean, 
             }
         } else {
             Column(Modifier.fillMaxSize().padding(24.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Art(np, 72)
-                    Spacer(Modifier.width(16.dp))
-                    if (media != null) AppIcon(media, 28)
-                }
-                Spacer(Modifier.weight(1f))
+                // The cover fills the height the text and buttons leave, as a square, instead of a
+                // small one over an empty half of the card.
+                CoverArt(np, media, Modifier.weight(1f).aspectRatio(1f, matchHeightConstraintsFirst = true))
+                Spacer(Modifier.height(16.dp))
                 content()
                 Spacer(Modifier.height(12.dp))
                 if (np != null && np.durationMs > 0) {
+                    var now by remember { mutableLongStateOf(android.os.SystemClock.elapsedRealtime()) }
+                    LaunchedEffect(np.playing, np.updatedAtMs) {
+                        now = android.os.SystemClock.elapsedRealtime()
+                        while (np.playing) {
+                            delay(500)
+                            now = android.os.SystemClock.elapsedRealtime()
+                        }
+                    }
                     LinearProgressIndicator(
-                        progress = { (np.positionMs.toFloat() / np.durationMs).coerceIn(0f, 1f) },
+                        progress = { mediaProgress(np.positionMs, np.durationMs, np.playing, np.updatedAtMs, now) },
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                     )
                     Spacer(Modifier.height(12.dp))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { MediaButtons(np, actions) }
+            }
+        }
+    }
+}
+
+/**
+ * The playing cover, filling [modifier], with the media app's icon in its corner. With no cover
+ * (nothing playing, or an app without art) the app's own icon stands in, large, so the card
+ * doesn't show a generic note next to a small copy of the same app.
+ */
+@Composable
+private fun CoverArt(np: NowPlaying?, media: CarAppEntry?, modifier: Modifier) {
+    val shape = RoundedCornerShape(20.dp)
+    Box(modifier) {
+        if (np?.art != null) {
+            Image(np.art.asImageBitmap(), null, Modifier.fillMaxSize().clip(shape), contentScale = ContentScale.Crop)
+            if (media != null) Box(Modifier.align(Alignment.BottomEnd).padding(8.dp)) { AppIcon(media, 32) }
+        } else {
+            BoxWithConstraints(Modifier.fillMaxSize().clip(shape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+                val icon = (minOf(maxWidth, maxHeight) * 0.45f).value.toInt()
+                if (media != null) AppIcon(media, icon)
+                else Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(icon.dp))
             }
         }
     }
@@ -587,6 +794,7 @@ fun RoundIcon(icon: ImageVector, label: String, filled: Boolean, onClick: () -> 
 
 @Composable
 private fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier) {
+    val menus = LocalRailMenus.current
     LazyVerticalGrid(
         columns = GridCells.Adaptive(150.dp),
         modifier = modifier,
@@ -594,10 +802,13 @@ private fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier)
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Already in the user's order (CarRuntime.applyApps).
-        items(state.apps, key = { it.id }) { app ->
+        // Already in the user's order (CarRuntime.applyApps), less the rail's and the shortcuts' if so set.
+        val pinned = if (state.launcherHidesPinned) (state.railAppIds + state.shortcutAppIds).toSet() else emptySet()
+        items(state.apps.filter { it.id !in pinned }, key = { it.id }) { app ->
+            // Like the rail: held offers the panes, a sideways swipe opens it in one.
+            val pane = RailPane({ center -> menus.choosePane(app, center, true) }, { left -> actions.openInPane(app, left) })
             Column(
-                Modifier.clip(RoundedCornerShape(24.dp)).clickable { actions.openApp(app) }.padding(12.dp),
+                Modifier.clip(RoundedCornerShape(24.dp)).railClick(pane) { actions.openApp(app) }.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AppIcon(app, 80)

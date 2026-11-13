@@ -132,6 +132,9 @@ class AapSession(
      */
     @Volatile var certificateRejected = false
         private set
+    /** The head unit said so in AUTH_COMPLETE, rather than hanging up during the handshake. */
+    @Volatile var authRejected = false
+        private set
     @Volatile private var tlsStarted = false
     @Volatile var discovery: ServiceDiscoveryResponse? = null
         private set
@@ -436,6 +439,7 @@ class AapSession(
         val status = runCatching { AuthResponse.parseFrom(msg.bodyBytes()).status }.getOrDefault(0)
         if (status != 0) {
             certificateRejected = true
+            authRejected = true
             fail("head unit rejected authentication (status $status)", null)
             return
         }

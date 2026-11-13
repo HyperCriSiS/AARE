@@ -29,12 +29,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -60,6 +62,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import net.prototux.aare.R
+import net.prototux.aare.mirror.LocalPhoneVideo
+import net.prototux.aare.mirror.PhoneVideoSlot
 import net.prototux.aare.ui.car.carFocusHighlight
 import net.prototux.aare.ui.theme.LocalCarDimens
 
@@ -88,6 +92,7 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
         }
         return
     }
+    val video = LocalPhoneVideo.current
     Box(Modifier.fillMaxSize()) {
         // a soft backdrop of the art, fading into the background
         if (info.art != null) {
@@ -109,7 +114,7 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                Controls(hub, source, state, setView)
+                Controls(hub, source, state, setView, video)
             }
         }
     }
@@ -139,11 +144,11 @@ private fun Details(state: SourceState, info: PlaybackInfo, source: PlaybackSour
  * own buttons split on both sides, the queue at the end. Extra buttons are dropped when narrow.
  */
 @Composable
-private fun Controls(hub: DefaultMediaHub, source: PlaybackSource, state: SourceState, setView: (MediaView) -> Unit) {
+private fun Controls(hub: DefaultMediaHub, source: PlaybackSource, state: SourceState, setView: (MediaView) -> Unit, video: PhoneVideoSlot?) {
     val touch = LocalCarDimens.current.touchTarget
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val hasQueue = state.queue.isNotEmpty()
-        val slots = ((maxWidth - PLAY_SIZE - touch * 2) / touch).toInt() - (if (hasQueue) 1 else 0)
+        val slots = ((maxWidth - PLAY_SIZE - touch * 2) / touch).toInt() - (if (hasQueue) 1 else 0) - (if (video != null) 1 else 0)
         val actions = state.actions.take(slots.coerceAtLeast(0))
         val left = actions.take((actions.size + 1) / 2)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -156,6 +161,8 @@ private fun Controls(hub: DefaultMediaHub, source: PlaybackSource, state: Source
             CircleButton(Icons.Rounded.SkipNext, stringResource(R.string.media_action_next), onClick = source::next, enabled = state.canNext)
             actions.drop(left.size).forEach { ActionButton(hub, it) }
             if (hasQueue) CircleButton(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.media_queue_title), onClick = { setView(MediaView.QUEUE) })
+            // Between the phone's video and the art.
+            video?.let { CircleButton(if (it.shown) Icons.Rounded.Image else Icons.Rounded.Videocam, stringResource(if (it.shown) R.string.media_action_show_art else R.string.media_action_show_video), onClick = it.toggle) }
         }
     }
 }

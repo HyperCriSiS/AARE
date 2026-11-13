@@ -32,6 +32,19 @@ object AndroidAutoApps {
     private val MESSAGING_USES = setOf("notification", "sms")
 
     /**
+     * Navigation apps that only Google's Android Auto can host, recognized even before they post
+     * guidance. Some declare `<uses name="notification"/>` (Google Maps does), which made them
+     * empty messaging apps in the car; they are listed with the apps AARE can't show instead.
+     */
+    val KNOWN_NAVIGATION = setOf(
+        "com.google.android.apps.maps",
+        "com.waze",
+        "com.here.app.maps",
+        "com.sygic.aura",
+        "com.tomtom.gplay.navapp",
+    )
+
+    /**
      * Messaging apps, as Android Auto finds them: apps declaring `<uses name="notification"/>`
      * (or `sms`), plus the default SMS app.
      */
@@ -39,7 +52,7 @@ object AndroidAutoApps {
         val pm = context.packageManager
         val sms = runCatching { Telephony.Sms.getDefaultSmsPackage(context) }.getOrNull()
         return declaring(context)
-            .filter { (app, uses) -> uses.any { it in MESSAGING_USES } || app.packageName == sms }
+            .filter { (app, uses) -> (uses.any { it in MESSAGING_USES } && app.packageName !in KNOWN_NAVIGATION) || app.packageName == sms }
             .map { (app, _) -> PhoneApp(app.packageName, app.loadLabel(pm).toString(), runCatching { app.loadIcon(pm).toBitmap(iconSizePx, iconSizePx) }.getOrNull()) }
             .let { found ->
                 if (sms == null || found.any { it.packageName == sms }) found
@@ -67,7 +80,7 @@ object AndroidAutoApps {
         val pm = context.packageManager
         val shown = carApps.toSet() + mediaPackages(pm)
         return declaring(context)
-            .filter { (app, uses) -> app.packageName !in shown && uses.none { it in MESSAGING_USES } }
+            .filter { (app, uses) -> app.packageName !in shown && (uses.none { it in MESSAGING_USES } || app.packageName in KNOWN_NAVIGATION) }
             .map { (app, uses) ->
                 UnsupportedCarApp(
                     packageName = app.packageName,
@@ -86,15 +99,22 @@ object AndroidAutoApps {
         @Suppress("DEPRECATION")
         return pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .filter { it.enabled && it.metaData?.containsKey(META_CAR_APPLICATION) == true && it.packageName != context.packageName }
-            .map { it to uses(pm, it) }
+            .map { it to uses(pm, it).orEmpty() }
     }
 
-    /** Packages with a media browser service, which AARE lists as media apps (see MediaDiscovery). */
+    /**
+     * Packages with a media browser service, which AARE lists as media apps (see MediaDiscovery),
+     * less those declaring Android Auto support without media: those are messaging apps.
+     */
     private fun mediaPackages(pm: PackageManager): Set<String> =
         listOf(MediaDiscovery.ACTION_MEDIA3_LIBRARY, MediaDiscovery.ACTION_LEGACY_BROWSER).flatMap { action ->
             @Suppress("DEPRECATION") pm.queryIntentServices(Intent(action), 0)
                 .mapNotNull { ri -> ri.serviceInfo?.takeIf { it.exported }?.packageName }
-        }.toSet()
+        }.toSet().filterTo(HashSet()) { pkg ->
+            @Suppress("DEPRECATION")
+            val app = runCatching { pm.getApplicationInfo(pkg, PackageManager.GET_META_DATA) }.getOrNull() ?: return@filterTo true
+            app.metaData?.containsKey(META_CAR_APPLICATION) != true || uses(pm, app)?.contains("media") != false
+        }
 
     private fun reason(uses: Set<String>): String = when {
         "media" in uses -> "Declares media support but has no media browser service AARE can use"
@@ -103,8 +123,8 @@ object AndroidAutoApps {
         else -> "Uses Google's private Android Auto interface (${uses.joinToString()}), which only Android Auto can host"
     }
 
-    /** The `<uses name="…">` entries of the app's `automotive_app_desc` XML. */
-    private fun uses(pm: PackageManager, app: ApplicationInfo): Set<String> {
+    /** The `<uses name="…">` entries of the app's `automotive_app_desc` XML, or null when it can't be read. */
+    private fun uses(pm: PackageManager, app: ApplicationInfo): Set<String>? {
         val res = app.metaData?.getInt(META_CAR_APPLICATION, 0)?.takeIf { it != 0 } ?: return emptySet()
         return runCatching {
             pm.getResourcesForApplication(app).getXml(res).use { xml ->
@@ -116,6 +136,6 @@ object AndroidAutoApps {
                     }
                 }
             }
-        }.getOrDefault(emptySet())
+        }.getOrNull()
     }
 }

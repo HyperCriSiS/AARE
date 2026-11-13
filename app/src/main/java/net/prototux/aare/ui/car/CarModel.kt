@@ -189,7 +189,7 @@ interface CarActions {
     fun openApp(app: CarAppEntry)
     /**
      * Opens [app] in the left or right pane, next to what is on screen ([splitWith]), or full screen
-     * for null, and keeps that as where [openApp] opens it from now on.
+     * for null, and keeps that as where [openApp] opens it from now on (when a tap opens apps in their pane).
      */
     fun openInPane(app: CarAppEntry, left: Boolean?)
     /** The split's divider was let go at [fraction]: near an edge that pane closes ([snapSplit]), else the panes take that size. */

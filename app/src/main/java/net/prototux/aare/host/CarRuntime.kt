@@ -602,7 +602,7 @@ class CarRuntime(
     // ------------------------------------------------------------------ actions from the car UI
 
     val actions = object : CarActions {
-        override fun openApp(app: CarAppEntry) = open(app, settings.appPanes[orderKey(app)])
+        override fun openApp(app: CarAppEntry) = open(app, if (settings.tapOpensPane) settings.appPanes[orderKey(app)] else null)
 
         override fun openInPane(app: CarAppEntry, left: Boolean?) {
             val key = orderKey(app)

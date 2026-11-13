@@ -169,6 +169,12 @@ class CarUiState {
     var carPlayStyle by mutableStateOf(false)
     /** The rail runs along the bottom instead of a side. */
     var railBottom by mutableStateOf(false)
+    /** The rail's apps picked on the phone, in order (ids); empty: the automatic ones. */
+    var railAppIds by mutableStateOf<List<String>>(emptyList())
+    /** The apps a long press on the launcher button offers, in order (ids). */
+    var shortcutAppIds by mutableStateOf<List<String>>(emptyList())
+    /** The launcher leaves out the apps in [railAppIds] and [shortcutAppIds]. */
+    var launcherHidesPinned by mutableStateOf(false)
     /** The left pane's share of the width in a split, kept between splits. */
     var splitFraction by mutableFloatStateOf(0.5f)
     /** The pane touched last in a split: the car's Back key goes to its app. */

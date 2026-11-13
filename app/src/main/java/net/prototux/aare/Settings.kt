@@ -270,6 +270,21 @@ class Settings(context: Context) {
         get() = prefs.getString("app_order", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("app_order", v.joinToString("\n")) }
 
+    /** The car rail's apps, by [appOrder] key, in order. Empty: the automatic ones (last navigation and media apps, Phone). */
+    var railApps: List<String>
+        get() = prefs.getString("rail_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
+        set(v) = prefs.edit { putString("rail_apps", v.joinToString("\n")) }
+
+    /** The apps a long press on the car's launcher button offers, by [appOrder] key, in order. */
+    var shortcutApps: List<String>
+        get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
+        set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
+
+    /** The car's launcher leaves out the apps in [railApps] and [shortcutApps]. */
+    var launcherHidesPinned: Boolean
+        get() = prefs.getBoolean("launcher_hides_pinned", false)
+        set(v) = prefs.edit { putBoolean("launcher_hides_pinned", v) }
+
     /** Runtime permissions setup has asked for at least once, to tell a dismissed dialog from a refusal for good. */
     var requestedPermissions: Set<String>
         get() = prefs.getStringSet("requested_permissions", emptySet()) ?: emptySet()

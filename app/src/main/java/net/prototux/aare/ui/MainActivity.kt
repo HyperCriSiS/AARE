@@ -56,6 +56,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -919,7 +920,11 @@ private fun AppsCard(settings: Settings) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
             }
         }
-        if (l != null) AppOrder(settings, l, hidden, phoneScreen, browser)
+        if (l != null) {
+            val entries = launcherEntries(l, hidden, phoneScreen, browser)
+            AppOrder(settings, entries)
+            RailPicks(settings, entries)
+        }
         StandaloneAppsSection(settings, ctx)
         val unsupported by produceState(emptyList<UnsupportedCarApp>(), l) {
             if (l != null) value = withContext(Dispatchers.IO) { AndroidAutoApps.unsupported(ctx, l.carApps.map { it.packageName }) }
@@ -934,11 +939,10 @@ private fun AppsCard(settings: Settings) {
     }
 }
 
-/** The order of the car's app list: the visible apps, with up and down buttons. */
+/** The car launcher's visible apps as (key, label, icon), keys as CarRuntime.orderKey: packages, or the built-in apps' ids. */
 @Composable
-private fun AppOrder(settings: Settings, l: LauncherLists, hidden: Set<String>, phoneScreen: Boolean, browser: Boolean) {
-    // Keys as CarRuntime.orderKey: packages, or the built-in apps' ids.
-    val all = buildList {
+private fun launcherEntries(l: LauncherLists, hidden: Set<String>, phoneScreen: Boolean, browser: Boolean): List<Triple<String, String, Bitmap?>> =
+    buildList {
         l.carApps.forEach { add(Triple(it.packageName, it.label, it.icon)) }
         l.media.forEach { add(Triple(it.packageName, it.label, it.icon)) }
         l.messaging.forEach { add(Triple(it.packageName, it.label, it.icon)) }
@@ -949,6 +953,10 @@ private fun AppOrder(settings: Settings, l: LauncherLists, hidden: Set<String>, 
         if (phoneScreen) Triple(CarRuntime.PHONE_SCREEN_ID, stringResource(R.string.phone_section_title), null) else null,
         if (browser) Triple(CarRuntime.BROWSER_ID, stringResource(R.string.browser_app_label), null) else null,
     )
+
+/** The order of the car's app list: the visible apps, with up and down buttons. */
+@Composable
+private fun AppOrder(settings: Settings, all: List<Triple<String, String, Bitmap?>>) {
     var order by remember { mutableStateOf(settings.appOrder) }
     val index = order.withIndex().associate { (i, k) -> k to i }
     val sorted = all.sortedWith(compareBy({ index[it.first] ?: Int.MAX_VALUE }, { it.second.lowercase() }))
@@ -965,13 +973,65 @@ private fun AppOrder(settings: Settings, l: LauncherLists, hidden: Set<String>, 
     }
     Section(stringResource(R.string.setup_section_app_order)) {
         sorted.forEachIndexed { i, (_, label, icon) ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) Image(icon.asImageBitmap(), null, Modifier.size(32.dp).clip(CircleShape))
-                else Box(Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer))
-                Spacer(Modifier.width(12.dp))
-                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            EntryRow(icon, label) {
                 IconButton(onClick = { move(i, -1) }, enabled = i > 0) { Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up)) }
                 IconButton(onClick = { move(i, 1) }, enabled = i < sorted.lastIndex) { Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down)) }
+            }
+        }
+    }
+}
+
+/** An app in a list: its icon, its name, then [actions]. */
+@Composable
+private fun EntryRow(icon: Bitmap?, label: String, actions: @Composable () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (icon != null) Image(icon.asImageBitmap(), null, Modifier.size(32.dp).clip(CircleShape))
+        else Box(Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer))
+        Spacer(Modifier.width(12.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        actions()
+    }
+}
+
+/** The car rail's apps and the launcher button's shortcuts, each picked and ordered here. */
+@Composable
+private fun RailPicks(settings: Settings, entries: List<Triple<String, String, Bitmap?>>) {
+    var rail by remember { mutableStateOf(settings.railApps) }
+    var shortcuts by remember { mutableStateOf(settings.shortcutApps) }
+    var hide by remember { mutableStateOf(settings.launcherHidesPinned) }
+    PickList(stringResource(R.string.setup_section_rail), stringResource(R.string.setup_rail_hint), entries, rail) { rail = it; settings.railApps = it }
+    PickList(stringResource(R.string.setup_section_shortcuts), stringResource(R.string.setup_shortcuts_hint), entries, shortcuts) {
+        shortcuts = it; settings.shortcutApps = it
+    }
+    Section(stringResource(R.string.setup_section_app_list_filter)) {
+        Toggle(stringResource(R.string.setup_toggle_hide_pinned_title), stringResource(R.string.setup_toggle_hide_pinned_subtitle), hide) {
+            hide = it; settings.launcherHidesPinned = it
+        }
+    }
+}
+
+/** Apps picked from [entries], in order: up, down and remove on each, and the others to add. */
+@Composable
+private fun PickList(title: String, hint: String, entries: List<Triple<String, String, Bitmap?>>, picked: List<String>, onChange: (List<String>) -> Unit) {
+    val byKey = entries.associateBy { it.first }
+    // An app hidden or gone since stays out of view; the next change drops it.
+    val shown = picked.filter { it in byKey }
+    fun move(i: Int, by: Int) = onChange(shown.toMutableList().apply { add((i + by).coerceIn(0, lastIndex), removeAt(i)) })
+    var adding by remember { mutableStateOf(false) }
+    Section(title) {
+        Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        shown.forEachIndexed { i, key ->
+            val (_, label, icon) = byKey.getValue(key)
+            EntryRow(icon, label) {
+                IconButton(onClick = { move(i, -1) }, enabled = i > 0) { Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up)) }
+                IconButton(onClick = { move(i, 1) }, enabled = i < shown.lastIndex) { Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down)) }
+                IconButton(onClick = { onChange(shown - key) }) { Icon(Icons.Rounded.Close, stringResource(R.string.common_remove)) }
+            }
+        }
+        TextButton(onClick = { adding = !adding }) { Text(stringResource(if (adding) R.string.common_done else R.string.common_add_apps)) }
+        if (adding) {
+            entries.filter { it.first !in shown }.forEach { (key, label, icon) ->
+                EntryRow(icon, label) { IconButton(onClick = { onChange(shown + key) }) { Icon(Icons.Rounded.Add, stringResource(R.string.common_add_apps)) } }
             }
         }
     }

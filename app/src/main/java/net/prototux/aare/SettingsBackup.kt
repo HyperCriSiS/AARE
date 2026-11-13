@@ -24,7 +24,9 @@ object SettingsBackup {
         else -> true
     }
 
-    private val DEVICE_KEYS = setOf("instance_id", "requested_permissions", "cert_index")
+    // This phone's Bluetooth address (sent to cars for wireless) and whether this phone has root
+    // set up for audio belong to it, like its id.
+    private val DEVICE_KEYS = setOf("instance_id", "requested_permissions", "cert_index", "phone_bt_address", "root_audio")
 
     fun export(context: Context): String {
         val prefs = JSONObject()
@@ -36,7 +38,7 @@ object SettingsBackup {
             }
             prefs.put(name, values)
         }
-        val vehicles = vehiclesFile(context).takeIf { it.isFile }?.readText()
+        val vehicles = vehiclesFile(context)?.takeIf { it.isFile }?.readText()
         return JSONObject().put("app", "AARE").put("format", FORMAT).put("prefs", prefs)
             .apply { if (vehicles != null) put("vehicles", vehicles) }.toString(2)
     }
@@ -66,7 +68,7 @@ object SettingsBackup {
                 }
             }
         }
-        root.optString("vehicles").takeIf { it.isNotBlank() }?.let { vehiclesFile(context).apply { parentFile?.mkdirs() }.writeText(it) }
+        root.optString("vehicles").takeIf { it.isNotBlank() }?.let { text -> vehiclesFile(context)?.apply { parentFile?.mkdirs() }?.writeText(text) }
     }
 
     private fun typeOf(value: Any): String? = when (value) {
@@ -79,5 +81,6 @@ object SettingsBackup {
         else -> null
     }
 
-    private fun vehiclesFile(context: Context): File = VehicleOverrides.file(context)
+    /** Null while the app's external storage isn't available. */
+    private fun vehiclesFile(context: Context): File? = context.getExternalFilesDir(null)?.let { File(it, VehicleOverrides.FILE) }
 }

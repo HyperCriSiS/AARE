@@ -18,5 +18,7 @@ class SettingsBackupTest {
         assertFalse(SettingsBackup.keeps("settings", "requested_permissions"))
         assertFalse(SettingsBackup.keeps("settings", "cert_index"))
         assertFalse(SettingsBackup.keeps("settings", "update_latest"))
+        assertFalse(SettingsBackup.keeps("settings", "phone_bt_address"))
+        assertFalse(SettingsBackup.keeps("settings", "root_audio"))
     }
 }

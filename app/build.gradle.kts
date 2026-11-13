@@ -16,8 +16,8 @@ android {
         minSdk = 26
         targetSdk = 37
         // The release workflow passes the tag's version (-PversionName=1.2.3 -PversionCode=10203).
-        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 10000
-        versionName = providers.gradleProperty("versionName").orNull ?: "1.0.0"
+        versionCode = providers.gradleProperty("versionCode").orNull?.toInt() ?: 10500
+        versionName = providers.gradleProperty("versionName").orNull ?: "1.5.0"
     }
 
     signingConfigs {

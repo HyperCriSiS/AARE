@@ -54,6 +54,11 @@ first. More in [Installing](#installing) below.
 
 ## 🖼️ Screenshots
 
+Real video from a media app (WizeStream here): from the cover to the video in the pane, then full
+screen; the buttons fade out and come back on a touch.
+
+![A media app's video in the pane and full screen](docs/screenshots/fork/video-modes.gif)
+
 | Swipe an app into a pane | Drag the divider | Hold for the pane chooser |
 |---|---|---|
 | ![](docs/screenshots/fork/swipe-to-pane.gif) | ![](docs/screenshots/fork/resize-panes.gif) | ![](docs/screenshots/fork/pane-chooser.gif) |

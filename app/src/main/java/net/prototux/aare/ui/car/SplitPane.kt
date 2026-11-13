@@ -169,11 +169,11 @@ internal class PaneChoice(val app: CarAppEntry, val anchor: Offset, val horizont
  * own window, not a popup: the head unit's touches only reach that window. A tap elsewhere closes it.
  */
 @Composable
-internal fun PaneChooser(choice: PaneChoice, onPick: (left: Boolean) -> Unit, onDismiss: () -> Unit) {
+internal fun PaneChooser(choice: PaneChoice, onPick: (left: Boolean?) -> Unit, onDismiss: () -> Unit) {
     val density = LocalDensity.current
     val gap = with(density) { (LocalCarDimens.current.railButton / 2 + 12.dp).toPx() }
-    // Two 64 dp options with 4 dp padding around and between them.
-    val w = with(density) { 140.dp.toPx() }
+    // Three 64 dp options with 4 dp padding around and between them.
+    val w = with(density) { 208.dp.toPx() }
     val h = with(density) { 72.dp.toPx() }
     val (x, y) = when {
         choice.horizontal -> choice.anchor.x - w / 2 to choice.anchor.y - gap - h
@@ -192,13 +192,14 @@ internal fun PaneChooser(choice: PaneChoice, onPick: (left: Boolean) -> Unit, on
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             PaneOption(left = true, stringResource(R.string.split_open_left)) { onPick(true) }
+            PaneOption(left = null, stringResource(R.string.split_open_full)) { onPick(null) }
             PaneOption(left = false, stringResource(R.string.split_open_right)) { onPick(false) }
         }
     }
 }
 
 @Composable
-private fun PaneOption(left: Boolean, label: String, onClick: () -> Unit) {
+private fun PaneOption(left: Boolean?, label: String, onClick: () -> Unit) {
     val color = MaterialTheme.colorScheme.primary
     Box(
         Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick).semantics { contentDescription = label },
@@ -208,13 +209,17 @@ private fun PaneOption(left: Boolean, label: String, onClick: () -> Unit) {
     }
 }
 
-/** A screen split in two, the chosen half filled. */
+/** A screen split in two with the chosen half filled, or the whole screen filled for null. */
 @Composable
-private fun PaneIcon(left: Boolean, color: Color) {
+private fun PaneIcon(left: Boolean?, color: Color) {
     Canvas(Modifier.size(width = 40.dp, height = 28.dp)) {
         val stroke = 2.dp.toPx()
         val radius = CornerRadius(4.dp.toPx())
         val half = size.width / 2
+        if (left == null) {
+            drawRoundRect(color, cornerRadius = radius)
+            return@Canvas
+        }
         drawRoundRect(color, topLeft = Offset(if (left) 0f else half, 0f), size = Size(half, size.height), cornerRadius = radius)
         drawRoundRect(color, cornerRadius = radius, style = Stroke(stroke))
         drawLine(color, Offset(half, 0f), Offset(half, size.height), stroke)

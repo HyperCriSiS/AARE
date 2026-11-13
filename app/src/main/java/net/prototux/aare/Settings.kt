@@ -270,6 +270,13 @@ class Settings(context: Context) {
         get() = prefs.getString("app_order", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("app_order", v.joinToString("\n")) }
 
+    /** The pane each app opens in, by [appOrder] key: true left, false right. Apps without one open full screen. */
+    var appPanes: Map<String, Boolean>
+        get() = prefs.getStringSet("app_panes", emptySet()).orEmpty().mapNotNull { e ->
+            e.split('\t').takeIf { it.size == 2 }?.let { (k, side) -> k to (side == "L") }
+        }.toMap()
+        set(v) = prefs.edit { putStringSet("app_panes", v.map { (k, left) -> "$k\t${if (left) "L" else "R"}" }.toSet()) }
+
     /** Runtime permissions setup has asked for at least once, to tell a dismissed dialog from a refusal for good. */
     var requestedPermissions: Set<String>
         get() = prefs.getStringSet("requested_permissions", emptySet()) ?: emptySet()

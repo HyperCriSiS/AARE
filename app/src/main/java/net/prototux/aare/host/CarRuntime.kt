@@ -593,15 +593,23 @@ class CarRuntime(
     // ------------------------------------------------------------------ actions from the car UI
 
     val actions = object : CarActions {
-        override fun openApp(app: CarAppEntry) {
-            // No screen of its own and not a recent app: the projection stays as it is until the car takes focus.
-            if (app.kind == CarAppKind.EXIT) { exitToCar?.invoke(); return }
-            start(app)
-            ui.screen = CarScreen.App(app.id)
+        override fun openApp(app: CarAppEntry) = open(app, settings.appPanes[orderKey(app)])
+
+        override fun openInPane(app: CarAppEntry, left: Boolean?) {
+            val key = orderKey(app)
+            settings.appPanes = if (left == null) settings.appPanes - key else settings.appPanes + (key to left)
+            open(app, left)
         }
 
-        override fun openInPane(app: CarAppEntry, left: Boolean) {
+        /** Opens [app] in the left or right pane, or full screen for null. */
+        private fun open(app: CarAppEntry, left: Boolean?) {
+            // No screen of its own and not a recent app: the projection stays as it is until the car takes focus.
             if (app.kind == CarAppKind.EXIT) { exitToCar?.invoke(); return }
+            if (left == null) {
+                start(app)
+                ui.screen = CarScreen.App(app.id)
+                return
+            }
             // Recent apps can include one hidden or removed since: it would leave its pane blank.
             val next = splitWith(ui.screen, app.id, left, ui.recentAppIds.filter { ui.app(it) != null })
             // The other pane may be a recent app that isn't running any more.

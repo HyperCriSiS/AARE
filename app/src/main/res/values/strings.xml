@@ -478,4 +478,5 @@
     <string name="split_open_left">Open on the left</string>
     <string name="split_open_right">Open on the right</string>
     <string name="split_divider">Drag to resize, to an edge to close</string>
+    <string name="media_switch_video">Video from the phone in media apps (parked; double-tap for full screen)</string>
 </resources>

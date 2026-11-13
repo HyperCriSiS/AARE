@@ -97,6 +97,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.abs
 import kotlin.math.sign
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.compositionLocalOf
 import net.prototux.aare.R
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.CarTheme
@@ -132,7 +135,8 @@ fun CarShell(
     // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
     BackHandler(enabled = paneChoice != null) { paneChoice = null }
     LaunchedEffect(state.screen) { paneChoice = null }
-    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
+    CompositionLocalProvider(LocalFullScreen provides fullScreen) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.
@@ -152,12 +156,16 @@ fun CarShell(
             paneChoice?.let { c ->
                 PaneChooser(c, onPick = { left -> paneChoice = null; actions.openInPane(c.app, left) }, onDismiss = { paneChoice = null })
             }
+            fullScreen.value?.let { content -> Box(Modifier.fillMaxSize().background(Color.Black)) { content() } }
             overlay(Modifier.align(Alignment.BottomCenter))
             NoticeOverlay(state, actions, Modifier.align(Alignment.TopCenter))
             CallOverlay(state, actions, Modifier.align(Alignment.TopCenter))
         }
-    }
+    } }
 }
+
+/** What the car shell draws over the whole car screen, rail included (a video double-tapped), or null. Null outside the shell. */
+val LocalFullScreen = compositionLocalOf<MutableState<(@Composable () -> Unit)?>?> { null }
 
 @Composable
 private fun ContentArea(

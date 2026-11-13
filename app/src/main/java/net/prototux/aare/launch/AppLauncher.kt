@@ -23,12 +23,13 @@ import java.util.concurrent.TimeUnit
  *
  * [connect] blocks and must run off the main thread.
  */
-class AppLauncher(private val context: Context) {
+class AppLauncher(private val context: Context, process: String = "launch") {
     @Volatile private var host: ILaunchHost? = null
 
     // --- Shizuku path ---
+    // One helper process per [process] name: releasing one (it exits) leaves the others running.
     private val args = Shizuku.UserServiceArgs(ComponentName(context.packageName, LaunchHostService::class.java.name))
-        .daemon(false).processNameSuffix("launch").debuggable(BuildConfig.DEBUG).version(BuildConfig.VERSION_CODE)
+        .daemon(false).processNameSuffix(process).debuggable(BuildConfig.DEBUG).version(BuildConfig.VERSION_CODE)
     private val bound = CountDownLatch(1)
     private var didBind = false
     private val connection = object : ServiceConnection {
@@ -91,6 +92,12 @@ class AppLauncher(private val context: Context) {
         runCatching { host?.touch(downTime, eventTime, action, x, y, pointerId) }
     }
     fun key(eventTime: Long, action: Int, keyCode: Int) { runCatching { host?.key(eventTime, action, keyCode) } }
+
+    /** Mirrors the phone screen into [surface]; false if the helper can't. */
+    fun mirror(surface: Surface, width: Int, height: Int, dpi: Int): Boolean =
+        runCatching { host?.mirror(surface, width, height, dpi) == true }.onFailure { Log.w(TAG, "mirror", it) }.getOrDefault(false)
+
+    fun stopMirror() { runCatching { host?.stopMirror() } }
 
     fun release() {
         runCatching { host?.stop() }

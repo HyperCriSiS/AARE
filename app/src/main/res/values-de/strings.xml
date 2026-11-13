@@ -443,4 +443,5 @@
     <string name="split_open_left">Links öffnen</string>
     <string name="split_open_right">Rechts öffnen</string>
     <string name="split_divider">Ziehen zum Ändern der Größe, an den Rand zum Schließen</string>
+    <string name="media_switch_video">Video vom Handy in Medien-Apps (im Stand, Doppeltipp für Vollbild)</string>
 </resources>

@@ -1,5 +1,7 @@
 package net.prototux.aare.launch
 
+import android.os.IBinder
+import android.os.Bundle
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.content.Context
@@ -48,7 +50,10 @@ class LaunchHostService : ILaunchHost.Stub {
         display = vd
         displayId = vd.display.displayId
         if (!launch(ctx, packageName, displayId)) {
+            // Left empty the display would only stay black: say it failed instead.
             Log.w(TAG, "created display ${displayId} but could not launch $packageName on it")
+            stop()
+            return -1
         }
         return displayId
     }
@@ -108,7 +113,10 @@ class LaunchHostService : ILaunchHost.Stub {
         val dm = ctx.getSystemService(DisplayManager::class.java) ?: return null
         // Preferred flags for hosting a foreign app interactively; fall back to the plain public ones
         // if the framework rejects the hidden bits for this uid/version.
-        for (flags in intArrayOf(FULL_FLAGS, FLAG_PUBLIC or FLAG_PRESENTATION)) {
+        // Only its own content: a public display without it mirrors the phone's screen while empty,
+        // and Android then also puts it in the phone's display group.
+        val full = FULL_FLAGS or (if (Build.VERSION.SDK_INT >= 34) FLAG_OWN_FOCUS else 0)
+        for (flags in intArrayOf(full, FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY)) {
             val vd = runCatching { dm.createVirtualDisplay("AARE app", w, h, dpi.coerceAtLeast(120), surface, flags) }
                 .onFailure { Log.w(TAG, "createVirtualDisplay(flags=$flags) failed: ${it.message}") }
                 .getOrNull()
@@ -137,11 +145,20 @@ class LaunchHostService : ILaunchHost.Stub {
     /** Launch [pkg]'s main activity onto [onDisplay]. */
     @SuppressLint("QueryPermissionsNeeded")
     private fun launch(ctx: Context, pkg: String, onDisplay: Int): Boolean = runCatching {
-        val intent = ctx.packageManager.getLaunchIntentForPackage(pkg)
-            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK) ?: return false
-        val opts = ActivityOptions.makeBasic().setLaunchDisplayId(onDisplay)
-        ctx.startActivity(intent, opts.toBundle())
-        true
+        // A new task, not a cleared one: an app already playing keeps playing.
+        val intent = ctx.packageManager.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
+        val opts = ActivityOptions.makeBasic().setLaunchDisplayId(onDisplay).toBundle()
+        // Straight to the activity manager with [ctx]'s package as the caller: Context.startActivity
+        // sends AARE's package, which the shell uid doesn't own, and is refused. Like scrcpy.
+        val am = Class.forName("android.app.ActivityManager").getMethod("getService").invoke(null)
+        val int = Int::class.javaPrimitiveType
+        val start = am.javaClass.getMethod(
+            "startActivityAsUser", Class.forName("android.app.IApplicationThread"), String::class.java, Intent::class.java,
+            String::class.java, IBinder::class.java, String::class.java, int, int, Class.forName("android.app.ProfilerInfo"), Bundle::class.java, int,
+        )
+        val result = start.invoke(am, null, ctx.packageName, intent, null, null, null, 0, 0, null, opts, USER_CURRENT) as Int
+        if (result < 0) Log.w(TAG, "startActivity($pkg) on display $onDisplay: result $result")
+        result >= 0
     }.onFailure { Log.w(TAG, "startActivity($pkg) failed: ${it.message}") }.getOrDefault(false)
 
     /** Inject one event into the launched app's display via InputManager's hidden injectInputEvent. */
@@ -190,7 +207,8 @@ class LaunchHostService : ILaunchHost.Stub {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
         runCatching {
             HiddenApiBypass.addHiddenApiExemptions(
-                "Landroid/app/ActivityThread;", "Landroid/hardware/input/InputManager;",
+                "Landroid/app/ActivityThread;", "Landroid/app/ActivityManager;", "Landroid/app/IActivityManager", "Landroid/app/IApplicationThread;",
+                "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;",
                 "Landroid/hardware/display/DisplayManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
             )
         }
@@ -210,6 +228,9 @@ class LaunchHostService : ILaunchHost.Stub {
         const val FLAG_TRUSTED = 1 shl 10 // hidden, API 29+
         const val FLAG_OWN_DISPLAY_GROUP = 1 shl 11 // hidden, API 31+
         const val FLAG_ALWAYS_UNLOCKED = 1 shl 12 // hidden, API 30+
-        const val FULL_FLAGS = FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_TRUSTED or FLAG_OWN_DISPLAY_GROUP or FLAG_ALWAYS_UNLOCKED
+        const val FLAG_OWN_CONTENT_ONLY = 1 shl 3
+        const val FLAG_OWN_FOCUS = 1 shl 14 // hidden, API 34+: touches here leave the phone's focus alone
+        const val FULL_FLAGS = FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY or FLAG_TRUSTED or FLAG_OWN_DISPLAY_GROUP or FLAG_ALWAYS_UNLOCKED
+        const val USER_CURRENT = -2
     }
 }

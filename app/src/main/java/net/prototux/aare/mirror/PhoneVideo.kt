@@ -60,7 +60,8 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
     val available = remember { AppLauncher.available(context) }
     // Its own helper process, apart from the phone apps': releasing one leaves the other running.
     val launcher = remember(packageName) { AppLauncher(context, "video") }
-    var started by remember(packageName) { mutableStateOf(false) }
+    // Null while starting, then whether the app runs here.
+    var started by remember(packageName) { mutableStateOf<Boolean?>(null) }
     // Gone (driving, another screen): so are its full-screen copy and its display.
     DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
     Box(modifier.background(Color.Black)) {
@@ -70,7 +71,11 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
         }
         // Full screen, the one display moves onto the copy over everything.
         if (full?.value == null) HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
-        if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
+        when (started) {
+            null -> Placeholder(stringResource(R.string.standalone_starting), loading = true)
+            false -> Placeholder(stringResource(R.string.standalone_failed), loading = false, icon = Icons.Rounded.PhoneAndroid)
+            true -> Unit
+        }
         if (full != null) {
             CornerButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), Modifier.align(Alignment.TopEnd)) {
                 full.value = {

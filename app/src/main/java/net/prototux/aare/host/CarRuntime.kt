@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import net.prototux.aare.DiagLog
@@ -309,8 +310,16 @@ class CarRuntime(
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order" -> main.post { refreshApps() }
+            // Switched from the car's settings: show or drop them now, not at the next refresh.
+            "show_weather", "show_calendar" -> main.post {
+                dashboardInfo?.cancel()
+                dashboardInfo = scope.launch { watchDashboardInfo() }
+            }
         }
     }
+
+    /** The weather and calendar refresh loop, restarted when either is switched on or off. */
+    private var dashboardInfo: Job? = null
 
     // ------------------------------------------------------------------ apps
 
@@ -331,7 +340,7 @@ class CarRuntime(
         })
         scope.launch { media.apps.collectLatest { refreshApps() } }
         scope.launch { watchCalls() }
-        scope.launch { watchDashboardInfo() }
+        dashboardInfo = scope.launch { watchDashboardInfo() }
         scope.launch {
             CarNotificationListener.guidance.collect { g ->
                 // A navigation app hosted on the car screen shows its own guidance.

@@ -1,5 +1,8 @@
 package net.prototux.aare.ui.car
 
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -87,7 +90,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.abs
 import net.prototux.aare.R
@@ -375,14 +377,25 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
         .then(if (pane == null) Modifier else Modifier.pointerInput(Unit) {
             // Little room to swipe on a rail at the screen's edge: a short swipe is enough.
             val min = 24.dp.toPx()
-            var dx = 0f
-            detectHorizontalDragGestures(onDragStart = { dx = 0f }, onDragEnd = { if (abs(dx) >= min) current?.open?.invoke(dx < 0) }) { change, d ->
-                change.consume()
-                dx += d
+            // Judged from where the finger went down to where it lifted, not from drag events: a
+            // car's touch screen may report a quick swipe with few moves or none in between. Seen
+            // before the click handler, so a swipe's lift isn't also a tap.
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                while (true) {
+                    val up = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                    if (up.pressed) continue
+                    val d = up.position - down.position
+                    swipeSide(d.x, d.y, min)?.let { left -> up.consume(); current?.open?.invoke(left) }
+                    break
+                }
             }
         })
         .combinedClickable(onClick = onClick, onLongClick = pane?.let { p -> { p.choose(center) } })
 }
+
+/** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
+internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null
 
 @Composable
 private fun MicButton(listening: Boolean, onClick: () -> Unit) {

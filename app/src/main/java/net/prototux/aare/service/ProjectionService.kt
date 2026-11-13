@@ -387,7 +387,9 @@ class ProjectionService : Service() {
                 else -> getString(R.string.notif_cert_untrusted_message)
             }
             pinRefusal?.let { notifyUntrusted(it) }
-            if (certificateRejected) {
+            // A Google-issued certificate is the one strict head units want and lenient ones accept:
+            // a hang-up during its handshake is a cable pulled or replugged, not a reason to move on.
+            if (certificateRejected && !certs.pick(settings.certificateIndex).isGoogleIssued) {
                 // Offer the next certificate next time: strict head units only accept Google-issued ones.
                 settings.certificateIndex = settings.certificateIndex + 1
                 log("head unit rejected the certificate; next connection offers \"${certs.pick(settings.certificateIndex).name}\"")

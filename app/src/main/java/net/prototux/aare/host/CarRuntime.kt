@@ -426,9 +426,11 @@ class CarRuntime(
         if (settings.phoneScreen && phoneScreenAllowed) {
             entries += CarAppEntry(PHONE_SCREEN_ID, context.packageName, context.getString(R.string.phone_section_title), builtinIcon(R.drawable.ic_phone_screen), CarAppKind.PHONE_SCREEN)
         }
-        // Ordinary phone apps the user allowed onto the car screen (parked only; needs root/Shizuku).
-        if (settings.standaloneApps && AppLauncher.available(context)) {
-            for (pkg in settings.standaloneAppPackages) {
+        // Ordinary phone apps the user allowed onto the car screen (parked only; needs root/Shizuku),
+        // and the assistant picked in AARE when it has no car app, so the voice button opens it there.
+        if (AppLauncher.available(context)) {
+            val taken = entries.mapTo(HashSet()) { it.packageName }
+            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken)) {
                 if (pkg in hidden) continue
                 val info = runCatching { context.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: continue
                 val label = context.packageManager.getApplicationLabel(info).toString()
@@ -680,7 +682,8 @@ class CarRuntime(
 
     /**
      * Steering-wheel voice button or the rail's mic. An assistant with a car app (Lapin, for example)
-     * opens on the car screen and is asked to listen with ACTION_VOICE_COMMAND; any other assistant
+     * opens on the car screen and is asked to listen with ACTION_VOICE_COMMAND; one picked in AARE
+     * without a car app runs on the car screen as a phone app (root/Shizuku); any other assistant
      * opens on the phone.
      */
     fun assistant() {
@@ -691,6 +694,11 @@ class CarRuntime(
             return
         }
         val entry = ui.apps.firstOrNull { it.packageName == pkg && it.kind != CarAppKind.MEDIA && it.kind != CarAppKind.NAVIGATION }
+        // A phone app (Claude, ChatGPT…) hosted on the car screen: shown there, touched there, heard in the car.
+        if (entry?.kind == CarAppKind.STANDALONE) {
+            actions.openApp(entry)
+            return
+        }
         val conn = entry?.let { connection(it.id) }
         if (entry != null && conn != null) {
             // Like Android Auto's assistant: a bar over whatever is on screen, not the app full screen. Set before
@@ -819,4 +827,13 @@ class CarRuntime(
          */
         val active: CarRuntime? get() = running.lastOrNull { it.primary } ?: running.lastOrNull()
     }
+}
+
+/**
+ * The phone apps hosted on the car screen: those allowed on the phone when [enabled], and the
+ * [assistant] picked in AARE unless another entry already shows its package ([taken]: its car app).
+ */
+internal fun standalonePackages(enabled: Boolean, allowed: Collection<String>, assistant: String?, taken: Set<String>): List<String> = buildList {
+    if (enabled) addAll(allowed)
+    if (assistant != null && assistant !in taken && assistant !in this) add(assistant)
 }

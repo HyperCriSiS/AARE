@@ -93,17 +93,6 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
         return
     }
     val video = LocalPhoneVideo.current
-    if (video?.shown == true) {
-        // The app itself, with its own controls, in the whole of the media app's screen: a video
-        // gets all the height there is. The corner button goes back to the cover.
-        Box(Modifier.fillMaxSize()) {
-            video.content(Modifier.fillMaxSize())
-            Box(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
-                CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = video.toggle)
-            }
-        }
-        return
-    }
     Box(Modifier.fillMaxSize()) {
         // a soft backdrop of the art, fading into the background
         if (info.art != null) {

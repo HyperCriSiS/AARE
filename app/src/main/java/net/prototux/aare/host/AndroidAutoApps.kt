@@ -32,6 +32,19 @@ object AndroidAutoApps {
     private val MESSAGING_USES = setOf("notification", "sms")
 
     /**
+     * Navigation apps that only Google's Android Auto can host, recognised even before they post
+     * guidance. Some declare `<uses name="notification"/>` (Google Maps does), which made them
+     * empty messaging apps in the car; they are listed with the apps AARE can't show instead.
+     */
+    val KNOWN_NAVIGATION = setOf(
+        "com.google.android.apps.maps",
+        "com.waze",
+        "com.here.app.maps",
+        "com.sygic.aura",
+        "com.tomtom.gplay.navapp",
+    )
+
+    /**
      * Messaging apps, as Android Auto finds them: apps declaring `<uses name="notification"/>`
      * (or `sms`), plus the default SMS app.
      */
@@ -39,7 +52,7 @@ object AndroidAutoApps {
         val pm = context.packageManager
         val sms = runCatching { Telephony.Sms.getDefaultSmsPackage(context) }.getOrNull()
         return declaring(context)
-            .filter { (app, uses) -> uses.any { it in MESSAGING_USES } || app.packageName == sms }
+            .filter { (app, uses) -> (uses.any { it in MESSAGING_USES } && app.packageName !in KNOWN_NAVIGATION) || app.packageName == sms }
             .map { (app, _) -> PhoneApp(app.packageName, app.loadLabel(pm).toString(), runCatching { app.loadIcon(pm).toBitmap(iconSizePx, iconSizePx) }.getOrNull()) }
             .let { found ->
                 if (sms == null || found.any { it.packageName == sms }) found
@@ -67,7 +80,7 @@ object AndroidAutoApps {
         val pm = context.packageManager
         val shown = carApps.toSet() + mediaPackages(pm)
         return declaring(context)
-            .filter { (app, uses) -> app.packageName !in shown && uses.none { it in MESSAGING_USES } }
+            .filter { (app, uses) -> app.packageName !in shown && (uses.none { it in MESSAGING_USES } || app.packageName in KNOWN_NAVIGATION) }
             .map { (app, uses) ->
                 UnsupportedCarApp(
                     packageName = app.packageName,

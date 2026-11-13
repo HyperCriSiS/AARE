@@ -16,7 +16,7 @@ class HostedDpiTest {
     }
 
     @Test
-    fun neverBelowEighty() {
-        assertEquals(80, hostedDpi(1550, 200, 240))
+    fun neverBelowTheHelpersFloor() {
+        assertEquals(120, hostedDpi(1550, 200, 240))
     }
 }

@@ -60,7 +60,7 @@ class LaunchHostService : ILaunchHost.Stub {
 
     override fun resize(surface: Surface, width: Int, height: Int, dpi: Int) {
         val vd = display ?: return
-        runCatching { vd.resize(width, height, dpi) }
+        runCatching { vd.resize(width, height, dpi.coerceAtLeast(MIN_DPI)) }
         runCatching { vd.surface = surface }
     }
 
@@ -86,7 +86,7 @@ class LaunchHostService : ILaunchHost.Stub {
 
     override fun mirror(surface: Surface, width: Int, height: Int, dpi: Int): Boolean {
         mirrorDisplay?.let { vd ->
-            runCatching { vd.resize(width, height, dpi) }
+            runCatching { vd.resize(width, height, dpi.coerceAtLeast(MIN_DPI)) }
             runCatching { vd.surface = surface }
             return true
         }
@@ -117,7 +117,7 @@ class LaunchHostService : ILaunchHost.Stub {
         // and Android then also puts it in the phone's display group.
         val full = FULL_FLAGS or (if (Build.VERSION.SDK_INT >= 34) FLAG_OWN_FOCUS else 0)
         for (flags in intArrayOf(full, FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY)) {
-            val vd = runCatching { dm.createVirtualDisplay("AARE app", w, h, dpi.coerceAtLeast(120), surface, flags) }
+            val vd = runCatching { dm.createVirtualDisplay("AARE app", w, h, dpi.coerceAtLeast(MIN_DPI), surface, flags) }
                 .onFailure { Log.w(TAG, "createVirtualDisplay(flags=$flags) failed: ${it.message}") }
                 .getOrNull()
             if (vd != null) return vd
@@ -138,16 +138,23 @@ class LaunchHostService : ILaunchHost.Stub {
             }.onFailure { Log.w(TAG, "mirror helper failed: ${it.message}") }.getOrNull()?.let { return it }
         }
         val dm = ctx.getSystemService(DisplayManager::class.java) ?: return null
-        return runCatching { dm.createVirtualDisplay("AARE mirror", w, h, dpi.coerceAtLeast(120), surface, FLAG_PUBLIC or FLAG_AUTO_MIRROR) }
+        return runCatching { dm.createVirtualDisplay("AARE mirror", w, h, dpi.coerceAtLeast(MIN_DPI), surface, FLAG_PUBLIC or FLAG_AUTO_MIRROR) }
             .onFailure { Log.w(TAG, "mirror display failed: ${it.message}") }.getOrNull()
     }
 
     /** Launch [pkg]'s main activity onto [onDisplay]. */
     @SuppressLint("QueryPermissionsNeeded")
-    private fun launch(ctx: Context, pkg: String, onDisplay: Int): Boolean = runCatching {
+    private fun launch(ctx: Context, pkg: String, onDisplay: Int): Boolean {
         // A new task, not a cleared one: an app already playing keeps playing.
         val intent = ctx.packageManager.getLaunchIntentForPackage(pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return false
         val opts = ActivityOptions.makeBasic().setLaunchDisplayId(onDisplay).toBundle()
+        // Hidden API gone or changed: the plain call still works where the caller owns its package (root).
+        return startAsCaller(ctx, pkg, onDisplay, intent, opts) ?: runCatching { ctx.startActivity(intent, opts); true }
+            .onFailure { Log.w(TAG, "startActivity($pkg) failed: ${it.message}") }.getOrDefault(false)
+    }
+
+    /** Started through the activity manager as [ctx]'s package: the result, or null when the hidden call isn't there. */
+    private fun startAsCaller(ctx: Context, pkg: String, onDisplay: Int, intent: Intent, opts: Bundle?): Boolean? = runCatching {
         // Straight to the activity manager with [ctx]'s package as the caller: Context.startActivity
         // sends AARE's package, which the shell uid doesn't own, and is refused. Like scrcpy.
         val am = Class.forName("android.app.ActivityManager").getMethod("getService").invoke(null)
@@ -159,7 +166,7 @@ class LaunchHostService : ILaunchHost.Stub {
         val result = start.invoke(am, null, ctx.packageName, intent, null, null, null, 0, 0, null, opts, USER_CURRENT) as Int
         if (result < 0) Log.w(TAG, "startActivity($pkg) on display $onDisplay: result $result")
         result >= 0
-    }.onFailure { Log.w(TAG, "startActivity($pkg) failed: ${it.message}") }.getOrDefault(false)
+    }.onFailure { Log.w(TAG, "startActivityAsUser($pkg) unavailable: ${it.message}") }.getOrNull()
 
     /** Inject one event into the launched app's display via InputManager's hidden injectInputEvent. */
     private fun inject(event: InputEvent) {
@@ -232,5 +239,7 @@ class LaunchHostService : ILaunchHost.Stub {
         const val FLAG_OWN_FOCUS = 1 shl 14 // hidden, API 34+: touches here leave the phone's focus alone
         const val FULL_FLAGS = FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY or FLAG_TRUSTED or FLAG_OWN_DISPLAY_GROUP or FLAG_ALWAYS_UNLOCKED
         const val USER_CURRENT = -2
+        /** The lowest density a display gets, on creation and on resize alike. */
+        const val MIN_DPI = 120
     }
 }

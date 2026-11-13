@@ -140,5 +140,5 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
     }
 }
 
-/** The density for a [w]×[h] pixel display to be at least 600 dp each way, no higher than [dpi]. */
-internal fun hostedDpi(w: Int, h: Int, dpi: Int): Int = minOf(dpi, minOf(w, h) * 160 / 600).coerceAtLeast(80)
+/** The density for a [w]×[h] pixel display to be at least 600 dp each way, no higher than [dpi] and no lower than the helper's floor of 120. */
+internal fun hostedDpi(w: Int, h: Int, dpi: Int): Int = minOf(dpi, minOf(w, h) * 160 / 600).coerceAtLeast(120)

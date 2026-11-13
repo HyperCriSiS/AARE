@@ -983,7 +983,8 @@ private fun LazyListScope.card(
             val lifted = drag != null && drag.key == itemKey
             val m = when {
                 lifted -> Modifier.zIndex(1f).graphicsLayer { translationY = drag!!.offset; shadowElevation = 8.dp.toPx() }
-                drag != null -> Modifier.animateItem()
+                // Only while a row is dragged: animating every row costs each scrolling frame.
+                drag != null && drag.key != null -> Modifier.animateItem()
                 else -> Modifier
             }
             CardPart(top = false, bottom = i == rows.lastIndex, modifier = m) { content() }
@@ -998,8 +999,9 @@ private fun CardPart(top: Boolean, bottom: Boolean, modifier: Modifier = Modifie
     val r = 24.dp
     Column(
         modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(if (top) r else 0.dp, if (top) r else 0.dp, if (bottom) r else 0.dp, if (bottom) r else 0.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            // A shaped background, not a clip: nothing reaches into the corners, and a clip is a
+            // layer more for every row scrolling in.
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(if (top) r else 0.dp, if (top) r else 0.dp, if (bottom) r else 0.dp, if (bottom) r else 0.dp))
             .padding(start = 20.dp, end = 20.dp, top = if (top) 20.dp else 0.dp, bottom = if (bottom) 20.dp else 0.dp),
     ) { content() }
 }
@@ -1291,8 +1293,9 @@ private fun AppRow(icon: android.graphics.Bitmap?, label: String, kind: String, 
 
 @Composable
 private fun UnsupportedRow(app: UnsupportedCarApp) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        app.icon?.let { Image(it.asImageBitmap(), null, Modifier.size(40.dp).clip(CircleShape)) }
+    // One accessibility node, like the other rows.
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp).clearAndSetSemantics { contentDescription = "${app.label}, ${app.reason}" }, verticalAlignment = Alignment.CenterVertically) {
+        app.icon?.let { Image(remember(it) { it.asImageBitmap() }, null, Modifier.size(40.dp).clip(CircleShape)) }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(app.label, style = MaterialTheme.typography.bodyLarge)

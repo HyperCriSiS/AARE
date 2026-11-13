@@ -36,6 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
@@ -51,12 +52,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 import net.prototux.aare.R
+import net.prototux.aare.host.templates.LocalInCard
 import net.prototux.aare.host.templates.RenderTemplate
 import net.prototux.aare.host.templates.TemplateHost
 
 /**
  * One hosted car app on the car screen: its current template, its alerts, and loading/error
- * states. [compact] is the dashboard card version (a navigation app's map and next turn).
+ * states. [compact] is the dashboard card version (a navigation app's map and next turn): its
+ * templates render as inside a card, without their own page background and with card-sized text,
+ * so the dashboard card shows through and a message with a button fits.
  */
 @Composable
 fun CarAppScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: Modifier = Modifier, compact: Boolean = false) {
@@ -65,7 +69,7 @@ fun CarAppScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: Modifier
         onDispose { runtime.releaseVisible(conn) }
     }
     val host = remember(conn) { ConnectionTemplateHost(conn, runtime) }
-    Box(modifier) {
+    CompositionLocalProvider(LocalInCard provides compact) { Box(modifier) {
         val template = conn.template
         // The map surface outlives template changes: recreating it with each new template (as a
         // navigation app sends them every second or so) blanks the map until the app redraws.
@@ -82,7 +86,7 @@ fun CarAppScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: Modifier
             else -> androidx.compose.runtime.key(conn.templateId) { RenderTemplate(template, host, Modifier.fillMaxSize()) }
         }
         conn.alert?.let { AlertCard(it, conn, host, Modifier.align(Alignment.TopCenter)) }
-    }
+    } }
 }
 
 /** Templates drawn over the app's own map surface (see MapScaffold). */

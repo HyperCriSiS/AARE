@@ -398,7 +398,7 @@ internal fun Dashboard(
                 val event = state.nextEvent
                 val latest = state.history.firstOrNull()
                 when {
-                    event != null -> Card(Modifier.fillMaxWidth().height(180.dp)) { CalendarCard(event, actions::navigateTo, Modifier.fillMaxSize()) }
+                    event != null -> Card(Modifier.fillMaxWidth().height(180.dp)) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
                     latest != null -> Card(Modifier.fillMaxWidth().height(180.dp), onClick = {
                         state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp)
                     }) { LatestNotification(latest, state.drivingRestricted) }
@@ -418,7 +418,7 @@ internal fun Dashboard(
                 val event = state.nextEvent
                 val latest = state.history.firstOrNull()
                 when {
-                    event != null -> Card(Modifier.weight(0.9f).fillMaxHeight()) { CalendarCard(event, actions::navigateTo, Modifier.fillMaxSize()) }
+                    event != null -> Card(Modifier.weight(0.9f).fillMaxHeight()) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
                     latest != null -> Card(Modifier.weight(0.9f).fillMaxHeight(), onClick = {
                         state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp)
                     }) { LatestNotification(latest, state.drivingRestricted) }
@@ -433,7 +433,7 @@ internal fun Dashboard(
                 } else {
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gutter)) {
                         MediaCard(state, actions, compact = false, modifier = Modifier.weight(1.3f).fillMaxWidth())
-                        Card(Modifier.weight(1f).fillMaxWidth()) { CalendarCard(event, actions::navigateTo, Modifier.fillMaxSize()) }
+                        Card(Modifier.weight(1f).fillMaxWidth()) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
                     }
                 }
             }
@@ -576,12 +576,10 @@ private fun MediaCard(state: CarUiState, actions: CarActions, compact: Boolean, 
             }
         } else {
             Column(Modifier.fillMaxSize().padding(24.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Art(np, 72)
-                    Spacer(Modifier.width(16.dp))
-                    if (media != null) AppIcon(media, 28)
-                }
-                Spacer(Modifier.weight(1f))
+                // The cover fills the height the text and buttons leave, as a square, instead of a
+                // small one over an empty half of the card.
+                CoverArt(np, media, Modifier.weight(1f).aspectRatio(1f, matchHeightConstraintsFirst = true))
+                Spacer(Modifier.height(16.dp))
                 content()
                 Spacer(Modifier.height(12.dp))
                 if (np != null && np.durationMs > 0) {
@@ -592,6 +590,28 @@ private fun MediaCard(state: CarUiState, actions: CarActions, compact: Boolean, 
                     Spacer(Modifier.height(12.dp))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { MediaButtons(np, actions) }
+            }
+        }
+    }
+}
+
+/**
+ * The playing cover, filling [modifier], with the media app's icon in its corner. With no cover
+ * (nothing playing, or an app without art) the app's own icon stands in, large, so the card
+ * doesn't show a generic note next to a small copy of the same app.
+ */
+@Composable
+private fun CoverArt(np: NowPlaying?, media: CarAppEntry?, modifier: Modifier) {
+    val shape = RoundedCornerShape(20.dp)
+    Box(modifier) {
+        if (np?.art != null) {
+            Image(np.art.asImageBitmap(), null, Modifier.fillMaxSize().clip(shape), contentScale = ContentScale.Crop)
+            if (media != null) Box(Modifier.align(Alignment.BottomEnd).padding(8.dp)) { AppIcon(media, 32) }
+        } else {
+            BoxWithConstraints(Modifier.fillMaxSize().clip(shape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+                val icon = (minOf(maxWidth, maxHeight) * 0.45f).value.toInt()
+                if (media != null) AppIcon(media, icon)
+                else Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(icon.dp))
             }
         }
     }

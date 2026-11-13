@@ -1,6 +1,78 @@
-# AARE
+# AARE for Mercedes MBUX
 
-[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/prototux/AARE)
+**The open-source phone side of Android Auto, with a car screen optimized for Mercedes-Benz MBUX.**
+
+[![CI](https://img.shields.io/github/actions/workflow/status/HyperCriSiS/AARE/ci.yml?branch=main&label=CI)](https://github.com/HyperCriSiS/AARE/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/HyperCriSiS/AARE)](https://github.com/HyperCriSiS/AARE/releases/latest)
+[![License](https://img.shields.io/github/license/HyperCriSiS/AARE)](LICENSE)
+[![Android](https://img.shields.io/badge/Android-8%2B-3DDC84?logo=android&logoColor=white)](#requirements)
+[![Upstream](https://img.shields.io/badge/fork%20of-prototux%2FAARE-blue?logo=github)](https://github.com/prototux/AARE)
+
+This is a fork of [prototux/AARE](https://github.com/prototux/AARE), the open-source phone side of
+Android Auto, tuned for Mercedes-Benz MBUX head units. It is used daily with an A-Class (A 250 e,
+2024, MBUX by Harman) over USB, on a Pixel 10 Pro. Everything AARE does is here too; the fork adds
+a car screen built for a wide, short display and fixes found on the way. Upstream changes are
+taken in regularly, and fixes that help every car are offered back upstream.
+
+It is a hobby project, kept up in spare time and tested in one car: other MBUX units, and other
+cars, may well behave differently.
+
+> [!IMPORTANT]
+> MBUX only accepts a Google-issued phone certificate: download it in the app under
+> *Advanced, Phone certificates* before the first connection (see [Certificates](docs/certificates.md)).
+> Video from media apps and the phone screen need [Shizuku](https://shizuku.rikka.app/) or root.
+
+![The car screen on an MBUX-sized display](docs/screenshots/fork/dashboard.png)
+
+## ✨ Features
+
+What the fork adds to AARE:
+
+- Split screen: two apps side by side, with a divider to drag; let go near an edge to close a pane.
+- Swipe an app icon left or right to open it in that pane; hold it to choose; tap for full screen.
+- A rail of your own: pick its apps and their order in the phone app; it scrolls when they don't fit.
+- Shortcuts: hold the app list button for a small grid of picked apps.
+- An app list that can leave out what is already in the rail or the shortcuts.
+- Video from media apps, parked: the app itself runs in the pane, YouTube or NewPipe fill it with their video.
+- Full screen video over the rail, with buttons that fade out when left alone.
+- The phone screen mirror through Shizuku or root, without the screen capture consent.
+- A compact rail, a cleaner media card, the next calendar events on the dashboard.
+- Car settings in the car: weather, calendar, phone screen.
+- Settings export and import, for a backup or a new phone.
+- Updates from this fork's releases, signed with its own key.
+- Fixes: the Google certificate is kept after a cut handshake, Molly and Signal are messaging apps,
+  white icons stay visible on the light theme, a smooth Apps page with accessibility services on.
+
+## 📦 Installation
+
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/HyperCriSiS/AARE)
+
+1. Download `aare-<version>.apk` from the [releases](https://github.com/HyperCriSiS/AARE/releases/latest)
+   and open it on the phone, or add the repository to Obtainium for updates.
+2. Open AARE, go through the setup, and download the phone certificate under *Advanced*.
+3. Plug the phone into the car's Android Auto USB port and tap **Trust** when AARE asks.
+
+The fork's releases are signed with their own key: a copy of upstream AARE has to be uninstalled
+first. More in [Installing](#installing) below.
+
+## 🖼️ Screenshots
+
+| Swipe an app into a pane | Drag the divider | Hold for the pane chooser |
+|---|---|---|
+| ![](docs/screenshots/fork/swipe-to-pane.gif) | ![](docs/screenshots/fork/resize-panes.gif) | ![](docs/screenshots/fork/pane-chooser.gif) |
+
+| Shortcuts | Split screen |
+|---|---|
+| ![](docs/screenshots/fork/shortcuts-swipe.gif) | ![](docs/screenshots/fork/split.png) |
+
+## 💬 Support
+
+Questions, problems and car reports go to this fork's
+[issues](https://github.com/HyperCriSiS/AARE/issues). Please attach the connection log
+(*Advanced, Log*) for anything about connecting. Something that happens with upstream AARE as well
+is worth reporting to [prototux/AARE](https://github.com/prototux/AARE/issues) too.
+
+## 🚗 About AARE
 
 AARE is an open-source reimplementation of the phone side of Android Auto. The phone talks the
 Android Auto projection protocol (AAP) to the car's head unit, draws the car screen itself, and
@@ -91,14 +163,14 @@ Not planned (rare, or redundant with what AARE draws itself):
 
 ## Installing
 
-Download `aare-<version>.apk` from the [releases](https://github.com/prototux/AARE/releases) and
-open it on the phone, or `adb install -r aare-<version>.apk`. Each release also has the Magisk
+Download `aare-<version>.apk` from this fork's [releases](https://github.com/HyperCriSiS/AARE/releases)
+and open it on the phone, or `adb install -r aare-<version>.apk`. Each release also has the Magisk
 module (rooted phones, see [Car audio](#car-audio)) and the desktop head unit.
 
-Releases are signed with AARE's release key, SHA-256
-`63:EF:0D:E1:DB:2C:09:BB:7F:B2:5C:E7:EA:4A:DC:35:38:AF:42:3B:88:52:78:B5:9D:F2:88:9C:7F:18:28:6F`.
-Builds you make yourself are signed with your own debug key, so switching between the two needs
-an uninstall first.
+The fork's releases are signed with its own key, SHA-256
+`48:85:9B:98:82:4A:0C:87:16:57:E4:6A:EF:4D:43:5C:C4:E8:89:B9:4F:F1:F7:B6:B6:5B:2B:88:33:FD:00:12`.
+Upstream AARE's releases carry a different key, and builds you make yourself your own debug key:
+switching between any two of them needs an uninstall first, and the app's settings go with it.
 
 ## AA Key extraction
 
@@ -413,6 +485,7 @@ Other tools:
 
 | Head unit | Phone | Link | AARE | Result |
 |---|---|---|---|---|
+| Mercedes-Benz MBUX by Harman (MB Cars Harman M2), the factory unit of a 2024 A 250 e | Google Pixel 10 Pro, Shizuku | USB | this fork | **Works with the certificate download** (Advanced, certificates): video, touch, audio, CoMaps, media apps and video from media apps, in daily use. The unit asks for 1920x1080 at 240 dpi with 172x360 margins and crops to that area itself. |
 | Factory 10.2" multimedia screen of a 2022 Hyundai Kona Electric (LG Electronics Standard GEN5 Wide) | Google Pixel 10 Pro | USB | 1.2.0 + touch fix | **Works after the touch fix and [AA key extraction](#aa-key-extraction)** (reported by a user). The unit advertises a 0x0 touchscreen; the fix uses the visible video dimensions when the panel size is unspecified. |
 | ZLink 3 aftermarket unit, model K2001N (Allwinner T3, Android 7, sold as Android 12), in a VW Golf 6 | Pixel 10 Pro XL, Android 17 | Wireless | 1.1.0 | **Works:** full sessions with video, with AARE's own certificate. On Android 17 it needs the local network permission ([#22](https://github.com/prototux/AARE/pull/22)). Known issue: the unit asks for 1280x720 at 160 dpi with 256x120 margins, and the screen edges are cut off. |
 | Denso Ten E-DA2, the factory unit of a 2026 Toyota Land Cruiser 79 series (wired Android Auto only) | Samsung Galaxy S23 (SM-S911B), Android 16, not rooted | USB | not stated | **Works**, all features tried ([#37](https://github.com/prototux/AARE/issues/37)), with AARE's own self-signed certificate. The unit also plays the phone's Bluetooth audio during Android Auto, so the car audio setup isn't needed. |
@@ -538,7 +611,7 @@ head unit (make, model, year, or the open-source software it runs), USB or wirel
 
 Before sending a pull request, run `./build.sh :aap:test` and build the app.
 
-## Thanks
+## 🙏 Thanks
 
 To [@dustfeather](https://github.com/dustfeather), for a security review of AARE and the fixes
 that came with it:
@@ -571,7 +644,7 @@ Head-unit reports from [@Shane11r](https://github.com/Shane11r), [@dani203](http
 [@matthias-hoste](https://github.com/matthias-hoste) and [@paulhiggs](https://github.com/paulhiggs)
 — see [Tested on real head units](#tested-on-real-head-units) for the cars.
 
-## License
+## 📄 License
 
 GPL-3.0-or-later (see [LICENSE](LICENSE)). The protobuf definitions come from aasdk
 (GPL-3.0-or-later, see [aap/src/main/proto/NOTICE.md](aap/src/main/proto/NOTICE.md)).

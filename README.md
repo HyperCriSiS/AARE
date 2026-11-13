@@ -8,6 +8,9 @@ Android Auto, tuned for Mercedes-Benz MBUX head units. It is used daily with an 
 a car screen built for a wide, short display and fixes found on the way.
 
 Upstream changes are merged in regularly, and fixes that help every car are offered back upstream.
+It is a hobby project, kept up in spare time and tested in one car: other MBUX units, and other
+cars, may well behave differently. Reports are welcome in this fork's
+[issues](https://github.com/HyperCriSiS/AARE/issues).
 
 ![The car screen on an MBUX-sized display](docs/screenshots/fork/dashboard.png)
 
@@ -155,14 +158,14 @@ Not planned (rare, or redundant with what AARE draws itself):
 
 ## Installing
 
-Download `aare-<version>.apk` from the [releases](https://github.com/prototux/AARE/releases) and
-open it on the phone, or `adb install -r aare-<version>.apk`. Each release also has the Magisk
+Download `aare-<version>.apk` from this fork's [releases](https://github.com/HyperCriSiS/AARE/releases)
+and open it on the phone, or `adb install -r aare-<version>.apk`. Each release also has the Magisk
 module (rooted phones, see [Car audio](#car-audio)) and the desktop head unit.
 
-Releases are signed with AARE's release key, SHA-256
-`63:EF:0D:E1:DB:2C:09:BB:7F:B2:5C:E7:EA:4A:DC:35:38:AF:42:3B:88:52:78:B5:9D:F2:88:9C:7F:18:28:6F`.
-Builds you make yourself are signed with your own debug key, so switching between the two needs
-an uninstall first.
+The fork's releases are signed with its own key, SHA-256
+`48:85:9B:98:82:4A:0C:87:16:57:E4:6A:EF:4D:43:5C:C4:E8:89:B9:4F:F1:F7:B6:B6:5B:2B:88:33:FD:00:12`.
+Upstream AARE's releases carry a different key, and builds you make yourself your own debug key:
+switching between any two of them needs an uninstall first, and the app's settings go with it.
 
 ## AA Key extraction
 

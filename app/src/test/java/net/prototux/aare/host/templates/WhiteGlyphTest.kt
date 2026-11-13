@@ -21,7 +21,7 @@ class WhiteGlyphTest {
     }
 
     @Test
-    fun aColouredIconIsNot() {
+    fun aColoredIconIsNot() {
         assertFalse(isWhiteGlyph(icon(blue, 30)))
         assertFalse(isWhiteGlyph(icon(white, 30).also { it[0] = blue }))
     }

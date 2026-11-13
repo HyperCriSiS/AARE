@@ -225,7 +225,7 @@ private object IconCache {
 /**
  * Car apps mostly draw their glyphs white, for Android Auto's dark screen. On a light car screen
  * such an icon (white on a transparent ground, with no tint of its own) disappears on a light card,
- * so it takes the content colour there. Coloured icons and photos keep their colours.
+ * so it takes the content color there. Colored icons and photos keep their colors.
  */
 @Composable
 private fun whiteGlyphTint(bitmap: ImageBitmap): Color? {

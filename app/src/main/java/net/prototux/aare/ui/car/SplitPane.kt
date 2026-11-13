@@ -159,7 +159,7 @@ private fun DragPreview(fraction: Float, committed: Float) {
 }
 
 /**
- * Asked for by a long press on a rail app: which pane to open [app] in. [anchor] is the centre of
+ * Asked for by a long press on a rail app: which pane to open [app] in. [anchor] is the center of
  * the pressed icon in the shell's coordinates; [horizontal] tells a bottom bar from a side rail.
  */
 internal class PaneChoice(val app: CarAppEntry, val anchor: Offset, val horizontal: Boolean, val railOnRight: Boolean)

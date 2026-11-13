@@ -69,7 +69,7 @@ internal fun WeatherChip(weather: Weather?) {
 
 /**
  * The next calendar events: the first large, with a shortcut to navigate to its place, the ones
- * after it as lines underneath, as many as the card has room for. One event alone stays centred.
+ * after it as lines underneath, as many as the card has room for. One event alone stays centered.
  */
 @Composable
 internal fun CalendarCard(events: List<NextEvent>, onNavigate: (String) -> Unit, modifier: Modifier) {

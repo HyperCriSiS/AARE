@@ -1,5 +1,12 @@
 package net.prototux.aare.ui
 
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.lazy.LazyListScope
 import android.Manifest
@@ -1115,9 +1122,12 @@ private fun LazyListScope.pickList(
 @Composable
 private fun EntryRow(icon: Bitmap?, label: String, actions: @Composable () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        AppIcon(icon, label, 32.dp)
-        Spacer(Modifier.width(12.dp))
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        // Icon and name as one accessibility node; the buttons keep their own.
+        Row(Modifier.weight(1f).clearAndSetSemantics { contentDescription = label }, verticalAlignment = Alignment.CenterVertically) {
+            AppIcon(icon, label, 32.dp)
+            Spacer(Modifier.width(12.dp))
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+        }
         actions()
     }
 }
@@ -1181,14 +1191,22 @@ private fun launchableApps(ctx: android.content.Context): List<Triple<String, St
 
 @Composable
 private fun AppRow(icon: android.graphics.Bitmap?, label: String, kind: String, visible: Boolean, onVisible: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable { onVisible(!visible) }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    // One accessibility node, the row as the switch: accessibility services walk every node on
+    // each frame, and five per row made scrolling a long list stutter.
+    Row(
+        Modifier.fillMaxWidth()
+            .toggleable(visible, role = Role.Switch, onValueChange = onVisible)
+            .clearAndSetSemantics { contentDescription = "$label, $kind"; toggleableState = ToggleableState(visible); role = Role.Switch }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         AppIcon(icon, label, 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyLarge)
             Text(kind, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Switch(checked = visible, onCheckedChange = onVisible)
+        Switch(checked = visible, onCheckedChange = null)
     }
 }
 

@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -187,23 +189,31 @@ private class ConnectionTemplateHost(val conn: CarAppConnection, val runtime: Ca
 
     @Composable
     override fun MapSurface(modifier: Modifier) {
-        val owner = remember { Any() }
         val dpi = runtime.densityDpi
-        AndroidView(
-            modifier = modifier,
-            factory = { ctx ->
-                SurfaceView(ctx).apply {
-                    holder.addCallback(object : SurfaceHolder.Callback {
-                        override fun surfaceCreated(holder: SurfaceHolder) = Unit
-                        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-                            conn.surfaceAvailable(owner, holder.surface, width, height, dpi)
+        BoxWithConstraints(modifier) {
+            // A new surface for a new size (a split pane resized, or back to full screen): an app
+            // given its old surface at another size may keep drawing at the old one (CoMaps did,
+            // leaving part of its map black). Each surface has its own owner, so the old one going
+            // away can't take the new one with it.
+            key(constraints.maxWidth, constraints.maxHeight) {
+                val owner = remember { Any() }
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        SurfaceView(ctx).apply {
+                            holder.addCallback(object : SurfaceHolder.Callback {
+                                override fun surfaceCreated(holder: SurfaceHolder) = Unit
+                                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                                    conn.surfaceAvailable(owner, holder.surface, width, height, dpi)
+                                }
+                                override fun surfaceDestroyed(holder: SurfaceHolder) = conn.surfaceDestroyed(owner)
+                            })
                         }
-                        override fun surfaceDestroyed(holder: SurfaceHolder) = conn.surfaceDestroyed(owner)
-                    })
-                }
-            },
-        )
-        DisposableEffect(owner) { onDispose { conn.surfaceDestroyed(owner) } }
+                    },
+                )
+                DisposableEffect(owner) { onDispose { conn.surfaceDestroyed(owner) } }
+            }
+        }
     }
 
     override fun setVisibleArea(left: Int, top: Int, right: Int, bottom: Int) = conn.setVisibleArea(Rect(left, top, right, bottom))

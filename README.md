@@ -20,7 +20,7 @@ cars, may well behave differently.
 > [!IMPORTANT]
 > MBUX only accepts a Google-issued phone certificate: download it in the app under
 > *Advanced, Phone certificates* before the first connection (see [Certificates](docs/certificates.md)).
-> Video from media apps and the phone screen need [Shizuku](https://shizuku.rikka.app/) or root.
+> Video from media apps needs [Shizuku](https://shizuku.rikka.app/) or root.
 
 ![The car screen on an MBUX-sized display](docs/screenshots/fork/dashboard.png)
 

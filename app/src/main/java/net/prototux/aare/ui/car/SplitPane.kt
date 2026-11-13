@@ -150,8 +150,10 @@ private fun DragPreview(fraction: Float, committed: Float) {
         drawRect(Color.Black.copy(alpha = 0.35f), Offset(min(x, from), 0f), Size(abs(x - from), size.height))
         if (fraction < SPLIT_SNAP) drawRect(Color.Black.copy(alpha = 0.6f), Offset.Zero, Size(x, size.height))
         if (fraction > 1 - SPLIT_SNAP) drawRect(Color.Black.copy(alpha = 0.6f), Offset(x, 0f), Size(size.width - x, size.height))
-        val w = 4.dp.toPx()
-        val h = 56.dp.toPx()
+        // A line the full height, easy to see over any app, with the handle on it.
+        drawRect(line, Offset(x - 1.dp.toPx(), 0f), Size(2.dp.toPx(), size.height))
+        val w = 8.dp.toPx()
+        val h = 64.dp.toPx()
         drawRoundRect(line, Offset(x - w / 2, (size.height - h) / 2), Size(w, h), CornerRadius(w / 2))
     }
 }

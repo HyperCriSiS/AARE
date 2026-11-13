@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +26,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
@@ -533,12 +533,10 @@ private fun MediaCard(state: CarUiState, actions: CarActions, compact: Boolean, 
             }
         } else {
             Column(Modifier.fillMaxSize().padding(24.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Art(np, 72)
-                    Spacer(Modifier.width(16.dp))
-                    if (media != null) AppIcon(media, 28)
-                }
-                Spacer(Modifier.weight(1f))
+                // The cover fills the height the text and buttons leave, as a square, instead of a
+                // small one over an empty half of the card.
+                CoverArt(np, media, Modifier.weight(1f).aspectRatio(1f, matchHeightConstraintsFirst = true))
+                Spacer(Modifier.height(16.dp))
                 content()
                 Spacer(Modifier.height(12.dp))
                 if (np != null && np.durationMs > 0) {
@@ -549,6 +547,28 @@ private fun MediaCard(state: CarUiState, actions: CarActions, compact: Boolean, 
                     Spacer(Modifier.height(12.dp))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) { MediaButtons(np, actions) }
+            }
+        }
+    }
+}
+
+/**
+ * The playing cover, filling [modifier], with the media app's icon in its corner. With no cover
+ * (nothing playing, or an app without art) the app's own icon stands in, large, so the card
+ * doesn't show a generic note next to a small copy of the same app.
+ */
+@Composable
+private fun CoverArt(np: NowPlaying?, media: CarAppEntry?, modifier: Modifier) {
+    val shape = RoundedCornerShape(20.dp)
+    Box(modifier) {
+        if (np?.art != null) {
+            Image(np.art.asImageBitmap(), null, Modifier.fillMaxSize().clip(shape), contentScale = ContentScale.Crop)
+            if (media != null) Box(Modifier.align(Alignment.BottomEnd).padding(8.dp)) { AppIcon(media, 32) }
+        } else {
+            BoxWithConstraints(Modifier.fillMaxSize().clip(shape).background(MaterialTheme.colorScheme.secondaryContainer), contentAlignment = Alignment.Center) {
+                val icon = (minOf(maxWidth, maxHeight) * 0.45f).value.toInt()
+                if (media != null) AppIcon(media, icon)
+                else Icon(Icons.Rounded.MusicNote, null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(icon.dp))
             }
         }
     }

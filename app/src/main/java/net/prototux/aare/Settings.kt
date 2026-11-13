@@ -113,6 +113,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("show_weather", true)
         set(v) = prefs.edit { putBoolean("show_weather", v) }
 
+    /** Parked, media apps show the phone's screen (a video playing there) instead of their art. */
+    var mediaVideo: Boolean
+        get() = prefs.getBoolean("media_video", false)
+        set(v) = prefs.edit { putBoolean("media_video", v) }
+
     /** The next calendar event on the dashboard. */
     var showCalendar: Boolean
         get() = prefs.getBoolean("show_calendar", true)

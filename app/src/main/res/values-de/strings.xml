@@ -440,4 +440,5 @@
     <string name="carapp_error_stopped">%1$s wurde beendet</string>
     <string name="carapp_error_google_only">%1$s akzeptiert nur Googles Android Auto. Es muss AARE erlauben (siehe die App-Liste auf dem Telefon).</string>
     <string name="carapp_error_cant_start">%1$s konnte nicht starten: %2$s</string>
+    <string name="media_switch_video">Video vom Handy in Medien-Apps (im Stand, Doppeltipp für Vollbild)</string>
 </resources>

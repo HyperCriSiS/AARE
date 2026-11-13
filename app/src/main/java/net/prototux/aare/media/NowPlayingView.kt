@@ -60,6 +60,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import net.prototux.aare.R
+import net.prototux.aare.mirror.LocalPhoneVideo
 import net.prototux.aare.ui.car.carFocusHighlight
 import net.prototux.aare.ui.theme.LocalCarDimens
 
@@ -96,8 +97,14 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
         }
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp)) {
             val portrait = maxHeight > maxWidth
+            val video = LocalPhoneVideo.current
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (portrait) {
+                if (video != null) {
+                    // The video playing on the phone takes the art's place, as wide as it gets.
+                    video(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(20.dp)))
+                    Spacer(Modifier.height(8.dp))
+                    Text(info.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                } else if (portrait) {
                     ArtBox(info.art, Icons.Rounded.MusicNote, Modifier.weight(1f, fill = false).sizeIn(maxWidth = 420.dp).aspectRatio(1f), RoundedCornerShape(28.dp))
                     Spacer(Modifier.height(20.dp))
                     Column(Modifier.fillMaxWidth()) { Details(state, info, source) }

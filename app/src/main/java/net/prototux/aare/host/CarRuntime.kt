@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -36,7 +37,9 @@ import net.prototux.aare.Settings
 import net.prototux.aare.car.Calls
 import net.prototux.aare.car.DashboardInfo
 import net.prototux.aare.media.MediaHub
+import net.prototux.aare.mirror.LocalPhoneVideo
 import net.prototux.aare.mirror.MirrorScreen
+import net.prototux.aare.mirror.PhoneVideo
 import net.prototux.aare.notify.CarNotificationListener
 import net.prototux.aare.notify.MessagingScreen
 import net.prototux.aare.launch.AppLauncher
@@ -311,12 +314,16 @@ class CarRuntime(
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
+            "media_video" -> main.post { mediaVideo = settings.mediaVideo }
             "show_weather", "show_calendar" -> main.post {
                 dashboardInfo?.cancel()
                 dashboardInfo = scope.launch { watchDashboardInfo() }
             }
         }
     }
+
+    /** [Settings.mediaVideo], kept current for the car screen. */
+    private var mediaVideo by mutableStateOf(settings.mediaVideo)
 
     /** The weather and calendar refresh loop, restarted when either is switched on or off. */
     private var dashboardInfo: Job? = null
@@ -693,7 +700,10 @@ class CarRuntime(
                         when (app.kind) {
                             CarAppKind.MEDIA -> {
                                 val m = mediaApps.firstOrNull { it.packageName == app.packageName }
-                                if (m != null) media.Screen(m, ui.drivingRestricted, mod)
+                                // Parked and wanted: the phone's screen, a video playing there, in place of the art.
+                                val video: (@Composable (Modifier) -> Unit)? =
+                                    if (mediaVideo && phoneScreenAllowed && !ui.drivingRestricted) { v -> PhoneVideo(this, v) } else null
+                                if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }
                             }
                             CarAppKind.MESSAGING -> MessagingScreen(app, ui.drivingRestricted, this, mod)
                             CarAppKind.PHONE_SCREEN -> MirrorScreen(this, ui.drivingRestricted, mod)

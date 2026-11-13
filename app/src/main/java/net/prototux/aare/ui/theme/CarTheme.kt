@@ -30,7 +30,7 @@ data class CarDimens(
     val railWidth: Dp = 84.dp,
     val railButton: Dp = 64.dp,
     val railIcon: Dp = 28.dp,
-    val gutter: Dp = 12.dp,
+    val gutter: Dp = 8.dp,
     val cardRadius: Dp = 28.dp,
     val iconSize: Dp = 36.dp,
 )

@@ -28,13 +28,13 @@ cars, may well behave differently.
 
 What the fork adds to AARE:
 
+- **Real video in the car:** YouTube, NewPipe and other players show their actual video on the car
+  screen instead of the cover art, in half the screen or full screen. Only while parked.
 - Split screen: two apps side by side, with a divider to drag; let go near an edge to close a pane.
 - Swipe an app icon left or right to open it in that pane; hold it to choose; tap for full screen.
 - A rail of your own: pick its apps and their order in the phone app; it scrolls when they don't fit.
 - Shortcuts: hold the app list button for a small grid of picked apps.
 - An app list that can leave out what is already in the rail or the shortcuts.
-- Video from media apps, parked: the app itself runs in the pane, YouTube or NewPipe fill it with their video.
-- Full screen video over the rail, with buttons that fade out when left alone.
 - A compact rail, a cleaner media card, the next calendar events on the dashboard.
 - Switches in the car's Settings app for weather, calendar and the phone screen.
 - Settings export and import, for a backup or a new phone.

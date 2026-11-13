@@ -94,6 +94,8 @@ class ProjectionService : Service() {
     private var usbPermissionReceiver: BroadcastReceiver? = null
     /** When the running session started, so a link that worked for a while gets a fresh retry budget. */
     private var sessionStart = 0L
+    /** The certificate the current or last session offered. */
+    private var offered: CertificateStore.Entry? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var wirelessJob: Job? = null
     /** onDestroy ran: a session closing late must not touch this instance any more. */
@@ -350,6 +352,7 @@ class ProjectionService : Service() {
         }
         lastSessionWireless = wireless
         val cert = certs.pick(settings.certificateIndex)
+        offered = cert
         log("connecting ${transport.name} with certificate \"${cert.name}\"")
         acquireWakeLock()
         sessionStart = SystemClock.elapsedRealtime()
@@ -392,7 +395,8 @@ class ProjectionService : Service() {
             pinRefusal?.let { notifyUntrusted(it) }
             // A Google-issued certificate is the one strict head units want and lenient ones accept:
             // a hang-up during its handshake is a cable pulled or replugged, not a reason to move on.
-            if (certificateRejected && !certs.pick(settings.certificateIndex).isGoogleIssued) {
+            // A head unit that says it refuses it gets the next one all the same.
+            if (certificateRejected && rotates(offered?.isGoogleIssued == true, session.authRejected)) {
                 // Offer the next certificate next time: strict head units only accept Google-issued ones.
                 settings.certificateIndex = settings.certificateIndex + 1
                 log("head unit rejected the certificate; next connection offers \"${certs.pick(settings.certificateIndex).name}\"")
@@ -728,3 +732,9 @@ class ProjectionService : Service() {
         }
     }
 }
+
+/**
+ * Whether a refused certificate gives way to the next one: always, except a Google-issued one the
+ * head unit only hung up on ([explicit] false), which is a cable pulled rather than a refusal.
+ */
+internal fun rotates(googleIssued: Boolean, explicit: Boolean): Boolean = !googleIssued || explicit

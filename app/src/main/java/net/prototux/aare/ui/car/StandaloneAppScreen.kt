@@ -46,7 +46,8 @@ import net.prototux.aare.media.Placeholder
 @Composable
 internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageName: String, modifier: Modifier) {
     val context = LocalContext.current
-    val launcher = remember(packageName) { AppLauncher(context) }
+    // A helper per app: two phone apps side by side each keep their own display.
+    val launcher = remember(packageName) { AppLauncher(context, "launch-$packageName") }
     var started by remember(packageName) { mutableStateOf(false) }
 
     DisposableEffect(packageName) {

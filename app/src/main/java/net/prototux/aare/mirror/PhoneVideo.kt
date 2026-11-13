@@ -66,8 +66,8 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
     val context = LocalContext.current
     val full = LocalFullScreen.current
     val available = remember { AppLauncher.available(context) }
-    // Its own helper process, apart from the phone apps': releasing one leaves the other running.
-    val launcher = remember(packageName) { AppLauncher(context, "video") }
+    // Its own helper, apart from the phone apps' and other videos': releasing one leaves the others running.
+    val launcher = remember(packageName) { AppLauncher(context, "video-$packageName") }
     // Null while starting, then whether the app runs here.
     var started by remember(packageName) { mutableStateOf<Boolean?>(null) }
     // Gone (driving, another screen): so are its full-screen copy and its display.

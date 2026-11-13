@@ -63,7 +63,11 @@ object PhoneMirror {
             if (!AppLauncher.available(context)) return false
             val app = context.applicationContext
             worker.execute {
-                val l = launcher ?: AppLauncher(app, "mirror").let { if (it.connect()) it.also { launcher = it } else { it.release(); null } }
+                // A helper that went away (its process ended) is connected again.
+                val l = launcher?.takeIf { it.connected } ?: run {
+                    launcher?.release()
+                    AppLauncher(app, "mirror").let { if (it.connect()) it else { it.release(); null } }.also { launcher = it }
+                }
                 if (l?.mirror(surface, width, height, dpi) != true) Log.w(TAG, "the helper can't mirror the phone screen")
             }
             return true

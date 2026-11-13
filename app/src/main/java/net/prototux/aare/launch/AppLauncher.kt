@@ -23,13 +23,14 @@ import java.util.concurrent.TimeUnit
  *
  * [connect] blocks and must run off the main thread.
  */
-class AppLauncher(private val context: Context, process: String = "launch") {
+class AppLauncher(private val context: Context, key: String = "launch") {
     @Volatile private var host: ILaunchHost? = null
 
     // --- Shizuku path ---
-    // One helper process per [process] name: releasing one (it exits) leaves the others running.
+    // One helper per [key]: Shizuku tells user services apart by their tag only, so two launchers
+    // with the same key would share one helper, its display, and its end when one releases it.
     private val args = Shizuku.UserServiceArgs(ComponentName(context.packageName, LaunchHostService::class.java.name))
-        .daemon(false).processNameSuffix(process).debuggable(BuildConfig.DEBUG).version(BuildConfig.VERSION_CODE)
+        .daemon(false).tag(key).processNameSuffix(helperName(key)).debuggable(BuildConfig.DEBUG).version(BuildConfig.VERSION_CODE)
     private val bound = CountDownLatch(1)
     private var didBind = false
     private val connection = object : ServiceConnection {
@@ -58,10 +59,15 @@ class AppLauncher(private val context: Context, process: String = "launch") {
 
     private fun connectRoot(): Boolean {
         val got = CountDownLatch(1)
+        // Only our own helper's binder: other launchers' helpers broadcast on the same action.
+        val nonce = java.util.UUID.randomUUID().toString()
         val rec = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, intent: Intent?) {
-                host = intent?.getBundleExtra(LaunchMain.EXTRA_BUNDLE)?.getBinder(LaunchMain.EXTRA_BINDER)
+                if (intent?.getStringExtra(LaunchMain.EXTRA_NONCE) != nonce) return
+                host = intent.getBundleExtra(LaunchMain.EXTRA_BUNDLE)?.getBinder(LaunchMain.EXTRA_BINDER)
                     ?.let(ILaunchHost.Stub::asInterface)
+                runCatching { context.unregisterReceiver(this) }
+                receiver = null
                 got.countDown()
             }
         }
@@ -71,7 +77,7 @@ class AppLauncher(private val context: Context, process: String = "launch") {
         if (Build.VERSION.SDK_INT >= 33) context.registerReceiver(rec, filter, Context.RECEIVER_EXPORTED)
         else @Suppress("UnspecifiedRegisterReceiverFlag") context.registerReceiver(rec, filter)
         val apk = context.applicationInfo.sourceDir
-        val cmd = "CLASSPATH='$apk' app_process / ${LaunchMain::class.java.name} ${context.packageName}"
+        val cmd = "CLASSPATH='$apk' app_process / ${LaunchMain::class.java.name} ${context.packageName} $nonce"
         suProcess = runCatching { ProcessBuilder("su", "-c", cmd).start() }
             .onFailure { Log.w(TAG, "su launch failed", it) }.getOrNull() ?: return false
         suProcess?.let { p ->
@@ -101,6 +107,8 @@ class AppLauncher(private val context: Context, process: String = "launch") {
 
     fun release() {
         runCatching { host?.stop() }
+        // The root helper otherwise keeps running on its looper, a display of the mirror included.
+        if (suProcess != null) runCatching { host?.destroy() }
         if (didBind) runCatching { Shizuku.unbindUserService(args, connection, true) }
         receiver?.let { runCatching { context.unregisterReceiver(it) } }
         receiver = null
@@ -111,6 +119,9 @@ class AppLauncher(private val context: Context, process: String = "launch") {
 
     companion object {
         private const val TAG = "AareAppLauncher"
+
+        /** A process name suffix for the helper of [key]: letters, digits and underscores only. */
+        internal fun helperName(key: String) = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")
         /** Whether a privileged backend (Shizuku or allowed root) is available to run the launcher. */
         fun available(context: Context): Boolean =
             CaptureMethods.shizukuAvailable() || CaptureMethods.rootAvailable(context)

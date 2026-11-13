@@ -43,7 +43,7 @@ class LaunchHostService : ILaunchHost.Stub {
 
     override fun start(surface: Surface, width: Int, height: Int, dpi: Int, packageName: String): Int {
         stop()
-        val ctx = injectedContext ?: systemContext() ?: return -1
+        val ctx = callerContext() ?: return -1
         val vd = createDisplay(ctx, surface, width, height, dpi) ?: return -1
         display = vd
         displayId = vd.display.displayId
@@ -85,7 +85,7 @@ class LaunchHostService : ILaunchHost.Stub {
             runCatching { vd.surface = surface }
             return true
         }
-        val ctx = injectedContext ?: systemContext() ?: return false
+        val ctx = callerContext() ?: return false
         mirrorDisplay = createMirror(ctx, surface, width, height, dpi)
         return mirrorDisplay != null
     }
@@ -166,6 +166,18 @@ class LaunchHostService : ILaunchHost.Stub {
         runCatching { event.javaClass.getMethod("setDisplayId", Int::class.javaPrimitiveType).invoke(event, id) }
     }
 
+    /**
+     * The context to call the framework with. Under Shizuku this process runs as the shell (uid
+     * 2000) while the injected context names AARE's package, and the display service refuses a
+     * package that isn't the caller's ("packageName must match the owner uid"): the shell's own
+     * package context, then.
+     */
+    private fun callerContext(): Context? {
+        val ctx = injectedContext ?: systemContext() ?: return null
+        if (android.os.Process.myUid() != SHELL_UID) return ctx
+        return runCatching { ctx.createPackageContext("com.android.shell", 0) }
+            .onFailure { Log.w(TAG, "no shell context: ${it.message}") }.getOrDefault(ctx)
+    }
     /** The system context of this (app_process) process, when Shizuku did not inject one. */
     @SuppressLint("PrivateApi")
     private fun systemContext(): Context? = runCatching {
@@ -186,6 +198,7 @@ class LaunchHostService : ILaunchHost.Stub {
 
     private companion object {
         const val TAG = "AareLaunchHost"
+        const val SHELL_UID = 2000
         const val SOURCE_TOUCHSCREEN = 0x00001002 // InputDevice.SOURCE_TOUCHSCREEN
         const val SOURCE_KEYBOARD = 0x00000101 // InputDevice.SOURCE_KEYBOARD
         const val INJECT_INPUT_EVENT_MODE_ASYNC = 0

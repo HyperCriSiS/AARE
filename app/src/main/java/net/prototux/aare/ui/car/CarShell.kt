@@ -189,16 +189,16 @@ private fun Rail(state: CarUiState, actions: CarActions, horizontal: Boolean, ar
 internal data class SideRailFit(val recentSlots: Int, val status: Boolean, val settings: Boolean)
 
 /**
- * Fits the side rail to its [height] inside the padding. Everything takes about 614 dp (clock and
- * bell 72, phone status and weather 54, the four apps 328, menu and mic 160), so on shorter screens
+ * Fits the side rail to its [height] inside the padding. Everything takes about 534 dp (clock and
+ * bell 72, phone status and weather 54, the four apps 276, menu and mic 132), so on shorter screens
  * the phone status and weather go first, then Settings (the launcher has it); below that the apps
- * scroll. Dropping items rather than shrinking them keeps every button a full touch target.
+ * scroll. Dropping items rather than shrinking them keeps every button its full size.
  */
 internal fun sideRailFit(height: Dp) = SideRailFit(
-    // A recent app only on tall screens: what an 800 dp screen leaves inside the padding.
-    recentSlots = if (height >= 768.dp) 1 else 0,
-    status = height >= 614.dp,
-    settings = height >= 560.dp,
+    // A recent app when one more button (64 dp and its gap) fits besides everything else.
+    recentSlots = if (height >= 602.dp) 1 else 0,
+    status = height >= 534.dp,
+    settings = height >= 480.dp,
 )
 
 @Composable
@@ -248,9 +248,9 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             if (state.driverOnRight) driverEnd() else status()
         }
     } else {
-        val fit = sideRailFit(area.height - 32.dp)
+        val fit = sideRailFit(area.height - 24.dp)
         Column(
-            Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = 16.dp),
+            Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Clock()
@@ -263,15 +263,17 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             NotificationBell(state) { bell() }
             // The apps are the only weighted child, so they are measured last and are the part that
             // gives up space: menu and mic (the only way home on touch-only units) keep their size.
-            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            // Grouped under the clock like a dock, so spare height collects above the menu instead
+            // of opening gaps around the apps.
+            Box(Modifier.weight(1f).padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
                 Column(
                     Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) { apps(fit.recentSlots, fit.settings) }
             }
             menu()
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             mic()
         }
     }
@@ -299,10 +301,10 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, onCl
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        Modifier.size(d.touchTarget).clip(RoundedCornerShape(24.dp)).background(bg).carFocusHighlight(RoundedCornerShape(24.dp)).clickable(onClick = onClick),
+        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(bg).carFocusHighlight(RoundedCornerShape(20.dp)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(d.iconSize))
+        Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(d.railIcon))
     }
 }
 
@@ -315,10 +317,10 @@ private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean,
     }
     val ring = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(
-        Modifier.size(d.touchTarget).clip(RoundedCornerShape(24.dp)).background(ring).carFocusHighlight(RoundedCornerShape(24.dp)).clickable(onClick = onClick),
+        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(ring).carFocusHighlight(RoundedCornerShape(20.dp)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Image(app.icon.asImageBitmap(), app.label, Modifier.size(48.dp).clip(CircleShape))
+        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(CircleShape))
     }
 }
 
@@ -328,10 +330,10 @@ private fun MicButton(listening: Boolean, onClick: () -> Unit) {
     val bg = if (listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
     val fg = if (listening) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
     Box(
-        Modifier.size(d.touchTarget).clip(CircleShape).background(bg).carFocusHighlight(CircleShape).clickable(onClick = onClick),
+        Modifier.size(d.railButton).clip(CircleShape).background(bg).carFocusHighlight(CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.assistant_mic_label), tint = fg, modifier = Modifier.size(d.iconSize))
+        Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.assistant_mic_label), tint = fg, modifier = Modifier.size(d.railIcon))
     }
 }
 

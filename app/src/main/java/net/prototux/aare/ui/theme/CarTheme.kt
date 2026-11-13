@@ -21,12 +21,15 @@ import androidx.compose.ui.unit.sp
  * The in-car look: calm dark surfaces, one warm accent, big type and big targets.
  *
  * Car screens are viewed from ~70 cm at a glance, so sizes follow the car-UI rule of thumb:
- * touch targets ≥ 76 dp, body text ≥ 24 sp, and no more than two text styles per card.
+ * touch targets ≥ 76 dp, body text ≥ 24 sp, and no more than two text styles per card. The rail is
+ * the exception: it is always on screen, so it is denser (64 dp buttons) to leave room for content.
  */
 @Immutable
 data class CarDimens(
     val touchTarget: Dp = 76.dp,
-    val railWidth: Dp = 96.dp,
+    val railWidth: Dp = 84.dp,
+    val railButton: Dp = 64.dp,
+    val railIcon: Dp = 28.dp,
     val gutter: Dp = 12.dp,
     val cardRadius: Dp = 28.dp,
     val iconSize: Dp = 36.dp,

@@ -1,5 +1,13 @@
 package net.prototux.aare.ui
 
+import androidx.compose.material.icons.rounded.DragIndicator
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.state.ToggleableState
@@ -892,6 +900,7 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
     var hidePinned by mutableStateOf(settings.launcherHidesPinned)
     var addingRail by mutableStateOf(false)
     var addingShortcuts by mutableStateOf(false)
+    val drag = RowDrag()
     var standalone by mutableStateOf(settings.standaloneApps)
     var allowed by mutableStateOf(settings.standaloneAppPackages)
     var launchable by mutableStateOf<List<LauncherEntry>?>(null)
@@ -956,7 +965,11 @@ private fun row(key: Any, content: @Composable () -> Unit): Pair<Any, @Composabl
  * A card like [Section], spread over lazy items: [title] and [intro] in the first, then each of
  * [rows] in its own, then the gap to the next card. [key] keeps the item keys apart.
  */
-private fun LazyListScope.card(key: String, title: Int, intro: (@Composable () -> Unit)? = null, rows: List<Pair<Any, @Composable () -> Unit>> = emptyList()) {
+private fun LazyListScope.card(
+    key: String, title: Int, intro: (@Composable () -> Unit)? = null, rows: List<Pair<Any, @Composable () -> Unit>> = emptyList(),
+    /** For a list sorted by dragging: lifts the dragged row and slides the others. */
+    drag: RowDrag? = null,
+) {
     item(key = "$key:head") {
         CardPart(top = true, bottom = rows.isEmpty()) {
             Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
@@ -964,16 +977,27 @@ private fun LazyListScope.card(key: String, title: Int, intro: (@Composable () -
             intro?.invoke()
         }
     }
-    rows.forEachIndexed { i, (k, content) -> item(key = "$key:$k") { CardPart(top = false, bottom = i == rows.lastIndex) { content() } } }
+    rows.forEachIndexed { i, (k, content) ->
+        val itemKey = "$key:$k"
+        item(key = itemKey) {
+            val lifted = drag != null && drag.key == itemKey
+            val m = when {
+                lifted -> Modifier.zIndex(1f).graphicsLayer { translationY = drag!!.offset; shadowElevation = 8.dp.toPx() }
+                drag != null -> Modifier.animateItem()
+                else -> Modifier
+            }
+            CardPart(top = false, bottom = i == rows.lastIndex, modifier = m) { content() }
+        }
+    }
     item(key = "$key:gap") { Spacer(Modifier.height(16.dp)) }
 }
 
 /** A slice of a card: rounded and padded at the [top] and [bottom] ends only. */
 @Composable
-private fun CardPart(top: Boolean, bottom: Boolean, content: @Composable () -> Unit) {
+private fun CardPart(top: Boolean, bottom: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val r = 24.dp
     Column(
-        Modifier.fillMaxWidth()
+        modifier.fillMaxWidth()
             .clip(RoundedCornerShape(if (top) r else 0.dp, if (top) r else 0.dp, if (bottom) r else 0.dp, if (bottom) r else 0.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(start = 20.dp, end = 20.dp, top = if (top) 20.dp else 0.dp, bottom = if (bottom) 20.dp else 0.dp),
@@ -995,10 +1019,10 @@ private fun LazyListScope.appsPage(p: AppsPage) {
     if (p.lists != null) {
         val entries = p.entries()
         appOrder(p, entries)
-        pickList("rail", R.string.setup_section_rail, R.string.setup_rail_hint, entries, p.rail, p.addingRail, { p.addingRail = it }) {
+        pickList("rail", R.string.setup_section_rail, R.string.setup_rail_hint, entries, p.rail, p.drag, p.addingRail, { p.addingRail = it }) {
             p.rail = it; p.settings.railApps = it
         }
-        pickList("shortcuts", R.string.setup_section_shortcuts, R.string.setup_shortcuts_hint, entries, p.shortcuts, p.addingShortcuts, { p.addingShortcuts = it }) {
+        pickList("shortcuts", R.string.setup_section_shortcuts, R.string.setup_shortcuts_hint, entries, p.shortcuts, p.drag, p.addingShortcuts, { p.addingShortcuts = it }) {
             p.shortcuts = it; p.settings.shortcutApps = it
         }
         card("filter", R.string.setup_section_app_list_filter, intro = {
@@ -1080,19 +1104,14 @@ private fun LazyListScope.appOrder(p: AppsPage, all: List<LauncherEntry>) {
         val merged = p.order.mapNotNull { if (it in shown) queue.removeFirstOrNull() else it } + queue
         p.order = merged; p.settings.appOrder = merged
     }
-    card("order", R.string.setup_section_app_order, rows = sorted.mapIndexed { i, (key, label, icon) ->
-        row(key) {
-            EntryRow(icon, label, listOf(
-                RowAction(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up), i > 0) { move(i, -1) },
-                RowAction(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down), i < sorted.lastIndex) { move(i, 1) },
-            ))
-        }
+    card("order", R.string.setup_section_app_order, drag = p.drag, rows = sorted.mapIndexed { i, (key, label, icon) ->
+        row(key) { EntryRow(icon, label, reorder = Reorder(i, sorted.size, "order:$key", p.drag) { by -> move(i, by) }) }
     })
 }
 
 /** Apps picked from [entries], in order: up, down and remove on each, and the others to add while [adding]. */
 private fun LazyListScope.pickList(
-    key: String, title: Int, hint: Int, entries: List<LauncherEntry>, picked: List<String>,
+    key: String, title: Int, hint: Int, entries: List<LauncherEntry>, picked: List<String>, drag: RowDrag,
     adding: Boolean, setAdding: (Boolean) -> Unit, onChange: (List<String>) -> Unit,
 ) {
     val byKey = entries.associateBy { it.first }
@@ -1103,11 +1122,8 @@ private fun LazyListScope.pickList(
         shown.forEachIndexed { i, k ->
             val (_, label, icon) = byKey.getValue(k)
             add(row(k) {
-                EntryRow(icon, label, listOf(
-                    RowAction(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up), i > 0) { move(i, -1) },
-                    RowAction(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down), i < shown.lastIndex) { move(i, 1) },
-                    RowAction(Icons.Rounded.Close, stringResource(R.string.common_remove)) { onChange(shown - k) },
-                ))
+                EntryRow(icon, label, listOf(RowAction(Icons.Rounded.Close, stringResource(R.string.common_remove)) { onChange(shown - k) }),
+                    Reorder(i, shown.size, "$key:$k", drag) { by -> move(i, by) })
             })
         }
         add(row("add") { TextButton(onClick = { setAdding(!adding) }) { Text(stringResource(if (adding) R.string.common_done else R.string.common_add_apps)) } })
@@ -1117,26 +1133,43 @@ private fun LazyListScope.pickList(
             }
         }
     }
-    card(key, title, intro = { Hint(stringResource(hint)) }, rows = rows)
+    card(key, title, intro = { Hint(stringResource(hint)) }, rows = rows, drag = drag)
 }
 
 /** A button of an [EntryRow]. */
 private class RowAction(val icon: ImageVector, val label: String, val enabled: Boolean = true, val onClick: () -> Unit)
 
+/** The row being dragged to a new place in a list, by its item key, and how far it is from its slot. */
+private class RowDrag {
+    var key by mutableStateOf<Any?>(null)
+    var offset by mutableFloatStateOf(0f)
+}
+
+/** Sorting an [EntryRow] by dragging: its [index] of [count], its list item's [itemKey], and [move] a step up or down. */
+private class Reorder(val index: Int, val count: Int, val itemKey: Any, val drag: RowDrag, val move: (by: Int) -> Unit)
+
 /**
- * An app in a list: its icon, its name, then a button for each of [actions]. One accessibility
- * node with the buttons as its actions: accessibility services walk every node on each frame,
- * and three per button made scrolling stutter.
+ * An app in a list: with [reorder], a handle to drag it up or down; then its icon, its name and a
+ * button for each of [actions]. One accessibility node with the buttons and the moves as its
+ * actions: accessibility services walk every node on each frame, and a node per part made
+ * scrolling stutter.
  */
 @Composable
-private fun EntryRow(icon: Bitmap?, label: String, actions: List<RowAction>) {
+private fun EntryRow(icon: Bitmap?, label: String, actions: List<RowAction> = emptyList(), reorder: Reorder? = null) {
+    val up = stringResource(R.string.common_up)
+    val down = stringResource(R.string.common_down)
+    var height by remember { mutableIntStateOf(1) }
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp).clearAndSetSemantics {
+        Modifier.fillMaxWidth().onSizeChanged { height = it.height }.padding(vertical = 4.dp).clearAndSetSemantics {
             contentDescription = label
-            customActions = actions.filter { it.enabled }.map { a -> CustomAccessibilityAction(a.label) { a.onClick(); true } }
+            customActions = listOfNotNull(
+                reorder?.takeIf { it.index > 0 }?.let { r -> CustomAccessibilityAction(up) { r.move(-1); true } },
+                reorder?.takeIf { it.index < it.count - 1 }?.let { r -> CustomAccessibilityAction(down) { r.move(1); true } },
+            ) + actions.filter { it.enabled }.map { a -> CustomAccessibilityAction(a.label) { a.onClick(); true } }
         },
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (reorder != null) DragHandle(reorder) { height }
         AppIcon(icon, label, 32.dp)
         Spacer(Modifier.width(12.dp))
         Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
@@ -1144,7 +1177,41 @@ private fun EntryRow(icon: Bitmap?, label: String, actions: List<RowAction>) {
     }
 }
 
-/** An app's icon in a circle, or its initial when it has none. */
+/**
+ * The dotted grip that drags its row: the row follows the finger and swaps places with a
+ * neighbour once past half of its height ([rowHeight]).
+ */
+@Composable
+private fun DragHandle(reorder: Reorder, rowHeight: () -> Int) {
+    val r by rememberUpdatedState(reorder)
+    Icon(
+        Icons.Rounded.DragIndicator, null, tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(end = 8.dp).size(32.dp).pointerInput(Unit) {
+            // One step at a time: the next waits until the list has the row in its new place.
+            var waitFor = -1
+            fun drop() { r.drag.key = null; r.drag.offset = 0f }
+            detectVerticalDragGestures(
+                onDragStart = { r.drag.key = r.itemKey; r.drag.offset = 0f; waitFor = -1 },
+                onDragEnd = { drop() },
+                onDragCancel = { drop() },
+            ) { change, dy ->
+                change.consume()
+                val d = r.drag
+                d.offset += dy
+                if (r.index == waitFor) return@detectVerticalDragGestures
+                val h = rowHeight().toFloat().coerceAtLeast(1f)
+                val step = when {
+                    d.offset > h / 2 && r.index < r.count - 1 -> 1
+                    d.offset < -h / 2 && r.index > 0 -> -1
+                    else -> 0
+                }
+                if (step != 0) { waitFor = r.index; d.offset -= step * h; r.move(step) }
+            }
+        },
+    )
+}
+
+/** An app''s icon in a circle, or its initial when it has none. */
 @Composable
 private fun AppIcon(icon: Bitmap?, label: String, size: Dp) {
     if (icon != null) Image(remember(icon) { icon.asImageBitmap() }, null, Modifier.size(size).clip(CircleShape))

@@ -97,8 +97,9 @@ class CarUiState {
     var tripPackage by mutableStateOf<String?>(null)
     /** The weather next to the clock, if known and wanted. */
     var weather by mutableStateOf<Weather?>(null)
-    /** The next calendar event, for the dashboard. */
-    var nextEvent by mutableStateOf<NextEvent?>(null)
+    /** The next calendar events, soonest first, for the dashboard. */
+    var events by mutableStateOf<List<NextEvent>>(emptyList())
+    val nextEvent: NextEvent? get() = events.firstOrNull()
     /** The phone call ringing or on, if any. */
     var call by mutableStateOf<CarCall?>(null)
     /** The apps opened last, newest first (ids): the rail shows the recent ones. */

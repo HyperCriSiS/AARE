@@ -325,7 +325,10 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     fun on(app: CarAppEntry?) = app != null && state.screen.shows(app.id)
     // Held: offer the two panes for it, next to the icon.
     val menus = LocalRailMenus.current
-    val hold: (CarAppEntry) -> RailPane = { app -> RailPane({ center -> menus.choosePane(app, center, horizontal) }, { left -> actions.openInPane(app, left) }) }
+    // A bottom bar scrolls sideways, so a sideways swipe there scrolls instead of picking a pane.
+    val hold: (CarAppEntry) -> RailPane = { app ->
+        RailPane({ center -> menus.choosePane(app, center, horizontal) }, if (horizontal) null else { left: Boolean -> actions.openInPane(app, left) })
+    }
     // Like Android Auto's taskbar: the apps used last, besides the fixed ones (one on a side rail, for height).
     val fixed = setOfNotNull(nav?.id, media?.id, phone?.id, settings?.id)
     val recent = state.recentAppIds.filter { it !in fixed }.mapNotNull(state::app)
@@ -450,7 +453,7 @@ private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean,
 }
 
 /**
- * What a rail app offers besides a tap: a long press hands [choose] the button's centre (root
+ * What a rail app offers besides a tap: a long press hands [choose] the button's center (root
  * coordinates), and a sideways swipe calls [open] with the side.
  */
 private class RailPane(val choose: (Offset) -> Unit, val open: ((left: Boolean) -> Unit)? = null)

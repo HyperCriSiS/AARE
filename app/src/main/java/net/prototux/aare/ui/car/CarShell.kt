@@ -174,6 +174,9 @@ fun CarShell(
  * shell's coordinates) and over everything else. Each works like a rail app: a tap opens it, a
  * sideways swipe opens it in that pane, a long press offers the panes. A tap elsewhere closes it.
  */
+/** Columns of the shortcuts' grid for [count] apps: the smallest square that holds them, at most four wide. */
+internal fun shortcutColumns(count: Int): Int = (1..4).firstOrNull { it * it >= count } ?: 4
+
 @Composable
 private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, horizontal: Boolean, onDone: () -> Unit) {
     val menus = LocalRailMenus.current
@@ -201,15 +204,20 @@ private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, hor
                 .shadow(12.dp, shape).clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, shape)
-                .verticalScroll(rememberScrollState()).padding(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                .verticalScroll(rememberScrollState()).padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            apps.forEach { app ->
-                val pane = RailPane(
-                    choose = { center -> onDone(); menus.choosePane(app, center, horizontal) },
-                    open = { left -> onDone(); actions.openInPane(app, left) },
-                )
-                RailApp(app, Icons.Rounded.Apps, state.screen.shows(app.id), pane) { onDone(); actions.openApp(app) }
+            // A small window of apps in a square-ish grid: 2×2, 3×3, then four columns.
+            apps.chunked(shortcutColumns(apps.size)).forEach { line ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    line.forEach { app ->
+                        val pane = RailPane(
+                            choose = { center -> onDone(); menus.choosePane(app, center, horizontal) },
+                            open = { left -> onDone(); actions.openInPane(app, left) },
+                        )
+                        RailApp(app, Icons.Rounded.Apps, state.screen.shows(app.id), pane) { onDone(); actions.openApp(app) }
+                    }
+                }
             }
         }
     }

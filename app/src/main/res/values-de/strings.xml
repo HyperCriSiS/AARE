@@ -443,7 +443,6 @@
     <string name="split_open_left">Links öffnen</string>
     <string name="split_open_right">Rechts öffnen</string>
     <string name="split_divider">Ziehen zum Ändern der Größe, an den Rand zum Schließen</string>
-    <string name="media_switch_video">Video vom Handy in Medien-Apps (im Stand, Doppeltipp für Vollbild)</string>
     <string name="media_action_show_video">Video vom Handy zeigen</string>
     <string name="media_action_show_art">Cover zeigen</string>
     <string name="setup_section_rail">Leiste im Auto</string>
@@ -456,4 +455,6 @@
     <string name="common_remove">Entfernen</string>
     <string name="common_done">Fertig</string>
     <string name="common_add_apps">Apps hinzufügen</string>
+    <string name="video_full_screen">Vollbild</string>
+    <string name="video_exit_full_screen">Vollbild verlassen</string>
 </resources>

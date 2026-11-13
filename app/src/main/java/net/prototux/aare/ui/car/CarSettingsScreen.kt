@@ -53,7 +53,7 @@ internal fun CarSettingsScreen(
     var weather by remember { mutableStateOf(settings.showWeather) }
     var calendar by remember { mutableStateOf(settings.showCalendar) }
     var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
-    var mediaVideo by remember { mutableStateOf(settings.mediaVideo) }
+
     LazyColumn(
         modifier.background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(horizontal = 32.dp, vertical = 24.dp),
@@ -80,7 +80,7 @@ internal fun CarSettingsScreen(
         item { SwitchRow(stringResource(R.string.setup_toggle_weather_title), weather) { weather = it; settings.showWeather = it } }
         item { SwitchRow(stringResource(R.string.setup_toggle_calendar_title), calendar) { calendar = it; settings.showCalendar = it } }
         if (phoneScreenAllowed) item { SwitchRow(stringResource(R.string.phone_toggle_enable_title), phoneScreen) { phoneScreen = it; settings.phoneScreen = it } }
-        if (phoneScreenAllowed) item { SwitchRow(stringResource(R.string.media_switch_video), mediaVideo) { mediaVideo = it; settings.mediaVideo = it } }
+
         item { SwitchRow(stringResource(R.string.setup_switch_message_notifications), banners) { banners = it; settings.messageBanners = it } }
         item { SwitchRow(stringResource(R.string.msg_toggle_read_aloud_title), aloud) { aloud = it; settings.readMessagesAloud = it } }
         item { SwitchRow(stringResource(R.string.setup_switch_audio_next_connection), audio) { audio = it; settings.carAudio = it } }

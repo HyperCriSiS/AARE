@@ -87,6 +87,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
 import net.prototux.aare.R
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.CarTheme
@@ -242,7 +245,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     val settings = state.apps.firstOrNull { it.kind == CarAppKind.SETTINGS }
     fun on(app: CarAppEntry?) = app != null && state.screen.shows(app.id)
     // Held: offer the two panes for it, next to the icon.
-    val hold: (CarAppEntry) -> ((Offset) -> Unit) = { app -> { center -> choosePane(app, center, horizontal) } }
+    val hold: (CarAppEntry) -> RailPane = { app -> RailPane({ center -> choosePane(app, center, horizontal) }, { left -> actions.openInPane(app, left) }) }
     // Like Android Auto's taskbar: the apps used last, besides the fixed ones (one on a side rail, for height).
     val fixed = setOfNotNull(nav?.id, media?.id, phone?.id, settings?.id)
     val recent = state.recentAppIds.filter { it !in fixed }.mapNotNull(state::app)
@@ -330,12 +333,12 @@ internal fun Clock() {
 }
 
 @Composable
-private fun RailButton(icon: ImageVector, label: String, selected: Boolean, onHold: ((Offset) -> Unit)? = null, onClick: () -> Unit) {
+private fun RailButton(icon: ImageVector, label: String, selected: Boolean, pane: RailPane? = null, onClick: () -> Unit) {
     val d = LocalCarDimens.current
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(bg).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(onHold, onClick),
+        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(bg).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(d.railIcon))
@@ -343,26 +346,42 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, onHo
 }
 
 @Composable
-private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean, onHold: ((Offset) -> Unit)?, onClick: () -> Unit) {
+private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean, pane: RailPane?, onClick: () -> Unit) {
     val d = LocalCarDimens.current
     if (app?.icon == null) {
-        RailButton(fallback, app?.label ?: "", selected, onHold, onClick)
+        RailButton(fallback, app?.label ?: "", selected, pane, onClick)
         return
     }
     val ring = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(
-        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(ring).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(onHold, onClick),
+        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(ring).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
         Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(CircleShape))
     }
 }
 
-/** A tap opens; with [onHold], a long press hands it the button's centre (root coordinates). */
-private fun Modifier.railClick(onHold: ((Offset) -> Unit)?, onClick: () -> Unit): Modifier = composed {
+/** What a rail app offers besides a tap: [choose] the pane from the button's centre (root coordinates), or [open] it in one. */
+private class RailPane(val choose: (Offset) -> Unit, val open: (left: Boolean) -> Unit)
+
+/**
+ * A tap opens. With [pane], a long press offers the panes and a sideways swipe opens the app in
+ * the pane on that side.
+ */
+private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier = composed {
     var center by remember { mutableStateOf(Offset.Zero) }
+    val current by rememberUpdatedState(pane)
     onGloballyPositioned { center = it.boundsInRoot().center }
-        .combinedClickable(onClick = onClick, onLongClick = onHold?.let { hold -> { hold(center) } })
+        .then(if (pane == null) Modifier else Modifier.pointerInput(Unit) {
+            // Little room to swipe on a rail at the screen's edge: a short swipe is enough.
+            val min = 24.dp.toPx()
+            var dx = 0f
+            detectHorizontalDragGestures(onDragStart = { dx = 0f }, onDragEnd = { if (abs(dx) >= min) current?.open?.invoke(dx < 0) }) { change, d ->
+                change.consume()
+                dx += d
+            }
+        })
+        .combinedClickable(onClick = onClick, onLongClick = pane?.let { p -> { p.choose(center) } })
 }
 
 @Composable

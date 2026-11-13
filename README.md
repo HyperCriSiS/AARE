@@ -38,8 +38,6 @@ What the fork adds to AARE:
 - A compact rail, a cleaner media card, the next calendar events on the dashboard.
 - Switches in the car's Settings app for weather, calendar and the phone screen.
 - Settings export and import, for a backup or a new phone.
-- Fixes: the Google certificate is kept after a cut handshake, Molly and Signal are messaging apps,
-  white icons stay visible on the light theme, phone apps on the car screen start under Shizuku.
 
 ## 📦 Installation
 

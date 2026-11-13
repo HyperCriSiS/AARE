@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Question or app-support request
-    url: https://github.com/prototux/AARE/discussions
-    about: "Will app X work, how do I set something up, general help — ask in Discussions."
+    url: https://github.com/HyperCriSiS/AARE#-support
+    about: "Will app X work, how do I set something up, general help: see Support in the README."
   - name: Certificates and head-unit compatibility
-    url: https://github.com/prototux/AARE/blob/main/docs/certificates.md
+    url: https://github.com/HyperCriSiS/AARE/blob/main/docs/certificates.md
     about: "Why a head unit refuses AARE, and how to read the connection log."

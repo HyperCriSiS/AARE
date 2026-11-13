@@ -457,4 +457,5 @@
     <string name="common_add_apps">Apps hinzufügen</string>
     <string name="video_full_screen">Vollbild</string>
     <string name="video_exit_full_screen">Vollbild verlassen</string>
+    <string name="standalone_failed">Die App ließ sich nicht auf dem Autobildschirm starten.</string>
 </resources>

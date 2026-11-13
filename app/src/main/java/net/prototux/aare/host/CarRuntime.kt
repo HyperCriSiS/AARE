@@ -50,7 +50,6 @@ import net.prototux.aare.ui.car.CarScreen
 import net.prototux.aare.ui.car.CarSettingsScreen
 import net.prototux.aare.ui.car.CarShell
 import net.prototux.aare.ui.car.CarUiState
-import net.prototux.aare.ui.car.SPLIT_SNAP
 import net.prototux.aare.ui.car.shows
 import net.prototux.aare.ui.car.snapSplit
 import net.prototux.aare.ui.car.splitWith
@@ -609,8 +608,6 @@ class CarRuntime(
             if (next is CarScreen.Split) ui.app(if (left) next.right else next.left)?.let { start(it) }
             start(app)
             ui.splitActiveLeft = left
-            // A drag cut short (a call took the screen) can leave the divider at an edge.
-            if (ui.splitFraction !in SPLIT_SNAP..(1 - SPLIT_SNAP)) ui.splitFraction = 0.5f
             ui.screen = next
         }
 
@@ -620,7 +617,7 @@ class CarRuntime(
             if (next != split) {
                 ui.screen = next
                 ui.splitFraction = 0.5f
-            }
+            } else ui.splitFraction = fraction
         }
 
         /** Gets [app] ready to show (connected, or chosen as the active nav or media app) and makes it the most recent. */

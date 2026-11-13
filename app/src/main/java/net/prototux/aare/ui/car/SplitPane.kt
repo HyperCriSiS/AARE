@@ -2,6 +2,7 @@ package net.prototux.aare.ui.car
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -19,10 +20,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -37,14 +43,18 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
+import kotlin.math.min
+import kotlin.math.roundToInt
 import net.prototux.aare.R
 import net.prototux.aare.ui.theme.LocalCarDimens
-import kotlin.math.roundToInt
 
 /**
- * Two apps side by side. Dragging the divider resizes them; let go within [SPLIT_SNAP] of an edge,
- * the pane on that side closes and the other app takes the whole screen. A pane about to close
- * dims while it is dragged there. Resizing gives the apps a new surface size as the divider moves.
+ * Two apps side by side. Dragging the handle between them moves a line over the apps; let go,
+ * the panes take that size, or within [SPLIT_SNAP] of an edge the pane on that side closes and the
+ * other app takes the whole screen (that pane darkens while the line is there). The apps are only
+ * resized once, when the handle is let go: resizing them on every move cost a new surface each
+ * frame, and a navigation app could miss the last one and leave its map short.
  */
 @Composable
 internal fun SplitPane(
@@ -54,32 +64,48 @@ internal fun SplitPane(
     appContent: @Composable (CarAppEntry, Modifier) -> Unit,
     modifier: Modifier,
 ) {
+    // The left pane's share under the finger while the handle is dragged, else null.
+    var drag by remember { mutableStateOf<Float?>(null) }
     BoxWithConstraints(modifier) {
         val width = constraints.maxWidth.toFloat()
-        // Never quite zero while dragging: a weight must stay above 0, and the pane must not vanish
-        // before the finger is lifted.
-        val f = state.splitFraction.coerceIn(0.02f, 0.98f)
+        val f = state.splitFraction.coerceIn(SPLIT_SNAP, 1 - SPLIT_SNAP)
         Row(Modifier.fillMaxSize()) {
-            Pane(split.left, true, f < SPLIT_SNAP, state, appContent, Modifier.weight(f))
-            Divider(Modifier.fillMaxHeight().pointerInput(width) {
-                detectHorizontalDragGestures(
-                    onDragEnd = { actions.releaseDivider(state.splitFraction) },
-                    onDragCancel = { actions.releaseDivider(state.splitFraction) },
-                ) { change, dx ->
-                    change.consume()
-                    state.splitFraction = (state.splitFraction + dx / width).coerceIn(0.02f, 0.98f)
-                }
-            })
-            Pane(split.right, false, f > 1 - SPLIT_SNAP, state, appContent, Modifier.weight(1 - f))
+            Pane(split.left, true, state, appContent, Modifier.weight(f))
+            Gap()
+            Pane(split.right, false, state, appContent, Modifier.weight(1 - f))
         }
+        drag?.let { DragPreview(it, f) }
+        // The handle's touch area reaches over the panes' edges: easy to grab in a moving car
+        // while the gap between the panes stays narrow.
+        val density = LocalDensity.current
+        val gap = with(density) { GAP.toPx() }
+        val grab = with(density) { GRAB.toPx() }
+        val center = f * (width - gap) + gap / 2
+        val label = stringResource(R.string.split_divider)
+        Box(
+            Modifier.offset { IntOffset((center - grab / 2).roundToInt(), 0) }.width(GRAB).fillMaxHeight()
+                .semantics { contentDescription = label }
+                .pointerInput(width, f) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { drag = f },
+                        onDragEnd = { drag?.let(actions::releaseDivider); drag = null },
+                        onDragCancel = { drag = null },
+                    ) { change, dx ->
+                        change.consume()
+                        drag = ((drag ?: f) + dx / width).coerceIn(0f, 1f)
+                    }
+                },
+        )
     }
 }
+
+private val GAP = 12.dp
+private val GRAB = 48.dp
 
 @Composable
 private fun Pane(
     appId: String,
     left: Boolean,
-    closing: Boolean,
     state: CarUiState,
     appContent: @Composable (CarAppEntry, Modifier) -> Unit,
     modifier: Modifier,
@@ -99,17 +125,34 @@ private fun Pane(
             },
     ) {
         state.app(appId)?.let { appContent(it, Modifier.fillMaxSize()) }
-        // A scrim rather than alpha: alpha doesn't dim a navigation app's map surface.
-        if (closing) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.6f)))
     }
 }
 
-/** The handle between the panes: wide enough to grab with a finger, drawn as a short bar. */
+/** The narrow gap between the panes, with the handle drawn as a short bar. */
 @Composable
-private fun Divider(modifier: Modifier) {
-    val label = stringResource(R.string.split_divider)
-    Box(modifier.width(24.dp).semantics { contentDescription = label }, contentAlignment = Alignment.Center) {
+private fun Gap() {
+    Box(Modifier.width(GAP).fillMaxHeight(), contentAlignment = Alignment.Center) {
         Box(Modifier.size(width = 4.dp, height = 56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)))
+    }
+}
+
+/**
+ * Drawn over the apps while the handle is dragged: the line where it would go, the strip that
+ * changes sides lightly shaded, and a pane about to close darkened. A scrim rather than alpha:
+ * alpha doesn't dim a navigation app's map surface.
+ */
+@Composable
+private fun DragPreview(fraction: Float, committed: Float) {
+    val line = MaterialTheme.colorScheme.primary
+    Canvas(Modifier.fillMaxSize()) {
+        val x = fraction * size.width
+        val from = committed * size.width
+        drawRect(Color.Black.copy(alpha = 0.35f), Offset(min(x, from), 0f), Size(abs(x - from), size.height))
+        if (fraction < SPLIT_SNAP) drawRect(Color.Black.copy(alpha = 0.6f), Offset.Zero, Size(x, size.height))
+        if (fraction > 1 - SPLIT_SNAP) drawRect(Color.Black.copy(alpha = 0.6f), Offset(x, 0f), Size(size.width - x, size.height))
+        val w = 4.dp.toPx()
+        val h = 56.dp.toPx()
+        drawRoundRect(line, Offset(x - w / 2, (size.height - h) / 2), Size(w, h), CornerRadius(w / 2))
     }
 }
 
@@ -126,7 +169,7 @@ internal class PaneChoice(val app: CarAppEntry, val anchor: Offset, val horizont
 @Composable
 internal fun PaneChooser(choice: PaneChoice, onPick: (left: Boolean) -> Unit, onDismiss: () -> Unit) {
     val density = LocalDensity.current
-    val gap = with(density) { (LocalCarDimens.current.railButton / 2 + 8.dp).toPx() }
+    val gap = with(density) { (LocalCarDimens.current.railButton / 2 + 12.dp).toPx() }
     // Two 64 dp options with 4 dp padding around and between them.
     val w = with(density) { 140.dp.toPx() }
     val h = with(density) { 72.dp.toPx() }
@@ -140,7 +183,10 @@ internal fun PaneChooser(choice: PaneChoice, onPick: (left: Boolean) -> Unit, on
         val maxY = constraints.maxHeight - h
         Row(
             Modifier.offset { IntOffset(x.coerceIn(0f, maxOf(0f, maxX)).roundToInt(), y.coerceIn(0f, maxOf(0f, maxY)).roundToInt()) }
-                .clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(4.dp),
+                // Lifted off whatever is behind it, often an app's own panel in the same dark colors.
+                .shadow(12.dp, RoundedCornerShape(20.dp)).clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp)).padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             PaneOption(left = true, stringResource(R.string.split_open_left)) { onPick(true) }

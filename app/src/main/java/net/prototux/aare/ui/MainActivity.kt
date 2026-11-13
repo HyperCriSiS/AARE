@@ -946,7 +946,8 @@ private fun rememberAppsPage(settings: Settings): AppsPage {
     LaunchedEffect(Unit) {
         // Same rules as the car's launcher (CarRuntime.applyApps): an app with a car app shows once, as that.
         val l = withContext(Dispatchers.IO) {
-            val car = CarAppCatalog.query(ctx)
+            // One row per app: the rows are keyed by package, and a duplicate key would crash the page.
+            val car = CarAppCatalog.query(ctx).distinctBy { it.packageName }
             val carPkgs = car.mapTo(HashSet()) { it.packageName }
             val media = AndroidAutoApps.mediaApps(ctx).filter { it.packageName !in carPkgs }
             val shown = carPkgs + media.map { it.packageName }

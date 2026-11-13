@@ -35,7 +35,6 @@ What the fork adds to AARE:
 - An app list that can leave out what is already in the rail or the shortcuts.
 - Video from media apps, parked: the app itself runs in the pane, YouTube or NewPipe fill it with their video.
 - Full screen video over the rail, with buttons that fade out when left alone.
-- The phone screen mirror through Shizuku or root, without the screen capture consent.
 - A compact rail, a cleaner media card, the next calendar events on the dashboard.
 - Car settings in the car: weather, calendar, phone screen.
 - Settings export and import, for a backup or a new phone.

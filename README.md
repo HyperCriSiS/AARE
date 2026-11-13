@@ -20,7 +20,7 @@ cars, may well behave differently.
 > [!IMPORTANT]
 > MBUX only accepts a Google-issued phone certificate: download it in the app under
 > *Advanced, Phone certificates* before the first connection (see [Certificates](docs/certificates.md)).
-> Video from media apps and the phone screen need [Shizuku](https://shizuku.rikka.app/) or root.
+> Video from media apps needs [Shizuku](https://shizuku.rikka.app/) or root.
 
 ![The car screen on an MBUX-sized display](docs/screenshots/fork/dashboard.png)
 
@@ -35,13 +35,11 @@ What the fork adds to AARE:
 - An app list that can leave out what is already in the rail or the shortcuts.
 - Video from media apps, parked: the app itself runs in the pane, YouTube or NewPipe fill it with their video.
 - Full screen video over the rail, with buttons that fade out when left alone.
-- The phone screen mirror through Shizuku or root, without the screen capture consent.
 - A compact rail, a cleaner media card, the next calendar events on the dashboard.
-- Car settings in the car: weather, calendar, phone screen.
+- Switches in the car's Settings app for weather, calendar and the phone screen.
 - Settings export and import, for a backup or a new phone.
-- Updates from this fork's releases, signed with its own key.
 - Fixes: the Google certificate is kept after a cut handshake, Molly and Signal are messaging apps,
-  white icons stay visible on the light theme, a smooth Apps page with accessibility services on.
+  white icons stay visible on the light theme, phone apps on the car screen start under Shizuku.
 
 ## 📦 Installation
 

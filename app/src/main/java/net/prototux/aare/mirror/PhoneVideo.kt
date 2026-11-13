@@ -1,17 +1,24 @@
 package net.prototux.aare.mirror
 
+import net.prototux.aare.media.CircleButton
+import kotlinx.coroutines.delay
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedVisibility
 import net.prototux.aare.ui.car.HostedAppSurface
 import net.prototux.aare.launch.AppLauncher
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import android.graphics.SurfaceTexture
@@ -50,11 +57,12 @@ val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
 /**
  * The media app [packageName] itself, running on a display of exactly this size through the
  * privileged helper (Shizuku or root), whatever the phone shows: a video fills it, and touches go
- * to the app. The corner button shows it over the whole car screen, rail included, and back. While
- * it runs here the app isn't on the phone's screen; it goes back there when this closes.
+ * to the app. Its buttons, back to the cover ([onCover]) and full screen over the whole car
+ * screen, rail included, fade out when left alone and come back on a touch. While it runs here the
+ * app isn't on the phone's screen; it goes back there when this closes.
  */
 @Composable
-internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier) {
+internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier, onCover: () -> Unit) {
     val context = LocalContext.current
     val full = LocalFullScreen.current
     val available = remember { AppLauncher.available(context) }
@@ -64,11 +72,20 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
     var started by remember(packageName) { mutableStateOf<Boolean?>(null) }
     // Gone (driving, another screen): so are its full-screen copy and its display.
     DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
-    Box(modifier.background(Color.Black)) {
-        if (!available) {
-            Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid)
-            return@Box
-        }
+    if (!available) {
+        Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = modifier.background(Color.Black))
+        return
+    }
+    VideoButtons(modifier, buttons = {
+        CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = onCover)
+        if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = {
+            full.value = {
+                VideoButtons(Modifier.fillMaxSize(), buttons = {
+                    CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { full.value = null })
+                }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
+            }
+        })
+    }) {
         // Full screen, the one display moves onto the copy over everything.
         if (full?.value == null) HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) { started = it }
         when (started) {
@@ -76,28 +93,32 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
             false -> Placeholder(stringResource(R.string.standalone_failed), loading = false, icon = Icons.Rounded.PhoneAndroid)
             true -> Unit
         }
-        if (full != null) {
-            CornerButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), Modifier.align(Alignment.TopEnd)) {
-                full.value = {
-                    Box(Modifier.fillMaxSize()) {
-                        HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true)
-                        CornerButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), Modifier.align(Alignment.TopEnd)) { full.value = null }
-                    }
-                }
-            }
-        }
     }
 }
 
-/** A small round button over a video's corner. */
+/**
+ * A video with [buttons] in its bottom right corner that fade out after a few seconds untouched.
+ * A touch anywhere brings them back and still reaches the app below.
+ */
 @Composable
-private fun CornerButton(icon: ImageVector, label: String, modifier: Modifier, onClick: () -> Unit) {
+private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, video: @Composable () -> Unit) {
+    var touches by remember { mutableIntStateOf(0) }
+    var shown by remember { mutableStateOf(true) }
+    LaunchedEffect(touches) { shown = true; delay(3_000); shown = false }
     Box(
-        modifier.padding(10.dp).size(48.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) { Icon(icon, label, tint = Color.White) }
+        modifier.background(Color.Black).pointerInput(Unit) {
+            // Seen before the app's touch forwarding, and not consumed.
+            awaitPointerEventScope {
+                while (true) if (awaitPointerEvent(PointerEventPass.Initial).changes.any { it.changedToDown() }) touches++
+            }
+        },
+    ) {
+        video()
+        AnimatedVisibility(shown, Modifier.align(Alignment.BottomEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { buttons() }
+        }
+    }
 }
-
 /** The phone screen drawn into a texture. [onMirroring] says whether it could start (a consent or a helper). */
 @Composable
 internal fun MirrorSurface(runtime: CarRuntime, modifier: Modifier, onMirroring: (Boolean) -> Unit = {}) {

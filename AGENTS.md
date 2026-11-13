@@ -57,6 +57,10 @@ A change counts as checked only when:
   and only then the agent starts. It merges upstream changes that touch no protected path and
   pass CI, and due dependency updates; it holds the rest with the label `:hand: hold`.
   `.github/upstream-reviewed` records the last upstream commit it looked at.
+- The agent never builds or runs upstream code itself: its job holds a write token. It starts
+  CI on the branch instead, and `main` requires the CI check `Build and test`. Code owner reviews
+  are off on purpose: the owner is the only maintainer and could not approve his own pull
+  requests, so the protected paths are held by the agent's rules, not by GitHub.
 - Recovery: run `update-agent` by hand (workflow_dispatch) once the cause is fixed.
 - Pause: repository variable `UPDATE_AGENT=false`, or the open issue "Update needs a manual fix"
   that the automation opens.

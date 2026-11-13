@@ -82,11 +82,6 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
-        with:
-          distribution: temurin
-          java-version: "21"
-      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - name: Configure the bot identity
         run: |
           git config --global user.name "github-actions[bot]"
@@ -118,13 +113,13 @@ jobs:
                cherry-pick it with -x (use -m 1 for a merge commit) so its author is kept, and
                resolve conflicts only where the intent is plain; otherwise drop the change and say
                so in the review PR below.
-            4. Run ./gradlew --no-daemon :aap:test :app:testDebugUnitTest :headunit:test. Push the
-               branch and open a PR titled like the upstream change, saying what it does, why the
-               fork wants it, the upstream PR it comes from, and whether it touches a protected
-               path from AGENTS.md (list the files).
+            4. Do not build, test or otherwise run upstream code in this job: it holds a write
+               token. CI does that, without one. Push the branch and open a PR titled like the
+               upstream change, saying what it does, why the fork wants it, the upstream PR it
+               comes from, and whether it touches a protected path from AGENTS.md (list the files).
             5. PRs opened with this token get no checks: gh workflow run ci.yml --ref <branch>, and
-               wait for that run. If CI is green, the tests in step 4 passed and the PR touches no
-               protected path, merge it with gh pr merge --squash --delete-branch
+               wait for that run. If CI is green and the PR touches no protected path, merge it
+               with gh pr merge --squash --delete-branch
                --match-head-commit <sha>. Otherwise add the label ":hand: hold" and one comment with
                the reason; a person decides. Merge one change before you branch the next from main.
             6. Always finish with a PR that only sets .github/upstream-reviewed to the upstream head

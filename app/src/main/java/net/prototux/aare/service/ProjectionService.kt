@@ -354,7 +354,9 @@ class ProjectionService : Service() {
         sessionStart = SystemClock.elapsedRealtime()
         val s = CarSession(this, transport, cert.identity, settings, media, { projection }, wireless, peerKey, trustOnFirstUse, sessionListener, mirror)
         session = s
-        _state.update { it.copy(connected = true, transport = transport.name, certificate = cert.name, lastError = null, pendingTrust = null) }
+        // The Trust button stays: a car that retries after a refusal (USB does, every few seconds) or
+        // fails differently next time would otherwise take it away and leave only the notification.
+        _state.update { it.copy(connected = true, transport = transport.name, certificate = cert.name, lastError = null) }
         s.start()
     }
 
@@ -400,7 +402,9 @@ class ProjectionService : Service() {
             }
             pinRefusal?.let { log("head unit ${it.peerKey} showed certificate SHA-256 ${it.fingerprint}") }
             log("disconnected: $why")
-            _state.update { it.copy(connected = false, status = getString(R.string.notif_status_not_connected), video = "", lastError = why.takeIf { r -> "stopped" !in r && "ended" !in r }, pendingTrust = pinRefusal) }
+            _state.update { it.copy(connected = false, status = getString(R.string.notif_status_not_connected), video = "", lastError = why.takeIf { r -> "stopped" !in r && "ended" !in r },
+                // A new refusal replaces it; a session that got past the handshake means it is settled.
+                pendingTrust = pinRefusal ?: it.pendingTrust.takeIf { session.headUnitName.isEmpty() }) }
             updateNotification(getString(R.string.notif_status_not_connected))
             // A USB link that dropped while still plugged in usually comes back: retry a few times.
             // Not a refused certificate: it would be refused again until the user trusts it.

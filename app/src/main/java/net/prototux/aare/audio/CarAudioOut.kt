@@ -6,6 +6,7 @@ import android.util.Log
 import aap_protobuf.service.media.sink.message.AudioStreamTypeOuterClass.AudioStreamType
 import net.prototux.aare.DiagLog
 import net.prototux.aare.aap.channels.AudioChannel
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
 
 /**
@@ -40,6 +41,8 @@ class CarAudioOut(
     @Volatile private var playing = false
     /** When playback last stopped (elapsedRealtime): some head units underflow right after, not mid-stream. */
     @Volatile private var stoppedAtMs = 0L
+    /** Underflows in the current stream that count as gaps: not filtered out below, and while the car let us play. */
+    private val streamUnderflows = AtomicInteger()
     /**
      * Chunks kept when the car falls behind. Normally small to stay near real time; for a while
      * after an underflow, bigger, so a slow patch of acks doesn't turn into more gaps.
@@ -53,6 +56,8 @@ class CarAudioOut(
         // Some head units report one at every stream end rather than an actual gap: ignore it
         // while we're not playing, or just after we stopped, so it doesn't lag the next stream.
         if (!playing || now - stoppedAtMs < IGNORE_UNDERFLOW_AFTER_STOP_MS) return
+        // Without focus we stop feeding the car ourselves: running out then isn't a gap.
+        if (focus.granted) streamUnderflows.incrementAndGet()
         // Some head units report one at every stream end: log only the first of a burst.
         val quiet = now < underflowUntil
         underflowUntil = now + UNDERFLOW_HOLD_MS
@@ -86,18 +91,18 @@ class CarAudioOut(
         // The source ended by itself (its service or the audio server died), not by stop(): the
         // next capture method takes over, rather than the car going silent for the rest of the drive.
         var died = false
-        // Gaps in a stream, for the connection log: chunks we dropped because the car acked too
-        // slowly, and underflows the car reported because it ran out of sound. Both are heard as
-        // clicks or crackle, and they call for opposite fixes.
+        // Gaps in a stream, for the connection log: chunks we dropped while waiting for the car's
+        // acks (a car that never acks costs a few at the start, until ack-less sending takes over),
+        // and underflows the car reported because it ran out of sound. Both are heard as clicks or
+        // crackle, and they call for opposite fixes.
         var dropsAtStart = 0L
-        var underflowsAtStart = 0
         var startedAtMs = 0L
         fun reportGaps(now: Long) {
             val drops = channel.droppedChunks - dropsAtStart
-            val underflows = channel.underflows - underflowsAtStart
+            val underflows = streamUnderflows.get()
             if (drops > 0 || underflows > 0) {
                 DiagLog.add("car audio ${channel.streamType.name.removePrefix("AUDIO_STREAM_").lowercase()}: " +
-                    "${(now - startedAtMs) / 1000} s stream, $drops chunks dropped (car acks too slowly), $underflows underflows (car ran out)")
+                    "${(now - startedAtMs) / 1000} s stream, $drops chunks dropped waiting for the car's acks, $underflows underflows (car ran out)")
             }
         }
         fun queue(ts: Long) {
@@ -120,9 +125,9 @@ class CarAudioOut(
                 frames += chunk / (2 * channels)
                 if (!playing && lastSound == now) {
                     focus.request(true)
-                    playing = true
+                    streamUnderflows.set(0)
                     dropsAtStart = channel.droppedChunks
-                    underflowsAtStart = channel.underflows
+                    playing = true
                     startedAtMs = now
                 } else if (playing && now - lastSound > SILENCE_MS) {
                     reportGaps(now)

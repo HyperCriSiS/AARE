@@ -70,7 +70,7 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
             return@Box
         }
         // Full screen, the one display moves onto the copy over everything.
-        if (full?.value == null) HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+        if (full?.value == null) HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) { started = it }
         when (started) {
             null -> Placeholder(stringResource(R.string.standalone_starting), loading = true)
             false -> Placeholder(stringResource(R.string.standalone_failed), loading = false, icon = Icons.Rounded.PhoneAndroid)
@@ -80,7 +80,7 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
             CornerButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), Modifier.align(Alignment.TopEnd)) {
                 full.value = {
                     Box(Modifier.fillMaxSize()) {
-                        HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize())
+                        HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true)
                         CornerButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), Modifier.align(Alignment.TopEnd)) { full.value = null }
                     }
                 }

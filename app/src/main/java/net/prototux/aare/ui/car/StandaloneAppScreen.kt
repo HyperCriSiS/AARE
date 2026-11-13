@@ -86,10 +86,13 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
  * [packageName] running on the privileged [launcher]'s virtual display, drawn here at this size,
  * with the car's touches forwarded to it. The first surface launches the app; a later one (the
  * same app shown elsewhere, full screen say) only moves the display onto it. [onStarted] says
- * whether the launch worked.
+ * whether the launch worked. With [tablet], the display's density is lowered until it is at
+ * least 600 dp each way: apps then lay out as on a tablet, and many stop locking themselves to
+ * portrait, which on a short wide car pane left them a sliver in the middle.
  */
 @Composable
-internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: Int, modifier: Modifier, onStarted: (Boolean) -> Unit = {}) {
+internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: Int, modifier: Modifier, tablet: Boolean = false, onStarted: (Boolean) -> Unit = {}) {
+    fun dpiFor(w: Int, h: Int) = if (tablet) hostedDpi(w, h, dpi) else dpi
     Box(modifier) {
         androidx.compose.ui.viewinterop.AndroidView(
             factory = { ctx ->
@@ -99,12 +102,12 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
                             val surface = Surface(st)
                             // connect() blocks (binds Shizuku / spawns su), so do it off the main thread.
                             Thread {
-                                if (launcher.connected) launcher.resize(surface, w, h, dpi)
-                                else if (launcher.connect()) onStarted(launcher.start(surface, w, h, dpi, packageName) >= 0)
+                                if (launcher.connected) launcher.resize(surface, w, h, dpiFor(w, h))
+                                else if (launcher.connect()) onStarted(launcher.start(surface, w, h, dpiFor(w, h), packageName) >= 0)
                             }.apply { isDaemon = true }.start()
                         }
                         override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
-                            launcher.resize(Surface(st), w, h, dpi)
+                            launcher.resize(Surface(st), w, h, dpiFor(w, h))
                         }
                         override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean = true
                         override fun onSurfaceTextureUpdated(st: SurfaceTexture) = Unit
@@ -135,3 +138,6 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
         })
     }
 }
+
+/** The density for a [w]×[h] pixel display to be at least 600 dp each way, no higher than [dpi]. */
+internal fun hostedDpi(w: Int, h: Int, dpi: Int): Int = minOf(dpi, minOf(w, h) * 160 / 600).coerceAtLeast(80)

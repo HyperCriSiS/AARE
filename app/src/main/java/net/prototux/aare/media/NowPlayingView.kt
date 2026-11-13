@@ -92,6 +92,18 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
         }
         return
     }
+    val video = LocalPhoneVideo.current
+    if (video?.shown == true) {
+        // The app itself, with its own controls, in the whole of the media app's screen: a video
+        // gets all the height there is. The corner button goes back to the cover.
+        Box(Modifier.fillMaxSize()) {
+            video.content(Modifier.fillMaxSize())
+            Box(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
+                CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = video.toggle)
+            }
+        }
+        return
+    }
     Box(Modifier.fillMaxSize()) {
         // a soft backdrop of the art, fading into the background
         if (info.art != null) {
@@ -100,14 +112,8 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
         }
         BoxWithConstraints(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 12.dp)) {
             val portrait = maxHeight > maxWidth
-            val video = LocalPhoneVideo.current
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (video?.shown == true) {
-                    // The video playing on the phone takes the art's place, as wide as it gets.
-                    video.content(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(20.dp)))
-                    Spacer(Modifier.height(8.dp))
-                    Text(info.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                } else if (portrait) {
+                if (portrait) {
                     ArtBox(info.art, Icons.Rounded.MusicNote, Modifier.weight(1f, fill = false).sizeIn(maxWidth = 420.dp).aspectRatio(1f), RoundedCornerShape(28.dp))
                     Spacer(Modifier.height(20.dp))
                     Column(Modifier.fillMaxWidth()) { Details(state, info, source) }

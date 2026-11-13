@@ -260,13 +260,14 @@ internal val BoxWithConstraintsScope.narrow: Boolean get() = maxWidth < 600.dp |
 
 /**
  * The floating content card of map templates: start side and full height on wide screens,
- * a bottom sheet-like card on narrow ones.
+ * a bottom sheet-like card on narrow ones (a dashboard card, a split-screen pane), which leaves
+ * room at the end for the map action strip, as the navigation template's estimate card does.
  */
 @Composable
 internal fun BoxWithConstraintsScope.MapContentCard(content: @Composable () -> Unit) {
     val r = LocalCarDimens.current.cardRadius
     val m = if (narrow) {
-        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(maxHeight * 0.55f)
+        Modifier.align(Alignment.BottomStart).width(maxWidth - 96.dp).height(maxHeight * 0.55f)
     } else {
         Modifier.align(Alignment.TopStart).width(panelWidth()).fillMaxHeight()
     }

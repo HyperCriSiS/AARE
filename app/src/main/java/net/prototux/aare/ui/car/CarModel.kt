@@ -152,6 +152,8 @@ class CarUiState {
     /** The next calendar events, soonest first, for the dashboard. */
     var events by mutableStateOf<List<NextEvent>>(emptyList())
     val nextEvent: NextEvent? get() = events.firstOrNull()
+    /** The dashboard's third card swiped away, by what it showed: it comes back with something new. */
+    var dismissedSideCard by mutableStateOf<String?>(null)
     /** The phone call ringing or on, if any. */
     var call by mutableStateOf<CarCall?>(null)
     /** The apps opened last, newest first (ids): the rail shows the recent ones. */
@@ -185,8 +187,11 @@ data class CarCall(val ringing: Boolean, val name: String, val sinceMs: Long)
 /** Actions the car UI asks for; implemented by the session. */
 interface CarActions {
     fun openApp(app: CarAppEntry)
-    /** Opens [app] in the left or right pane, next to what is on screen ([splitWith]). */
-    fun openInPane(app: CarAppEntry, left: Boolean)
+    /**
+     * Opens [app] in the left or right pane, next to what is on screen ([splitWith]), or full screen
+     * for null, and keeps that as where [openApp] opens it from now on.
+     */
+    fun openInPane(app: CarAppEntry, left: Boolean?)
     /** The split's divider was let go at [fraction]: near an edge that pane closes ([snapSplit]), else the panes take that size. */
     fun releaseDivider(fraction: Float)
     fun goHome()

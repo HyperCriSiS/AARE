@@ -87,6 +87,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
+import kotlin.math.sign
+import kotlinx.coroutines.launch
 import net.prototux.aare.R
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.CarTheme
@@ -395,14 +405,7 @@ internal fun Dashboard(
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(gutter)) {
                 NavCard(state, actions, navMap, Modifier.weight(1.6f).fillMaxWidth())
                 MediaCard(state, actions, compact = false, modifier = Modifier.weight(1f).fillMaxWidth())
-                val event = state.nextEvent
-                val latest = state.history.firstOrNull()
-                when {
-                    event != null -> Card(Modifier.fillMaxWidth().height(180.dp)) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
-                    latest != null -> Card(Modifier.fillMaxWidth().height(180.dp), onClick = {
-                        state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp)
-                    }) { LatestNotification(latest, state.drivingRestricted) }
-                }
+                SideCard(state, actions, Modifier.fillMaxWidth().height(180.dp))
             }
         } else if (narrow) {
             // small screens: one big card, media as a strip under it
@@ -415,14 +418,7 @@ internal fun Dashboard(
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gutter)) {
                 NavCard(state, actions, navMap, Modifier.weight(1.6f).fillMaxHeight())
                 MediaCard(state, actions, compact = false, modifier = Modifier.weight(1f).fillMaxHeight())
-                val event = state.nextEvent
-                val latest = state.history.firstOrNull()
-                when {
-                    event != null -> Card(Modifier.weight(0.9f).fillMaxHeight()) { CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize()) }
-                    latest != null -> Card(Modifier.weight(0.9f).fillMaxHeight(), onClick = {
-                        state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp)
-                    }) { LatestNotification(latest, state.drivingRestricted) }
-                }
+                SideCard(state, actions, Modifier.weight(0.9f).fillMaxHeight())
             }
         } else {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gutter)) {
@@ -438,6 +434,48 @@ internal fun Dashboard(
                 }
             }
         }
+    }
+}
+
+/**
+ * The dashboard's third card: the next events, or else the latest notification. Swiped sideways
+ * anywhere on it, it goes until there is a new event or notification to show.
+ */
+@Composable
+private fun SideCard(state: CarUiState, actions: CarActions, modifier: Modifier) {
+    val event = state.nextEvent
+    val latest = state.history.firstOrNull()
+    val key = event?.let { "e${it.startMs}:${it.title}" } ?: latest?.let { "n${it.key}" } ?: return
+    if (key == state.dismissedSideCard) return
+    val openNotifications = { state.apps.firstOrNull { it.kind == CarAppKind.NOTIFICATIONS }?.let(actions::openApp); Unit }
+    Card(modifier.swipeAway { state.dismissedSideCard = key }, onClick = openNotifications.takeIf { event == null }) {
+        if (event != null) CalendarCard(state.events, actions::navigateTo, Modifier.fillMaxSize())
+        else LatestNotification(latest!!, state.drivingRestricted)
+    }
+}
+
+/** Follows a sideways drag. Let go past a quarter of its width, it slides out and [onGone] runs; else it springs back. */
+private fun Modifier.swipeAway(onGone: () -> Unit): Modifier = composed {
+    val x = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val gone by rememberUpdatedState(onGone)
+    // The drag is read outside the moving layer, so the card's own movement doesn't feed back into it.
+    pointerInput(Unit) {
+        val w = size.width.toFloat()
+        detectHorizontalDragGestures(
+            onDragEnd = {
+                scope.launch {
+                    if (abs(x.value) > w / 4) { x.animateTo(sign(x.value) * w); gone() } else x.animateTo(0f)
+                }
+            },
+            onDragCancel = { scope.launch { x.animateTo(0f) } },
+        ) { change, dx ->
+            change.consume()
+            scope.launch { x.snapTo(x.value + dx) }
+        }
+    }.graphicsLayer {
+        translationX = x.value
+        alpha = 1f - (abs(x.value) / size.width).coerceIn(0f, 1f)
     }
 }
 

@@ -35,6 +35,33 @@ A change counts as checked only when:
 3. Anything needing Shizuku, root, a real head unit or real audio is tested on a phone in the
    car, or reported as untested.
 
+## Upstream automation
+
+| Upstream | Kind | Intake | Release |
+|---|---|---|---|
+| `prototux/AARE` | fork source | `.github/workflows/update-agent.yml`, daily, one PR per upstream change into `main` | manual |
+| Gradle and GitHub Actions dependencies | dependency | Dependabot weekly, merged by the update agent after a week | manual |
+
+- Protected features: the fork's car screen and phone app parts. A change that touches any of
+  these paths is held for a person, whatever its checks say; the JVM unit tests prove the logic
+  in them, the rest only a test in the car:
+  - `app/src/main/java/net/prototux/aare/ui/car/` (rail, split screen, shortcuts, dashboard)
+  - `app/src/main/java/net/prototux/aare/host/CarRuntime.kt`, `host/CarAppScreen.kt`,
+    `host/AndroidAutoApps.kt`, `host/templates/`
+  - `app/src/main/java/net/prototux/aare/mirror/`, `launch/` (phone screen, hosted video)
+  - `app/src/main/java/net/prototux/aare/media/` (media apps, video mode)
+  - `app/src/main/java/net/prototux/aare/ui/MainActivity.kt` (Apps page, backup)
+  - `app/src/main/java/net/prototux/aare/service/ProjectionService.kt` (certificate choice)
+  - `app/src/main/java/net/prototux/aare/Settings.kt`, `SettingsBackup.kt`, `UpdateChecker.kt`
+- Agent run: `update-agent.yml`, daily at 07:17 UTC; a first job checks whether anything waits,
+  and only then the agent starts. It merges upstream changes that touch no protected path and
+  pass CI, and due dependency updates; it holds the rest with the label `:hand: hold`.
+  `.github/upstream-reviewed` records the last upstream commit it looked at.
+- Recovery: run `update-agent` by hand (workflow_dispatch) once the cause is fixed.
+- Pause: repository variable `UPDATE_AGENT=false`, or the open issue "Update needs a manual fix"
+  that the automation opens.
+- Releases are always made by hand after the owner's approval; the automation never tags.
+
 ## Branches and releases
 
 - Default branch: `main`. Pull requests are squash merged.

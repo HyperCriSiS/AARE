@@ -1,5 +1,7 @@
 package net.prototux.aare.ui
 
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.semantics.role
@@ -1080,10 +1082,10 @@ private fun LazyListScope.appOrder(p: AppsPage, all: List<LauncherEntry>) {
     }
     card("order", R.string.setup_section_app_order, rows = sorted.mapIndexed { i, (key, label, icon) ->
         row(key) {
-            EntryRow(icon, label) {
-                IconButton(onClick = { move(i, -1) }, enabled = i > 0) { Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up)) }
-                IconButton(onClick = { move(i, 1) }, enabled = i < sorted.lastIndex) { Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down)) }
-            }
+            EntryRow(icon, label, listOf(
+                RowAction(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up), i > 0) { move(i, -1) },
+                RowAction(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down), i < sorted.lastIndex) { move(i, 1) },
+            ))
         }
     })
 }
@@ -1101,34 +1103,44 @@ private fun LazyListScope.pickList(
         shown.forEachIndexed { i, k ->
             val (_, label, icon) = byKey.getValue(k)
             add(row(k) {
-                EntryRow(icon, label) {
-                    IconButton(onClick = { move(i, -1) }, enabled = i > 0) { Icon(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up)) }
-                    IconButton(onClick = { move(i, 1) }, enabled = i < shown.lastIndex) { Icon(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down)) }
-                    IconButton(onClick = { onChange(shown - k) }) { Icon(Icons.Rounded.Close, stringResource(R.string.common_remove)) }
-                }
+                EntryRow(icon, label, listOf(
+                    RowAction(Icons.Rounded.KeyboardArrowUp, stringResource(R.string.common_up), i > 0) { move(i, -1) },
+                    RowAction(Icons.Rounded.KeyboardArrowDown, stringResource(R.string.common_down), i < shown.lastIndex) { move(i, 1) },
+                    RowAction(Icons.Rounded.Close, stringResource(R.string.common_remove)) { onChange(shown - k) },
+                ))
             })
         }
         add(row("add") { TextButton(onClick = { setAdding(!adding) }) { Text(stringResource(if (adding) R.string.common_done else R.string.common_add_apps)) } })
         if (adding) {
             entries.filter { it.first !in shown }.sortedBy { it.second.lowercase() }.forEach { (k, label, icon) ->
-                add(row("+$k") { EntryRow(icon, label) { IconButton(onClick = { onChange(shown + k) }) { Icon(Icons.Rounded.Add, stringResource(R.string.common_add_apps)) } } })
+                add(row("+$k") { EntryRow(icon, label, listOf(RowAction(Icons.Rounded.Add, stringResource(R.string.common_add_apps)) { onChange(shown + k) })) })
             }
         }
     }
     card(key, title, intro = { Hint(stringResource(hint)) }, rows = rows)
 }
 
-/** An app in a list: its icon, its name, then [actions]. */
+/** A button of an [EntryRow]. */
+private class RowAction(val icon: ImageVector, val label: String, val enabled: Boolean = true, val onClick: () -> Unit)
+
+/**
+ * An app in a list: its icon, its name, then a button for each of [actions]. One accessibility
+ * node with the buttons as its actions: accessibility services walk every node on each frame,
+ * and three per button made scrolling stutter.
+ */
 @Composable
-private fun EntryRow(icon: Bitmap?, label: String, actions: @Composable () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        // Icon and name as one accessibility node; the buttons keep their own.
-        Row(Modifier.weight(1f).clearAndSetSemantics { contentDescription = label }, verticalAlignment = Alignment.CenterVertically) {
-            AppIcon(icon, label, 32.dp)
-            Spacer(Modifier.width(12.dp))
-            Text(label, style = MaterialTheme.typography.bodyLarge)
-        }
-        actions()
+private fun EntryRow(icon: Bitmap?, label: String, actions: List<RowAction>) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 4.dp).clearAndSetSemantics {
+            contentDescription = label
+            customActions = actions.filter { it.enabled }.map { a -> CustomAccessibilityAction(a.label) { a.onClick(); true } }
+        },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcon(icon, label, 32.dp)
+        Spacer(Modifier.width(12.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        actions.forEach { a -> IconButton(onClick = a.onClick, enabled = a.enabled) { Icon(a.icon, a.label) } }
     }
 }
 

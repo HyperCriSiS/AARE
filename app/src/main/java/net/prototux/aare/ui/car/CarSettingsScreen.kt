@@ -53,7 +53,6 @@ internal fun CarSettingsScreen(
     var weather by remember { mutableStateOf(settings.showWeather) }
     var calendar by remember { mutableStateOf(settings.showCalendar) }
     var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
-    var tapPane by remember { mutableStateOf(settings.tapOpensPane) }
     LazyColumn(
         modifier.background(MaterialTheme.colorScheme.background),
         contentPadding = PaddingValues(horizontal = 32.dp, vertical = 24.dp),
@@ -76,7 +75,6 @@ internal fun CarSettingsScreen(
             }
         }
         item { SwitchRow(stringResource(R.string.setup_switch_dark_bar), darkBar) { darkBar = it; settings.darkBar = it } }
-        item { SwitchRow(stringResource(R.string.split_switch_tap_opens_pane), tapPane) { tapPane = it; settings.tapOpensPane = it } }
         item { SwitchRow(stringResource(R.string.setup_switch_passenger), passenger) { passenger = it; settings.ignoreDriving = it } }
         item { SwitchRow(stringResource(R.string.setup_toggle_weather_title), weather) { weather = it; settings.showWeather = it } }
         item { SwitchRow(stringResource(R.string.setup_toggle_calendar_title), calendar) { calendar = it; settings.showCalendar = it } }

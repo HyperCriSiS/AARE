@@ -31,6 +31,7 @@ class LaunchHostService : ILaunchHost.Stub {
     private val injectedContext: Context?
     @Volatile private var display: VirtualDisplay? = null
     @Volatile private var displayId: Int = -1
+    @Volatile private var mirrorDisplay: VirtualDisplay? = null
 
     constructor() : this(null)
 
@@ -78,8 +79,25 @@ class LaunchHostService : ILaunchHost.Stub {
         displayId = -1
     }
 
+    override fun mirror(surface: Surface, width: Int, height: Int, dpi: Int): Boolean {
+        mirrorDisplay?.let { vd ->
+            runCatching { vd.resize(width, height, dpi) }
+            runCatching { vd.surface = surface }
+            return true
+        }
+        val ctx = injectedContext ?: systemContext() ?: return false
+        mirrorDisplay = createMirror(ctx, surface, width, height, dpi)
+        return mirrorDisplay != null
+    }
+
+    override fun stopMirror() {
+        mirrorDisplay?.let { runCatching { it.release() } }
+        mirrorDisplay = null
+    }
+
     override fun destroy() {
         stop()
+        stopMirror()
         exitProcess(0)
     }
 
@@ -97,6 +115,23 @@ class LaunchHostService : ILaunchHost.Stub {
             if (vd != null) return vd
         }
         return null
+    }
+
+    /**
+     * A display showing the phone's screen. Android 14+ has a hidden helper for exactly this (the
+     * one scrcpy uses); before that, an auto-mirroring display, which adb-level rights allow.
+     */
+    private fun createMirror(ctx: Context, surface: Surface, w: Int, h: Int, dpi: Int): VirtualDisplay? {
+        if (Build.VERSION.SDK_INT >= 34) {
+            runCatching {
+                val int = Int::class.javaPrimitiveType
+                DisplayManager::class.java.getMethod("createVirtualDisplay", String::class.java, int, int, int, Surface::class.java)
+                    .invoke(null, "AARE mirror", w, h, android.view.Display.DEFAULT_DISPLAY, surface) as VirtualDisplay?
+            }.onFailure { Log.w(TAG, "mirror helper failed: ${it.message}") }.getOrNull()?.let { return it }
+        }
+        val dm = ctx.getSystemService(DisplayManager::class.java) ?: return null
+        return runCatching { dm.createVirtualDisplay("AARE mirror", w, h, dpi.coerceAtLeast(120), surface, FLAG_PUBLIC or FLAG_AUTO_MIRROR) }
+            .onFailure { Log.w(TAG, "mirror display failed: ${it.message}") }.getOrNull()
     }
 
     /** Launch [pkg]'s main activity onto [onDisplay]. */
@@ -158,6 +193,7 @@ class LaunchHostService : ILaunchHost.Stub {
         // VirtualDisplay flags (public + hidden bits). Hidden ones let a foreign app run and take focus.
         const val FLAG_PUBLIC = 1 shl 0
         const val FLAG_PRESENTATION = 1 shl 1
+        const val FLAG_AUTO_MIRROR = 1 shl 4
         const val FLAG_TRUSTED = 1 shl 10 // hidden, API 29+
         const val FLAG_OWN_DISPLAY_GROUP = 1 shl 11 // hidden, API 31+
         const val FLAG_ALWAYS_UNLOCKED = 1 shl 12 // hidden, API 30+

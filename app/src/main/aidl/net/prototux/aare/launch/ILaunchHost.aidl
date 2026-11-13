@@ -26,6 +26,12 @@ interface ILaunchHost {
     /** Tear the display down and stop feeding the app. */
     void stop() = 5;
 
+    /** Mirror the phone's own screen into [surface], like scrcpy: no screen-capture consent needed. False if it can't. */
+    boolean mirror(in Surface surface, int width, int height, int dpi) = 6;
+
+    /** Stop the mirror started by [mirror]. */
+    void stopMirror() = 7;
+
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;
 }

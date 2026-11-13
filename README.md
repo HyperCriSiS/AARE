@@ -1,6 +1,70 @@
-# AARE
+# AARE for Mercedes MBUX
 
-[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/prototux/AARE)
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="54">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/HyperCriSiS/AARE)
+
+This is a fork of [prototux/AARE](https://github.com/prototux/AARE), the open-source phone side of
+Android Auto, tuned for Mercedes-Benz MBUX head units. It is used daily with an A-Class (A 250 e,
+2024, MBUX by Harman) over USB, on a Pixel 10 Pro. Everything AARE does is here too; the fork adds
+a car screen built for a wide, short display and fixes found on the way.
+
+Upstream changes are merged in regularly, and fixes that help every car are offered back upstream.
+
+![The car screen on an MBUX-sized display](docs/screenshots/fork/dashboard.png)
+
+## What the fork adds
+
+**Two apps side by side**
+
+- Split screen: any two apps next to each other, with a divider to drag. Let go near an edge and
+  that pane closes.
+- Swipe an app icon left or right, in the rail, the shortcuts or the app list, to open it in
+  that pane. Hold it to pick the pane instead. A tap still opens it full screen.
+
+| Swipe an app into a pane | Drag the divider | Hold for the pane chooser |
+|---|---|---|
+| ![](docs/screenshots/fork/swipe-to-pane.gif) | ![](docs/screenshots/fork/resize-panes.gif) | ![](docs/screenshots/fork/pane-chooser.gif) |
+
+**A rail and shortcuts of your own**
+
+- Pick the rail's apps and their order in the phone app; the rail scrolls when they don't fit.
+  Without a pick it stays automatic.
+- Shortcuts: hold the app list button for a small grid of apps you picked (2×2, 3×3, up to four
+  columns).
+- The app list can leave out what is already in the rail or the shortcuts.
+- Both lists are sorted by dragging, in the phone app.
+
+| Shortcuts | Split screen |
+|---|---|
+| ![](docs/screenshots/fork/shortcuts-swipe.gif) | ![](docs/screenshots/fork/split.png) |
+
+**Video from media apps, parked**
+
+- A media app's camera button runs the app itself on a display of the pane's size, through
+  Shizuku or root, whatever the phone shows: YouTube, NewPipe and other players fill the pane
+  with their video. A button shows it over the whole screen, rail included. The buttons fade out
+  when left alone. Off while driving.
+- The phone screen mirror works through Shizuku or root as well, without the screen capture
+  consent.
+
+**A car screen for MBUX**
+
+- A compact rail with the spacing of a dock rather than a list.
+- Dashboard: a cleaner media card, the next calendar events, the map's panel kept clear of its
+  zoom buttons.
+- Car settings in the car: weather, calendar and phone screen switches.
+- Trusting a new car from inside the app, not only from the notification.
+
+**Fixes**
+
+- After a cable pulled during the handshake, the Google-issued certificate is kept: strict head
+  units like MBUX refuse the self-signed one.
+- Messaging apps with a media browser of their own (Molly, Signal) are listed as messaging apps.
+- Navigation apps no longer show up as messaging apps.
+- White app icons stay visible on the light car theme.
+- A car app's permission request opens the phone's dialog.
+- The phone app's Apps page scrolls smoothly, also with accessibility services on.
+
+## About AARE
 
 AARE is an open-source reimplementation of the phone side of Android Auto. The phone talks the
 Android Auto projection protocol (AAP) to the car's head unit, draws the car screen itself, and
@@ -413,6 +477,7 @@ Other tools:
 
 | Head unit | Phone | Link | AARE | Result |
 |---|---|---|---|---|
+| Mercedes-Benz MBUX by Harman (MB Cars Harman M2), the factory unit of a 2024 A 250 e | Google Pixel 10 Pro, Shizuku | USB | this fork | **Works with the certificate download** (Advanced, certificates): video, touch, audio, CoMaps, media apps and video from media apps, in daily use. The unit asks for 1920x1080 at 240 dpi with 172x360 margins and crops to that area itself. |
 | Factory 10.2" multimedia screen of a 2022 Hyundai Kona Electric (LG Electronics Standard GEN5 Wide) | Google Pixel 10 Pro | USB | 1.2.0 + touch fix | **Works after the touch fix and [AA key extraction](#aa-key-extraction)** (reported by a user). The unit advertises a 0x0 touchscreen; the fix uses the visible video dimensions when the panel size is unspecified. |
 | ZLink 3 aftermarket unit, model K2001N (Allwinner T3, Android 7, sold as Android 12), in a VW Golf 6 | Pixel 10 Pro XL, Android 17 | Wireless | 1.1.0 | **Works:** full sessions with video, with AARE's own certificate. On Android 17 it needs the local network permission ([#22](https://github.com/prototux/AARE/pull/22)). Known issue: the unit asks for 1280x720 at 160 dpi with 256x120 margins, and the screen edges are cut off. |
 | Denso Ten E-DA2, the factory unit of a 2026 Toyota Land Cruiser 79 series (wired Android Auto only) | Samsung Galaxy S23 (SM-S911B), Android 16, not rooted | USB | not stated | **Works**, all features tried ([#37](https://github.com/prototux/AARE/issues/37)), with AARE's own self-signed certificate. The unit also plays the phone's Bluetooth audio during Android Auto, so the car audio setup isn't needed. |

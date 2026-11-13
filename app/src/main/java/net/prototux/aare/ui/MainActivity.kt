@@ -824,7 +824,7 @@ private fun AudioSettings(settings: Settings, state: ProjectionService.State, re
                 if (policy) stringResource(R.string.audio_policy_ready)
                 else stringResource(R.string.audio_policy_not_ready),
                 policy) {
-                ctx.startSafely(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/prototux/AARE#car-audio")))
+                ctx.startSafely(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/HyperCriSiS/AARE#car-audio")))
             }
             Check(CaptureMethod.SHIZUKU.label,
                 when {

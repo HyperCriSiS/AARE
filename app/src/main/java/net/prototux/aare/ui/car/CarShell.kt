@@ -1,5 +1,6 @@
 package net.prototux.aare.ui.car
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -55,9 +56,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.movableContentOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,6 +119,9 @@ fun CarShell(
     val choosePane: (CarAppEntry, Offset, Boolean) -> Unit = { app, center, horizontal ->
         paneChoice = PaneChoice(app, center - origin, horizontal, state.railOnRight)
     }
+    // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
+    BackHandler(enabled = paneChoice != null) { paneChoice = null }
+    LaunchedEffect(state.screen) { paneChoice = null }
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
@@ -162,9 +168,19 @@ private fun ContentArea(
     val inputMode = LocalInputModeManager.current.inputMode
     LaunchedEffect(state.screen) { runCatching { focusEntry.requestFocus() } }
     LaunchedEffect(inputMode) { if (!contentFocused) runCatching { focusEntry.requestFocus() } }
+    // Each app's screen is movable content, so it moves between full screen and a pane (or from one
+    // pane to the other) instead of being torn down and built again: the phone screen, a standalone
+    // app and the browser would lose their picture, process or page. For the same reason app
+    // screens and splits share one content key and don't cross-fade: a fade composes both at once.
+    val currentAppContent by rememberUpdatedState(appContent)
+    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
+    val appScreen: @Composable (CarAppEntry, Modifier) -> Unit = { app, mod ->
+        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
+    }
     AnimatedContent(
         targetState = state.screen,
         transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
+        contentKey = { if (it is CarScreen.App || it is CarScreen.Split) "apps" else it },
         modifier = modifier.fillMaxHeight().onFocusChanged { contentFocused = it.hasFocus }
             .focusRequester(focusEntry).focusGroup(),
         label = "screen",
@@ -177,9 +193,9 @@ private fun ContentArea(
             CarScreen.Launcher -> Launcher(state, actions, Modifier.fillMaxSize())
             is CarScreen.App -> {
                 val app = state.app(screen.appId)
-                if (app != null) appContent(app, Modifier.fillMaxSize()) else Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
+                if (app != null) appScreen(app, Modifier.fillMaxSize()) else Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
             }
-            is CarScreen.Split -> SplitPane(screen, state, actions, appContent, Modifier.fillMaxSize())
+            is CarScreen.Split -> SplitPane(screen, state, actions, appScreen, Modifier.fillMaxSize())
         }
     }
 }

@@ -77,6 +77,19 @@ fun splitWith(current: CarScreen, appId: String, left: Boolean, recent: List<Str
     return if (left) CarScreen.Split(appId, other) else CarScreen.Split(other, appId)
 }
 
+/**
+ * The screen once the apps for which [gone] is true have left the app list (hidden, uninstalled,
+ * switched off): the other app of a split takes the whole screen, and with both gone the
+ * dashboard. A single app full screen stays as it is (the shell shows the dashboard for it).
+ */
+fun CarScreen.withoutApps(gone: (String) -> Boolean): CarScreen = when {
+    this !is CarScreen.Split -> this
+    gone(left) && gone(right) -> CarScreen.Dashboard
+    gone(left) -> CarScreen.App(right)
+    gone(right) -> CarScreen.App(left)
+    else -> this
+}
+
 /** The screen once the divider is released at [fraction] (the left pane's share of the width). */
 fun snapSplit(split: CarScreen.Split, fraction: Float): CarScreen = when {
     fraction < SPLIT_SNAP -> CarScreen.App(split.right)

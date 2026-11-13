@@ -21,9 +21,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -44,7 +44,7 @@ import kotlin.math.roundToInt
 /**
  * Two apps side by side. Dragging the divider resizes them; let go within [SPLIT_SNAP] of an edge,
  * the pane on that side closes and the other app takes the whole screen. A pane about to close
- * dims while it is dragged there.
+ * dims while it is dragged there. Resizing gives the apps a new surface size as the divider moves.
  */
 @Composable
 internal fun SplitPane(
@@ -85,7 +85,9 @@ private fun Pane(
     modifier: Modifier,
 ) {
     Box(
-        modifier.fillMaxHeight().clipToBounds().alpha(if (closing) 0.4f else 1f)
+        modifier.fillMaxHeight().clipToBounds()
+            // A rotary knob or D-pad moving into the pane counts as touching it.
+            .onFocusChanged { if (it.hasFocus) state.splitActiveLeft = left }
             // Watches touches without taking them: the car's Back key goes to the pane touched last.
             .pointerInput(left) {
                 awaitPointerEventScope {
@@ -97,6 +99,8 @@ private fun Pane(
             },
     ) {
         state.app(appId)?.let { appContent(it, Modifier.fillMaxSize()) }
+        // A scrim rather than alpha: alpha doesn't dim a navigation app's map surface.
+        if (closing) Box(Modifier.matchParentSize().background(Color.Black.copy(alpha = 0.6f)))
     }
 }
 

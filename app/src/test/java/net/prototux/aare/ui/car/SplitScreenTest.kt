@@ -48,6 +48,15 @@ class SplitScreenTest {
     }
 
     @Test
+    fun anAppLeavingThePanesLeavesTheOtherFullScreen() {
+        assertEquals(CarScreen.App("music"), split.withoutApps { it == "maps" })
+        assertEquals(CarScreen.App("maps"), split.withoutApps { it == "music" })
+        assertEquals(CarScreen.Dashboard, split.withoutApps { true })
+        assertEquals(split, split.withoutApps { false })
+        assertEquals(CarScreen.App("maps"), CarScreen.App("maps").withoutApps { true })
+    }
+
+    @Test
     fun showsCoversBothPanes() {
         assertTrue(split.shows("maps"))
         assertTrue(split.shows("music"))

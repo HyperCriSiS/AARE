@@ -50,9 +50,11 @@ import net.prototux.aare.ui.car.CarScreen
 import net.prototux.aare.ui.car.CarSettingsScreen
 import net.prototux.aare.ui.car.CarShell
 import net.prototux.aare.ui.car.CarUiState
+import net.prototux.aare.ui.car.SPLIT_SNAP
 import net.prototux.aare.ui.car.shows
 import net.prototux.aare.ui.car.snapSplit
 import net.prototux.aare.ui.car.splitWith
+import net.prototux.aare.ui.car.withoutApps
 import net.prototux.aare.ui.car.NotificationsScreen
 import net.prototux.aare.ui.car.NowPlaying
 import net.prototux.aare.ui.car.CarDataScreen
@@ -438,6 +440,8 @@ class CarRuntime(
         }
         ui.apps.clear()
         ui.apps.addAll(entries)
+        // An app gone from a pane would leave it blank.
+        ui.screen = ui.screen.withoutApps { id -> entries.none { it.id == id } }
         // Restore the last navigation and media apps, so the dashboard isn't empty. Not a navigation app that
         // finished itself: its map card would stay blank instead of offering the picker.
         if (ui.activeNavAppId == null) {
@@ -599,11 +603,14 @@ class CarRuntime(
 
         override fun openInPane(app: CarAppEntry, left: Boolean) {
             if (app.kind == CarAppKind.EXIT) { exitToCar?.invoke(); return }
-            val next = splitWith(ui.screen, app.id, left, ui.recentAppIds)
+            // Recent apps can include one hidden or removed since: it would leave its pane blank.
+            val next = splitWith(ui.screen, app.id, left, ui.recentAppIds.filter { ui.app(it) != null })
             // The other pane may be a recent app that isn't running any more.
             if (next is CarScreen.Split) ui.app(if (left) next.right else next.left)?.let { start(it) }
             start(app)
             ui.splitActiveLeft = left
+            // A drag cut short (a call took the screen) can leave the divider at an edge.
+            if (ui.splitFraction !in SPLIT_SNAP..(1 - SPLIT_SNAP)) ui.splitFraction = 0.5f
             ui.screen = next
         }
 
@@ -682,13 +689,27 @@ class CarRuntime(
         }
     }
 
-    /** Set by a screen with its own back stack (a conversation in a messaging app): true if it handled back. */
-    var screenBack: (() -> Boolean)? = null
+    /**
+     * Back handlers of screens with their own back stack (a conversation in a messaging app, the
+     * browser, the phone screen), by app id: in a split, Back must reach the pane touched last.
+     * Each returns true if it handled back.
+     */
+    private val screenBacks = HashMap<String, () -> Boolean>()
+
+    fun setScreenBack(appId: String, back: () -> Boolean) { screenBacks[appId] = back }
+
+    /** Drops [back] unless the app's next screen already installed its own. */
+    fun clearScreenBack(appId: String, back: () -> Boolean) { if (screenBacks[appId] === back) screenBacks.remove(appId) }
 
     /** Back key from the car. */
     fun back() {
         if (ui.assistantAppId != null) { ui.assistantAppId = null; return }
-        if (screenBack?.invoke() == true) return
+        val target = when (val s = ui.screen) {
+            is CarScreen.App -> s.appId
+            is CarScreen.Split -> if (ui.splitActiveLeft) s.left else s.right
+            else -> null
+        }
+        if (target != null && screenBacks[target]?.invoke() == true) return
         when (val s = ui.screen) {
             is CarScreen.App -> {
                 val conn = connections[s.appId]

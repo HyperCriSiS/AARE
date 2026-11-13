@@ -78,7 +78,7 @@ internal fun MediaAppScreen(hub: DefaultMediaHub, app: MediaApp, driving: Boolea
         // else, so a video gets all the room left of the rail. The corner button goes back.
         Box(modifier.background(Color.Black)) {
             video.content(Modifier.fillMaxSize())
-            Box(Modifier.align(Alignment.BottomStart).padding(12.dp)) {
+            Box(Modifier.align(Alignment.BottomEnd).padding(12.dp)) {
                 CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = video.toggle)
             }
         }

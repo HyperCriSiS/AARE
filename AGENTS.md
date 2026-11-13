@@ -69,6 +69,7 @@ A change counts as checked only when:
 ## Branches and releases
 
 - Default branch: `main`. Pull requests are squash merged.
+- A change to the README alone is pushed straight to `main`, without a pull request.
 - `test/car-build` collects open branches for testing in the car; it is never merged.
 - A release is a `v<version>` tag on `main`; `.github/workflows/release.yml` builds and signs it
   with the fork's key from the repository secrets. Releases need the owner's approval first.

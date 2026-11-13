@@ -1,0 +1,22 @@
+package net.prototux.aare
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class SettingsBackupTest {
+    @Test
+    fun keepsTheUsersSettingsAndTrustedCars() {
+        assertTrue(SettingsBackup.keeps("settings", "car_theme"))
+        assertTrue(SettingsBackup.keeps("settings", "rail_apps"))
+        assertTrue(SettingsBackup.keeps("head_unit_pins", "usb:Harman|M2|"))
+    }
+
+    @Test
+    fun leavesOutWhatBelongsToThisPhone() {
+        assertFalse(SettingsBackup.keeps("settings", "instance_id"))
+        assertFalse(SettingsBackup.keeps("settings", "requested_permissions"))
+        assertFalse(SettingsBackup.keeps("settings", "cert_index"))
+        assertFalse(SettingsBackup.keeps("settings", "update_latest"))
+    }
+}

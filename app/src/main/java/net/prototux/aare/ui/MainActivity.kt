@@ -19,6 +19,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.OutlinedButton
+import net.prototux.aare.SettingsBackup
 import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -263,6 +265,7 @@ private fun Home() {
                             item { HeadUnitServerSettings(settings) }
                             item { CertificatesCard(certs, state) }
                             item { VehicleOverridesCard() }
+                            item { BackupCard() }
                             item { LogCard() }
                         }
                     }
@@ -1541,6 +1544,33 @@ private fun CarDataCard() {
 
 private fun xyz(v: CarData.Vector3): String? =
     listOf(v.x, v.y, v.z).let { if (it.all { c -> c == null }) null else it.joinToString(", ") { c -> c?.let { "%.2f".format(it) } ?: "–" } }
+
+/** The settings to a file and back: to keep them, or to move to another phone. */
+@Composable
+private fun BackupCard() {
+    val ctx = LocalContext.current
+    val activity = ctx as? android.app.Activity
+    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val ok = runCatching { ctx.contentResolver.openOutputStream(uri)!!.use { it.write(SettingsBackup.export(ctx).toByteArray()) } }.isSuccess
+        Toast.makeText(ctx, if (ok) R.string.backup_exported else R.string.backup_failed, Toast.LENGTH_SHORT).show()
+    }
+    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val ok = runCatching { SettingsBackup.import(ctx, ctx.contentResolver.openInputStream(uri)!!.use { it.readBytes().decodeToString() }) }.isSuccess
+        Toast.makeText(ctx, if (ok) R.string.backup_imported else R.string.backup_not_a_backup, Toast.LENGTH_SHORT).show()
+        // Every page shows the settings it read when it opened: start over with the new ones.
+        if (ok) activity?.recreate()
+    }
+    Section(stringResource(R.string.backup_title)) {
+        Text(stringResource(R.string.backup_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = { export.launch("aare-settings-${java.time.LocalDate.now()}.json") }) { Text(stringResource(R.string.backup_export)) }
+            OutlinedButton(onClick = { import.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }) { Text(stringResource(R.string.backup_import)) }
+        }
+    }
+}
 
 @Composable
 private fun VehicleOverridesCard() {

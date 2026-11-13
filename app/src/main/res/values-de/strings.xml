@@ -458,4 +458,12 @@
     <string name="video_full_screen">Vollbild</string>
     <string name="video_exit_full_screen">Vollbild verlassen</string>
     <string name="standalone_failed">Die App ließ sich nicht auf dem Autobildschirm starten.</string>
+    <string name="backup_title">Einstellungen sichern</string>
+    <string name="backup_hint">Speichert die Einstellungen von AARE, die vertrauten Autos und die Fahrzeug-Regeln in einer Datei und lädt sie wieder, hier oder auf einem anderen Handy. Zertifikate sind nicht dabei: dort neu herunterladen oder importieren.</string>
+    <string name="backup_export">Exportieren</string>
+    <string name="backup_import">Importieren</string>
+    <string name="backup_exported">Einstellungen exportiert</string>
+    <string name="backup_imported">Einstellungen importiert</string>
+    <string name="backup_failed">Die Datei konnte nicht geschrieben werden</string>
+    <string name="backup_not_a_backup">Keine AARE-Einstellungsdatei</string>
 </resources>

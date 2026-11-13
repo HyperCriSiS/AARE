@@ -4,6 +4,7 @@ import android.os.Process
 import android.os.SystemClock
 import android.util.Log
 import aap_protobuf.service.media.sink.message.AudioStreamTypeOuterClass.AudioStreamType
+import net.prototux.aare.DiagLog
 import net.prototux.aare.aap.channels.AudioChannel
 import kotlin.math.abs
 
@@ -85,6 +86,20 @@ class CarAudioOut(
         // The source ended by itself (its service or the audio server died), not by stop(): the
         // next capture method takes over, rather than the car going silent for the rest of the drive.
         var died = false
+        // Gaps in a stream, for the connection log: chunks we dropped because the car acked too
+        // slowly, and underflows the car reported because it ran out of sound. Both are heard as
+        // clicks or crackle, and they call for opposite fixes.
+        var dropsAtStart = 0L
+        var underflowsAtStart = 0
+        var startedAtMs = 0L
+        fun reportGaps(now: Long) {
+            val drops = channel.droppedChunks - dropsAtStart
+            val underflows = channel.underflows - underflowsAtStart
+            if (drops > 0 || underflows > 0) {
+                DiagLog.add("car audio ${channel.streamType.name.removePrefix("AUDIO_STREAM_").lowercase()}: " +
+                    "${(now - startedAtMs) / 1000} s stream, $drops chunks dropped (car acks too slowly), $underflows underflows (car ran out)")
+            }
+        }
         fun queue(ts: Long) {
             queued.addLast(buf.copyOf() to ts)
             while (queued.size > MAX_QUEUED) queued.removeFirst()
@@ -106,7 +121,11 @@ class CarAudioOut(
                 if (!playing && lastSound == now) {
                     focus.request(true)
                     playing = true
+                    dropsAtStart = channel.droppedChunks
+                    underflowsAtStart = channel.underflows
+                    startedAtMs = now
                 } else if (playing && now - lastSound > SILENCE_MS) {
+                    reportGaps(now)
                     channel.stopPlayback()
                     focus.request(false)
                     playing = false
@@ -143,7 +162,10 @@ class CarAudioOut(
         } catch (e: Exception) {
             Log.w(TAG, "audio capture stopped", e)
         } finally {
-            if (playing) { runCatching { channel.stopPlayback() }; focus.request(false); stoppedAtMs = SystemClock.elapsedRealtime() }
+            if (playing) {
+                reportGaps(SystemClock.elapsedRealtime())
+                runCatching { channel.stopPlayback() }; focus.request(false); stoppedAtMs = SystemClock.elapsedRealtime()
+            }
             playing = false
             queued.clear()
             source.release()

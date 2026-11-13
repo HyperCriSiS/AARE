@@ -91,10 +91,11 @@ internal class MediaDiscovery(private val context: Context, private val scope: C
             val si = ri.serviceInfo
             try {
                 val appInfo = pm.appInfo(si.packageName)
-                if (declaresCarMedia(pm, appInfo)) car += si.packageName
+                val carMedia = declaresCarMedia(pm, appInfo)
+                if (carMedia == true) car += si.packageName
                 // Android Auto support declared, but not for media (Signal, Molly: messages): its
                 // media browser is its own, for voice notes say, and refuses other apps.
-                else if (appInfo.metaData?.containsKey(META_CAR_APPLICATION) == true) return@mapNotNull null
+                else if (carMedia == false && appInfo.metaData?.containsKey(META_CAR_APPLICATION) == true) return@mapNotNull null
                 MediaApp(
                     packageName = si.packageName,
                     service = ComponentName(si.packageName, si.name),
@@ -109,8 +110,11 @@ internal class MediaDiscovery(private val context: Context, private val scope: C
         return apps to car
     }
 
-    /** Reads the `com.google.android.gms.car.application` descriptor and looks for `<uses name="media"/>`. */
-    private fun declaresCarMedia(pm: PackageManager, appInfo: ApplicationInfo): Boolean {
+    /**
+     * Reads the `com.google.android.gms.car.application` descriptor and looks for `<uses name="media"/>`;
+     * null when the descriptor can't be read, so such an app stays a media app.
+     */
+    private fun declaresCarMedia(pm: PackageManager, appInfo: ApplicationInfo): Boolean? {
         val res = appInfo.metaData?.getInt(META_CAR_APPLICATION, 0)?.takeIf { it != 0 } ?: return false
         return try {
             pm.getResourcesForApplication(appInfo).getXml(res).use { xml ->
@@ -122,7 +126,7 @@ internal class MediaDiscovery(private val context: Context, private val scope: C
                 false
             }
         } catch (e: Exception) {
-            false
+            null
         }
     }
 

@@ -1,6 +1,6 @@
 # AARE for Mercedes MBUX
 
-**The open-source phone side of Android Auto, with a car screen made for Mercedes-Benz MBUX.**
+**The open-source phone side of Android Auto, with a car screen optimized for Mercedes-Benz MBUX.**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/HyperCriSiS/AARE/ci.yml?branch=main&label=CI)](https://github.com/HyperCriSiS/AARE/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/HyperCriSiS/AARE)](https://github.com/HyperCriSiS/AARE/releases/latest)

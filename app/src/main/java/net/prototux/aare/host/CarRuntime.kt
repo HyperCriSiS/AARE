@@ -40,6 +40,7 @@ import net.prototux.aare.media.MediaHub
 import net.prototux.aare.mirror.LocalPhoneVideo
 import net.prototux.aare.mirror.MirrorScreen
 import net.prototux.aare.mirror.PhoneVideo
+import net.prototux.aare.mirror.PhoneVideoSlot
 import net.prototux.aare.notify.CarNotificationListener
 import net.prototux.aare.notify.MessagingScreen
 import net.prototux.aare.launch.AppLauncher
@@ -700,9 +701,10 @@ class CarRuntime(
                         when (app.kind) {
                             CarAppKind.MEDIA -> {
                                 val m = mediaApps.firstOrNull { it.packageName == app.packageName }
-                                // Parked and wanted: the phone's screen, a video playing there, in place of the art.
-                                val video: (@Composable (Modifier) -> Unit)? =
-                                    if (mediaVideo && phoneScreenAllowed && !ui.drivingRestricted) { v -> PhoneVideo(this, v) } else null
+                                // Parked: the phone's screen, a video playing there, can take the art's place.
+                                val video = if (phoneScreenAllowed && !ui.drivingRestricted) {
+                                    PhoneVideoSlot(mediaVideo, { settings.mediaVideo = !mediaVideo }) { v -> PhoneVideo(this, v) }
+                                } else null
                                 if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }
                             }
                             CarAppKind.MESSAGING -> MessagingScreen(app, ui.drivingRestricted, this, mod)

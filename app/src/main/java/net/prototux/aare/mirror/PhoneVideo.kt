@@ -27,8 +27,14 @@ import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.media.Placeholder
 import net.prototux.aare.ui.car.LocalFullScreen
 
-/** The phone's screen, live, that a media app shows instead of its art (parked, when wanted); null when not. */
-val LocalPhoneVideo = compositionLocalOf<(@Composable (Modifier) -> Unit)?> { null }
+/**
+ * The phone's screen as a media app's picture, parked: [content] draws it, [shown] says whether it
+ * takes the art's place, [toggle] switches between the two.
+ */
+class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier) -> Unit)
+
+/** The [PhoneVideoSlot] for media apps; null while driving or where the phone screen can't show. */
+val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
 
 /**
  * The phone screen, live, for a video playing there. A double tap shows it over the whole car

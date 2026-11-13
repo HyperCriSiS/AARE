@@ -701,7 +701,7 @@ class CarRuntime(
                             CarAppKind.BROWSER -> BrowserScreen(this, ui.drivingRestricted, settings.browserUrl, mod)
                             CarAppKind.CAR_DATA -> CarDataScreen(mod)
                             CarAppKind.PHONE -> PhoneScreen(this, mod)
-                            CarAppKind.SETTINGS -> CarSettingsScreen(settings, mod)
+                            CarAppKind.SETTINGS -> CarSettingsScreen(settings, phoneScreenAllowed, mod)
                             CarAppKind.NOTIFICATIONS -> NotificationsScreen(ui, mod)
                             else -> shownConnection(app.id)?.let { CarAppScreen(it, this, mod) }
                         }

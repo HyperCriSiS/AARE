@@ -474,4 +474,8 @@
     <string name="carapp_error_stopped">%1$s stopped</string>
     <string name="carapp_error_google_only">%1$s only accepts Google\'s Android Auto. It needs to allow AARE (see the app list on the phone).</string>
     <string name="carapp_error_cant_start">%1$s couldn\'t start: %2$s</string>
+    <!-- Split screen: the two pane options after a long press on a rail app, and the divider -->
+    <string name="split_open_left">Open on the left</string>
+    <string name="split_open_right">Open on the right</string>
+    <string name="split_divider">Drag to resize, to an edge to close</string>
 </resources>

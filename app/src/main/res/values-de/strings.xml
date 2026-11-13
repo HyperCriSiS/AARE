@@ -442,6 +442,7 @@
     <string name="carapp_error_cant_start">%1$s konnte nicht starten: %2$s</string>
     <string name="split_open_left">Links öffnen</string>
     <string name="split_open_right">Rechts öffnen</string>
+    <string name="split_switch_tap_opens_pane">Tippen öffnet Apps in ihrem Fenster (App gedrückt halten zum Wählen)</string>
     <string name="split_open_full">Im Vollbild öffnen</string>
     <string name="split_divider">Ziehen zum Ändern der Größe, an den Rand zum Schließen</string>
 </resources>

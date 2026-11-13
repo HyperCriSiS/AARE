@@ -270,6 +270,11 @@ class Settings(context: Context) {
         get() = prefs.getString("app_order", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("app_order", v.joinToString("\n")) }
 
+    /** A tap opens an app in the pane kept for it in [appPanes]; off, a tap always opens it full screen. */
+    var tapOpensPane: Boolean
+        get() = prefs.getBoolean("tap_opens_pane", false)
+        set(v) = prefs.edit { putBoolean("tap_opens_pane", v) }
+
     /** The pane each app opens in, by [appOrder] key: true left, false right. Apps without one open full screen. */
     var appPanes: Map<String, Boolean>
         get() = prefs.getStringSet("app_panes", emptySet()).orEmpty().mapNotNull { e ->

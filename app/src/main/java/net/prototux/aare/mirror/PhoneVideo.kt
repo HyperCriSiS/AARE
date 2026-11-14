@@ -9,6 +9,9 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.fadeIn
@@ -46,10 +49,10 @@ import net.prototux.aare.media.Placeholder
 import net.prototux.aare.ui.car.LocalFullScreen
 
 /**
- * A media app's own picture (its video), parked: [content] draws it, [shown] says whether it takes
- * the art's place, [toggle] switches between the two.
+ * A media app's own picture (its video), parked: [content] draws it with the given transport
+ * controls under it, [shown] says whether it takes the art's place, [toggle] switches between the two.
  */
-class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier) -> Unit)
+class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier, @Composable () -> Unit) -> Unit)
 
 /** The [PhoneVideoSlot] for media apps; null while driving or where the phone screen can't show. */
 val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
@@ -58,11 +61,12 @@ val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
  * The media app [packageName] itself, running on a display of exactly this size through the
  * privileged helper (Shizuku or root), whatever the phone shows: a video fills it, and touches go
  * to the app. Its buttons, back to the cover ([onCover]) and full screen over the whole car
- * screen, rail included, fade out when left alone and come back on a touch. While it runs here the
+ * screen, rail included, and the media [controls] fade out when left alone and come back on a
+ * touch. While it runs here the
  * app isn't on the phone's screen; it goes back there when this closes.
  */
 @Composable
-internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier, onCover: () -> Unit) {
+internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier, onCover: () -> Unit, controls: @Composable () -> Unit = {}) {
     val context = LocalContext.current
     val full = LocalFullScreen.current
     val available = remember { AppLauncher.available(context) }
@@ -76,11 +80,11 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
         Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = modifier.background(Color.Black))
         return
     }
-    VideoButtons(modifier, buttons = {
+    VideoButtons(modifier, controls, buttons = {
         CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = onCover)
         if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = {
             full.value = {
-                VideoButtons(Modifier.fillMaxSize(), buttons = {
+                VideoButtons(Modifier.fillMaxSize(), controls, buttons = {
                     CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { full.value = null })
                 }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
             }
@@ -97,11 +101,12 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
 }
 
 /**
- * A video with [buttons] stacked in its bottom right corner that fade out after a few seconds untouched.
- * A touch anywhere brings them back and still reaches the app below.
+ * A video with [controls] centered at its bottom and [buttons] stacked in its bottom right corner,
+ * both fading out after a few seconds untouched. A touch anywhere brings them back and still
+ * reaches the app below.
  */
 @Composable
-private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, video: @Composable () -> Unit) {
+private fun VideoButtons(modifier: Modifier, controls: @Composable () -> Unit, buttons: @Composable () -> Unit, video: @Composable () -> Unit) {
     var touches by remember { mutableIntStateOf(0) }
     var shown by remember { mutableStateOf(true) }
     LaunchedEffect(touches) { shown = true; delay(3_000); shown = false }
@@ -114,8 +119,17 @@ private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, vi
         },
     ) {
         video()
+        AnimatedVisibility(shown, Modifier.align(Alignment.BottomCenter).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
+            Row(
+                Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
+            ) { controls() }
+        }
         AnimatedVisibility(shown, Modifier.align(Alignment.BottomEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { buttons() }
+            Column(
+                Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).padding(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) { buttons() }
         }
     }
 }

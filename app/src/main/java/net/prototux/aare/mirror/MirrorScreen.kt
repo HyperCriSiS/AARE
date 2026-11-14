@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +34,7 @@ import net.prototux.aare.host.AndroidAutoApps
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.media.Placeholder
 import net.prototux.aare.notify.CarNotificationListener
+import net.prototux.aare.service.ProjectionService
 
 /**
  * The phone's screen on the car screen, for apps AARE can't host (Google Maps, Waze…). Touches
@@ -51,6 +53,9 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     val locked = rememberKeyguardLocked()
     val allowed = !locked && (!driving || (foreground != null && foreground in navApps))
     var mirroring by remember { mutableStateOf(true) }
+    // The screen-capture consent. Car audio through Shizuku, root or an audio policy never asks
+    // for it, so the phone screen can be the only thing that needs it (#159).
+    val consent = ProjectionService.state.collectAsState().value.audioCapture
 
     DisposableEffect(Unit) {
         val back: () -> Boolean = { MirrorTouchService.instance?.back() == true }
@@ -63,7 +68,8 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     }
 
     Box(modifier.background(Color.Black)) {
-        if (allowed) {
+        if (allowed) key(consent) {
+            // A new view when the consent comes or goes, so the mirror starts as soon as it's given.
             MirrorSurface(runtime, Modifier.fillMaxSize()) { mirroring = it }
             // Touches are caught above the mirror and replayed on the phone.
             Box(Modifier.fillMaxSize().pointerInput(Unit) {
@@ -90,7 +96,7 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
                 if (MirrorTouchService.instance == null) stringResource(R.string.mirror_driving_no_accessibility)
                 else stringResource(R.string.mirror_driving_nav_only),
                 loading = false, icon = Icons.Rounded.PauseCircle)
-            !mirroring -> Placeholder(stringResource(R.string.mirror_need_car_audio),
+            !mirroring -> Placeholder(stringResource(if (consent) R.string.mirror_capture_failed else R.string.mirror_need_screen_capture),
                 loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = Modifier.background(Color.Black))
             MirrorTouchService.instance == null -> Placeholder(stringResource(R.string.mirror_need_accessibility),
                 loading = false, icon = Icons.Rounded.TouchApp, modifier = Modifier.fillMaxSize())

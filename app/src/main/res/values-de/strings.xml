@@ -497,4 +497,7 @@
     <string name="video_full_screen">Vollbild</string>
     <string name="video_exit_full_screen">Vollbild verlassen</string>
     <string name="standalone_failed">Die App ließ sich nicht auf dem Autobildschirm starten.</string>
+    <string name="split_open_left">Links öffnen</string>
+    <string name="split_open_right">Rechts öffnen</string>
+    <string name="split_divider">Ziehen zum Ändern der Größe, an den Rand zum Schließen</string>
 </resources>

@@ -249,7 +249,17 @@ class BluetoothChannel(service: Service, private val phoneAddress: String?, priv
             methods.isNotEmpty() -> methods.first()
             else -> BluetoothPairingMethod.BLUETOOTH_PAIRING_NUMERIC_COMPARISON
         }
-        send(BluetoothMsg.PAIRING_REQUEST, BluetoothPairingRequest.newBuilder().setPhoneAddress(phoneAddress).setPairingMethod(method).build())
+        send(BluetoothMsg.PAIRING_REQUEST, BluetoothPairingRequest.newBuilder().setPhoneAddress(canonicalAddress(phoneAddress)).setPairingMethod(method).build())
+    }
+
+    companion object {
+        /**
+         * The address as Android writes it (upper case, colons). Head units compare it as text with
+         * the phones they have paired: a VW Play (Visteon MIB Regio) answered a lower-case address
+         * with a plain "accepted", not "already paired", and listed the phone twice, once for
+         * Bluetooth and once for the projection, so calls didn't go through the car (#117).
+         */
+        fun canonicalAddress(address: String): String = address.trim().uppercase(java.util.Locale.ROOT)
     }
 
     override fun onMessage(msg: AapMessage) {

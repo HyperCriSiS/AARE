@@ -217,7 +217,7 @@ class CarSession(
     fun exitToCar() {
         val ch = video ?: return
         if (aap.state != AapSession.State.RUNNING || !ch.opened) return
-        Log.i(TAG, "asking the car for its own screen")
+        DiagLog.add("asking the car for its own screen")
         ch.requestNativeFocus()
     }
 
@@ -311,7 +311,7 @@ class CarSession(
             InputChannel(s, inputListener).also { ch ->
                 ch.touchScreen?.let { touchSize = it.width to it.height }
                 channels += ch
-                Log.i(TAG, "input: display ${s.inputSourceService.displayId} panel ${ch.touchScreen?.let { "${it.width}x${it.height}" } ?: "none"} of ${inputServices.size} service(s)")
+                DiagLog.add("input: display ${s.inputSourceService.displayId} panel ${ch.touchScreen?.let { "${it.width}x${it.height}" } ?: "none"} of ${inputServices.size} service(s)")
             }
         }
         // Services the head unit lists that AARE doesn't speak, opened because a rule says this car wants them open.
@@ -532,7 +532,7 @@ class CarSession(
         }
 
         override fun onVideoFocus(projected: Boolean) {
-            Log.i(TAG, "video focus: ${if (projected) "projected" else "native"}")
+            DiagLog.add("video focus: ${if (projected) "projected" else "native"}")
             main.post {
                 encoder?.setSuspended(!projected)
                 // The encoder was paused while the car showed its own screen: time the stall check from here.
@@ -609,7 +609,8 @@ class CarSession(
                 frames++
                 lastFrameMs = SystemClock.elapsedRealtime()
                 if (frames == 1 || keyFrame && frames < 100 || frames % 600 == 0) {
-                    Log.i(TAG, "video frame $frames (${if (keyFrame) "key, " else ""}$length bytes), focused=${ch.focused}, dropped=${ch.droppedFrames}")
+                    // In the verbose log: whether frames flow, and whether the car had given focus (a black screen).
+                    net.prototux.aare.SessionAapLog.i("video frame $frames (${if (keyFrame) "key, " else ""}$length bytes), focused=${ch.focused}, dropped=${ch.droppedFrames}")
                 }
                 ch.sendFrame(data, offset, length, ptsUs, keyFrame) { encoder?.recycle(it) }
                 abr.onFrame(ch)
@@ -943,7 +944,7 @@ class CarSession(
                 return
             }
             videoFocusAsks++
-            Log.i(TAG, "video focus: no answer from the car, asking again ($videoFocusAsks/$VIDEO_FOCUS_RETRIES)")
+            DiagLog.add("video focus: no answer from the car, asking again ($videoFocusAsks/$VIDEO_FOCUS_RETRIES)")
             ch.requestProjectedFocus()
             main.postDelayed(this, VIDEO_FOCUS_RETRY_MS)
         }

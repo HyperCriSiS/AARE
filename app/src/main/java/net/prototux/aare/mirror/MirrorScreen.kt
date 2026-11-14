@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -29,10 +30,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import net.prototux.aare.R
-import net.prototux.aare.host.AndroidAutoApps
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.media.Placeholder
 import net.prototux.aare.notify.CarNotificationListener
+import net.prototux.aare.service.ProjectionService
 
 /**
  * The phone's screen on the car screen, for apps AARE can't host (Google Maps, Waze…). Touches
@@ -45,12 +46,15 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     val context = LocalContext.current
     val guidance by CarNotificationListener.guidance.collectAsState()
     val foreground by MirrorTouchService.foregroundApp.collectAsState()
-    val navApps = AndroidAutoApps.KNOWN_NAVIGATION + listOfNotNull(guidance?.packageName) + runtime.navigationPackages()
+    val navApps = KNOWN_NAVIGATION + listOfNotNull(guidance?.packageName) + runtime.navigationPackages()
     // Driving: only when the app in front is known to be a navigation app. An unknown one (no
     // accessibility service) could be anything, a video included, even while a route is guiding.
     val locked = rememberKeyguardLocked()
     val allowed = !locked && (!driving || (foreground != null && foreground in navApps))
     var mirroring by remember { mutableStateOf(true) }
+    // The screen-capture consent. Car audio through Shizuku, root or an audio policy never asks
+    // for it, so the phone screen can be the only thing that needs it (#159).
+    val consent = ProjectionService.state.collectAsState().value.audioCapture
 
     DisposableEffect(Unit) {
         val back: () -> Boolean = { MirrorTouchService.instance?.back() == true }
@@ -63,7 +67,8 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     }
 
     Box(modifier.background(Color.Black)) {
-        if (allowed) {
+        if (allowed) key(consent) {
+            // A new view when the consent comes or goes, so the mirror starts as soon as it's given.
             MirrorSurface(runtime, Modifier.fillMaxSize()) { mirroring = it }
             // Touches are caught above the mirror and replayed on the phone.
             Box(Modifier.fillMaxSize().pointerInput(Unit) {
@@ -90,7 +95,7 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
                 if (MirrorTouchService.instance == null) stringResource(R.string.mirror_driving_no_accessibility)
                 else stringResource(R.string.mirror_driving_nav_only),
                 loading = false, icon = Icons.Rounded.PauseCircle)
-            !mirroring -> Placeholder(stringResource(R.string.mirror_need_car_audio),
+            !mirroring -> Placeholder(stringResource(if (consent) R.string.mirror_capture_failed else R.string.mirror_need_screen_capture),
                 loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = Modifier.background(Color.Black))
             MirrorTouchService.instance == null -> Placeholder(stringResource(R.string.mirror_need_accessibility),
                 loading = false, icon = Icons.Rounded.TouchApp, modifier = Modifier.fillMaxSize())
@@ -135,3 +140,36 @@ private fun replay(context: android.content.Context, viewW: Int, viewH: Int, poi
     else if (durationMs > 500) touch.swipe(listOf(mapped.first()), durationMs) // long press
     else touch.tap(mapped.first().first, mapped.first().second)
 }
+
+/**
+ * Navigation apps that can't be hosted, recognised even before they post guidance: while driving,
+ * the phone screen shows only these (or the app guiding). Many have no Android Auto support, or
+ * only Google's, so the phone screen is how they reach the car.
+ */
+internal val KNOWN_NAVIGATION = setOf(
+    "com.google.android.apps.maps",
+    "com.google.android.apps.mapslite", // Google Maps Go
+    "com.waze",
+    "com.here.app.maps",
+    "com.sygic.aura",
+    "com.tomtom.gplay.navapp",
+    "com.generalmagic.magicearth",
+    "com.mapfactor.navigator",
+    "cz.seznam.mapy", // Mapy.com
+    "com.huawei.maps.app", // Petal Maps, on phones without Google services
+    // China (#150)
+    "com.autonavi.minimap", // Amap (Gaode)
+    "com.autonavi.amapauto", // Amap Auto
+    "com.baidu.BaiduMap",
+    "com.tencent.map",
+    // Russia and neighbours
+    "ru.yandex.yandexnavi",
+    "ru.yandex.yandexmaps",
+    "ru.dublgis.dgismobile", // 2GIS
+    "com.navitel",
+    // South Korea
+    "com.nhn.android.nmap", // Naver Map
+    "net.daum.android.map", // KakaoMap
+    "com.locnall.KimGiSa", // Kakao Navi
+    "com.skt.tmap.ku", // TMAP
+)

@@ -83,6 +83,14 @@ internal class ObstructionRegistry {
 internal val LocalObstructions = staticCompositionLocalOf<ObstructionRegistry?> { null }
 
 /**
+ * True in the dashboard's map card: the map scaffold leaves out the action strips and gestures,
+ * and templates draw only what [MapScaffold]'s `inCompact` overlay asks for (the next turn).
+ * Without this the full-screen chrome squeezed into the card covered most of it, and the app,
+ * told only the small uncovered part was visible, fitted its map into that (very zoomed in).
+ */
+internal val LocalCompactMap = staticCompositionLocalOf { false }
+
+/**
  * Marks a card/strip as covering the map: its bounds shrink the visible area reported to the
  * app, and it swallows touches so they do not reach the map gesture layer underneath.
  */
@@ -114,8 +122,13 @@ internal fun MapScaffold(
     mapActionStrip: ActionStrip?,
     panModeDelegate: PanModeDelegate?,
     modifier: Modifier = Modifier,
+    inCompact: Boolean = false,
     overlay: @Composable BoxWithConstraintsScope.() -> Unit,
 ) {
+    if (LocalCompactMap.current) {
+        CompactMapScaffold(modifier, if (inCompact) overlay else null)
+        return
+    }
     val host = LocalTemplateHost.current
     val gutter = LocalCarDimens.current.gutter
     val registry = remember { ObstructionRegistry() }
@@ -162,6 +175,21 @@ internal fun MapScaffold(
         }
     }
     ReportAreas(registry, panState)
+}
+
+/** The dashboard card: the map alone, plus [overlay] if the template keeps one there; taps go to the card. */
+@Composable
+private fun CompactMapScaffold(modifier: Modifier, overlay: (@Composable BoxWithConstraintsScope.() -> Unit)?) {
+    val registry = remember { ObstructionRegistry() }
+    val gutter = LocalCarDimens.current.gutter
+    Box(modifier.fillMaxSize().onGloballyPositioned { registry.map = it.boundsInRoot() }) {
+        if (overlay != null) {
+            CompositionLocalProvider(LocalObstructions provides registry, LocalInCard provides true) {
+                BoxWithConstraints(Modifier.fillMaxSize().padding(gutter)) { overlay() }
+            }
+        }
+    }
+    ReportAreas(registry, remember { mutableStateOf(false) })
 }
 
 /** Sends visible/stable area changes (map-surface px) to the app, deduplicated. */
@@ -269,19 +297,22 @@ private fun Modifier.mapGestures(host: TemplateHost, canPan: () -> Boolean, onDr
 /** Width of the start-side card column: about 40% of the screen, within readable bounds. */
 internal fun BoxWithConstraintsScope.panelWidth(): Dp = (maxWidth * 0.42f).coerceIn(320.dp, 480.dp).coerceAtMost(maxWidth)
 
+/** What narrow screens leave free at the bottom end for the map action strip, beside bottom cards. */
+internal val MapActionStripRoom = 96.dp
+
 /** Narrow/portrait screens put cards above/below the map instead of beside it. */
 internal val BoxWithConstraintsScope.narrow: Boolean get() = maxWidth < 600.dp || maxHeight > maxWidth
 
 /**
  * The floating content card of map templates: start side and full height on wide screens,
- * a bottom sheet-like card on narrow ones (a dashboard card, a split-screen pane), which leaves
- * room at the end for the map action strip, as the navigation template's estimate card does.
+ * a bottom sheet-like card on narrow ones (a dashboard card, a split-screen pane, a portrait
+ * screen), which leaves the bottom end to the map action strip so its buttons stay reachable.
  */
 @Composable
 internal fun BoxWithConstraintsScope.MapContentCard(content: @Composable () -> Unit) {
     val r = LocalCarDimens.current.cardRadius
     val m = if (narrow) {
-        Modifier.align(Alignment.BottomStart).width(maxWidth - 96.dp).height(maxHeight * 0.55f)
+        Modifier.align(Alignment.BottomStart).width(maxWidth - MapActionStripRoom).height(maxHeight * 0.55f)
     } else {
         Modifier.align(Alignment.TopStart).width(panelWidth()).fillMaxHeight()
     }

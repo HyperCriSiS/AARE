@@ -53,6 +53,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import kotlinx.coroutines.delay
 import net.prototux.aare.R
 import net.prototux.aare.host.templates.LocalInCard
+import net.prototux.aare.host.templates.LocalCompactMap
 import net.prototux.aare.host.templates.RenderTemplate
 import net.prototux.aare.host.templates.TemplateHost
 
@@ -60,10 +61,12 @@ import net.prototux.aare.host.templates.TemplateHost
  * One hosted car app on the car screen: its current template, its alerts, and loading/error
  * states. [compact] is the dashboard card version (a navigation app's map and next turn): its
  * templates render as inside a card, without their own page background and with card-sized text,
- * so the dashboard card shows through and a message with a button fits.
+ * so the dashboard card shows through and a message with a button fits. No buttons or panels go
+ * over the map, so the app gets the whole card as its visible area, and a tap calls [onOpen]
+ * (the app full screen) instead of going to the map.
  */
 @Composable
-fun CarAppScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: Modifier = Modifier, compact: Boolean = false) {
+fun CarAppScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: Modifier = Modifier, compact: Boolean = false, onOpen: (() -> Unit)? = null) {
     DisposableEffect(conn) {
         runtime.acquireVisible(conn)
         onDispose { runtime.releaseVisible(conn) }
@@ -83,8 +86,11 @@ fun CarAppScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: Modifier
             conn.status == CarAppConnection.Status.FAILED -> AppMessage(conn, conn.error ?: stringResource(R.string.common_something_went_wrong), retry = { conn.connect() })
             template == null -> AppMessage(conn, null, retry = null)
             // A new screen (new template id) starts fresh; refreshes keep scroll position and input.
-            else -> androidx.compose.runtime.key(conn.templateId) { RenderTemplate(template, host, Modifier.fillMaxSize()) }
+            else -> androidx.compose.runtime.key(conn.templateId) {
+                CompositionLocalProvider(LocalCompactMap provides compact) { RenderTemplate(template, host, Modifier.fillMaxSize()) }
+            }
         }
+        if (compact && onOpen != null) Box(Modifier.fillMaxSize().clickable(onClick = onOpen))
         conn.alert?.let { AlertCard(it, conn, host, Modifier.align(Alignment.TopCenter)) }
     } }
 }
@@ -111,7 +117,7 @@ private fun AppMessage(conn: CarAppConnection, message: String?, retry: (() -> U
                 Spacer(Modifier.height(20.dp))
                 Text(
                     stringResource(R.string.common_try_again), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.primary)
+                    modifier = Modifier.clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.primary)
                         .clickable(onClick = retry).padding(horizontal = 32.dp, vertical = 18.dp),
                 )
             }
@@ -130,7 +136,7 @@ private fun AlertCard(alert: Alert, conn: CarAppConnection, host: TemplateHost, 
         }
     }
     Column(
-        modifier.padding(16.dp).widthIn(max = 640.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp))
+        modifier.padding(16.dp).widthIn(max = 640.dp).fillMaxWidth().clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest).padding(20.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -146,7 +152,7 @@ private fun AlertCard(alert: Alert, conn: CarAppConnection, host: TemplateHost, 
                 alert.actions.forEach { action ->
                     Text(
                         action.title?.toString() ?: stringResource(R.string.common_ok), style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.clip(RoundedCornerShape(28.dp)).background(MaterialTheme.colorScheme.secondaryContainer)
+                        modifier = Modifier.clip(MaterialTheme.shapes.large).background(MaterialTheme.colorScheme.secondaryContainer)
                             .clickable {
                                 runCatching { action.onClickDelegate?.sendClick(host.done) }
                                 conn.dismissAlert()
@@ -176,6 +182,7 @@ fun CarAppClusterScreen(conn: CarAppConnection, runtime: CarRuntime, modifier: M
 private class ConnectionTemplateHost(val conn: CarAppConnection, val runtime: CarRuntime) : TemplateHost {
     override val driving: Boolean get() = runtime.ui.drivingRestricted
     override val night: Boolean get() = runtime.ui.night
+    override val touchscreen: Boolean get() = runtime.touchscreen
     override val appLabel: String get() = conn.info.label
     override fun contentLimit(type: Int): Int = runtime.contentLimit(type)
     override val done = CarAppConnection.templateDone

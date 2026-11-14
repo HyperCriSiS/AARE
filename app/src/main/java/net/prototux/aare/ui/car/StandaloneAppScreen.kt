@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import net.prototux.aare.R
+import net.prototux.aare.Settings
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.launch.AppLauncher
 import net.prototux.aare.media.Placeholder
@@ -104,7 +105,7 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
                             // connect() blocks (binds Shizuku / spawns su), so do it off the main thread.
                             Thread {
                                 if (launcher.connected) launcher.resize(surface, w, h, dpiFor(w, h))
-                                else if (launcher.connect()) onStarted(launcher.start(surface, w, h, dpiFor(w, h), packageName) >= 0)
+                                else if (launcher.connect()) onStarted(launcher.start(surface, w, h, dpiFor(w, h), packageName, Settings(ctx).standaloneKeepScreenAwake) >= 0)
                             }.apply { isDaemon = true }.start()
                         }
                         override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {

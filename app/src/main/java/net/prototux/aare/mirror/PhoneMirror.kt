@@ -8,6 +8,7 @@ import android.media.projection.MediaProjection
 import android.util.Log
 import android.view.Display
 import android.view.Surface
+import net.prototux.aare.DiagLog
 import net.prototux.aare.launch.AppLauncher
 import java.util.concurrent.Executors
 
@@ -38,7 +39,10 @@ object PhoneMirror {
             display = projection.createVirtualDisplay("aare-phone-screen", width, height, dpi,
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, null)
             owner = projection
-        }.onFailure { Log.w(TAG, "can't mirror the phone screen", it) }.isSuccess
+        }.onFailure {
+            Log.w(TAG, "can't mirror the phone screen", it)
+            DiagLog.add("phone screen: Android refused to mirror the screen: ${it.javaClass.simpleName}: ${it.message}")
+        }.isSuccess
     }
 
     /** Stops drawing (the display stays, for the next [attach]). */

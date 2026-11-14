@@ -44,14 +44,16 @@ internal fun CarSettingsScreen(
 ) {
     var theme by remember { mutableStateOf(settings.carTheme) }
     var rail by remember { mutableStateOf(settings.railPosition) }
-    var style by remember { mutableStateOf(settings.carStyle) }
+    var themeId by remember { mutableStateOf(settings.carThemeId) }
+    var layoutId by remember { mutableStateOf(settings.carLayoutId) }
+    var accent by remember { mutableStateOf(settings.carAccent) }
     var banners by remember { mutableStateOf(settings.messageBanners) }
     var aloud by remember { mutableStateOf(settings.readMessagesAloud) }
     var audio by remember { mutableStateOf(settings.carAudio) }
     var darkBar by remember { mutableStateOf(settings.darkBar) }
+    var cards by remember { mutableStateOf(DashCard.parse(settings.dashboardCards)) }
     var passenger by remember { mutableStateOf(settings.ignoreDriving) }
     var weather by remember { mutableStateOf(settings.showWeather) }
-    var calendar by remember { mutableStateOf(settings.showCalendar) }
     var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
 
     LazyColumn(
@@ -71,14 +73,19 @@ internal fun CarSettingsScreen(
             }
         }
         item {
-            Choice(stringResource(R.string.setup_choice_style), listOf(Settings.STYLE_AUTO to stringResource(R.string.setup_style_android_auto), Settings.STYLE_CARPLAY to stringResource(R.string.setup_style_carplay)), style) {
-                style = it; settings.carStyle = it
-            }
+            StyleChoices(
+                themeId, layoutId, accent,
+                choice = { title, options, selected, onSelect -> Choice(title, options, selected, onSelect) },
+                onChange = { t, l -> themeId = t; layoutId = l; settings.carThemeId = t; settings.carLayoutId = l },
+                onAccent = { accent = it; settings.carAccent = it },
+            )
         }
         item { SwitchRow(stringResource(R.string.setup_switch_dark_bar), darkBar) { darkBar = it; settings.darkBar = it } }
+        item {
+            DashboardCardsEditor(cards, LocalCarDimens.current.touchTarget) { cards = it; settings.dashboardCards = it.map(DashCard::id) }
+        }
         item { SwitchRow(stringResource(R.string.setup_switch_passenger), passenger) { passenger = it; settings.ignoreDriving = it } }
         item { SwitchRow(stringResource(R.string.setup_toggle_weather_title), weather) { weather = it; settings.showWeather = it } }
-        item { SwitchRow(stringResource(R.string.setup_toggle_calendar_title), calendar) { calendar = it; settings.showCalendar = it } }
         if (phoneScreenAllowed) item { SwitchRow(stringResource(R.string.phone_toggle_enable_title), phoneScreen) { phoneScreen = it; settings.phoneScreen = it } }
 
         item { SwitchRow(stringResource(R.string.setup_switch_message_notifications), banners) { banners = it; settings.messageBanners = it } }

@@ -100,7 +100,11 @@ internal class ShellMicInjector private constructor(
 
     private fun report(configs: List<AudioRecordingConfiguration>) {
         if (closed) return
-        val recording = PhoneAppsMic.anyTakesOver(configs.map(::recording), excludedUids)
+        val all = configs.map(::recording)
+        // Which app records with which source: a voice mode recording as VOICE_COMMUNICATION (7)
+        // keeps the phone's mic, and this is where that shows.
+        Log.i(TAG, "phone recordings: " + all.joinToString { "uid ${it.uid} source ${it.source}${if (it.silenced) " silenced" else ""}" })
+        val recording = PhoneAppsMic.anyTakesOver(all, excludedUids)
         if (recording == reported) return
         reported = recording
         runCatching { listener.onPhoneAppsRecording(recording) }.onFailure { Log.w(TAG, "listener", it) }

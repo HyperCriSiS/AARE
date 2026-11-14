@@ -455,6 +455,12 @@
     <string name="msg_autoreply_default">Ich fahre gerade und antworte später.</string>
     <string name="audio_root_ready">Bereit, über Root. Alles, was das Telefon abspielt, geht ans Auto, einschließlich der Navigationsstimme; das Telefon bleibt stumm.</string>
     <string name="audio_shizuku_or_root_hint">Auf einem gerooteten Telefon (KernelSU, Magisk, APatch …) tippen, um Root zu erlauben. Andernfalls Shizuku installieren und starten (drahtloses Debugging, einmal pro Neustart).</string>
+    <string name="audio_section_car_mic">Mikrofon des Autos</string>
+    <string name="audio_toggle_car_mic_title">Mikrofon des Autos für Telefon-Apps</string>
+    <string name="audio_toggle_car_mic_subtitle">Solange ein Auto mit Mikrofon verbunden ist, hören Spracheingabe, Sprachrekorder und Sprachnachrichten auf dem Telefon das Auto statt des Telefons. Anrufe behalten ihr eigenes Mikrofon. Benötigt Shizuku.</string>
+    <string name="audio_car_mic_ready">Bereit: wirkt ab der nächsten Verbindung.</string>
+    <string name="audio_car_mic_needs_android10">Benötigt Android 10 oder neuer.</string>
+    <string name="audio_car_mic_needs_shizuku">Benötigt Shizuku, gestartet und für AARE erlaubt (siehe die Shizuku-Methode oben).</string>
     <string name="dash_menu_exit_to_car">Zurück zum Auto</string>
     <string name="media_action_retry">Wiederholen</string>
     <string name="media_error_fix">Beheben</string>

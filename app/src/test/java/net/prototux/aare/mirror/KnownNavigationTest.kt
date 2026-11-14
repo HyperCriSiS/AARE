@@ -1,5 +1,6 @@
 package net.prototux.aare.mirror
 
+import net.prototux.aare.host.AndroidAutoApps.KNOWN_NAVIGATION
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

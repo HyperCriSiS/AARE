@@ -90,6 +90,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
@@ -110,6 +111,8 @@ import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.CarTheme
 import net.prototux.aare.ui.theme.LocalCarDimens
 import net.prototux.aare.ui.theme.LocalCarTheme
+import net.prototux.aare.ui.theme.SegmentFont
+import net.prototux.aare.ui.theme.appIconFilter
 
 /**
  * Root of the car screen: a rail on the driver's side and the content area.
@@ -128,9 +131,10 @@ fun CarShell(
     /** Insets the UI into the head unit's visible area (the codec frame minus its margins). */
     modifier: Modifier = Modifier,
 ) {
-    if (state.layout == CarLayout.DOCK) {
-        DockShell(state, actions, appContent, navMap, overlay, modifier)
-        return
+    when (state.layout) {
+        CarLayout.DOCK -> { DockShell(state, actions, appContent, navMap, overlay, modifier); return }
+        CarLayout.CLASSIC -> { ClassicShell(state, actions, appContent, navMap, overlay, modifier); return }
+        CarLayout.TASKBAR -> Unit
     }
     // A long press on a rail app asks which pane to open it in (see PaneChooser).
     var paneChoice by remember { mutableStateOf<PaneChoice?>(null) }
@@ -233,13 +237,15 @@ private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, hor
 /** What the car shell draws over the whole car screen, rail included (a video double-tapped), or null. Null outside the shell. */
 val LocalFullScreen = compositionLocalOf<MutableState<(@Composable () -> Unit)?>?> { null }
 
+/** The screen's content: the dashboard (or, with [launcherHome], the app grid as the home screen), the app grid or an app. */
 @Composable
-private fun ContentArea(
+internal fun ContentArea(
     state: CarUiState,
     actions: CarActions,
     appContent: @Composable (CarAppEntry, Modifier) -> Unit,
     navMap: @Composable (CarAppEntry, Modifier) -> Unit,
     modifier: Modifier,
+    launcherHome: Boolean = false,
 ) {
     val gutter = LocalCarDimens.current.gutter
     // Give rotary / D-pad head units a starting point: focus lands on the first focusable of each
@@ -270,14 +276,18 @@ private fun ContentArea(
         label = "screen",
     ) { screen ->
         when (screen) {
-            CarScreen.Dashboard -> Box(Modifier.fillMaxSize()) {
+            CarScreen.Dashboard -> if (launcherHome) Launcher(state, actions, Modifier.fillMaxSize()) else Box(Modifier.fillMaxSize()) {
                 Wallpaper(state, Modifier.fillMaxSize())
                 Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
             }
             CarScreen.Launcher -> Launcher(state, actions, Modifier.fillMaxSize())
             is CarScreen.App -> {
                 val app = state.app(screen.appId)
-                if (app != null) appScreen(app, Modifier.fillMaxSize()) else Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
+                when {
+                    app != null -> appScreen(app, Modifier.fillMaxSize())
+                    launcherHome -> Launcher(state, actions, Modifier.fillMaxSize())
+                    else -> Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
+                }
             }
             is CarScreen.Split -> SplitPane(screen, state, actions, appScreen, Modifier.fillMaxSize())
         }
@@ -422,7 +432,23 @@ internal fun Clock() {
     val text = android.text.format.DateFormat.format(
         if (android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current)) "H:mm" else "h:mm", now,
     ).toString()
-    Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+    if (LocalCarTheme.current.segmentClock) SegmentClock(text)
+    else Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+}
+
+/**
+ * The time on a seven-segment display: the lit digits over the unlit "88:88", as on an old digital
+ * dashboard. 22 sp keeps "88:88" (3.5 em) inside the 96 dp side bar.
+ */
+@Composable
+private fun SegmentClock(time: String) {
+    val style = MaterialTheme.typography.titleMedium.copy(fontFamily = SegmentFont, fontSize = 22.sp, letterSpacing = 0.sp)
+    val lit = MaterialTheme.colorScheme.onSurface
+    Box(contentAlignment = Alignment.CenterEnd) {
+        Text("88:88", style = style.copy(shadow = null), color = lit.copy(alpha = 0.12f), maxLines = 1)
+        // "!" is the font's digit-wide blank: "9:41" becomes "!9:41", over "88:88".
+        Text(time.padStart(5, '!'), style = style, color = lit, maxLines = 1)
+    }
 }
 
 @Composable
@@ -450,7 +476,7 @@ private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean,
         Modifier.size(d.railButton).clip(MaterialTheme.shapes.medium).background(ring).carFocusHighlight(MaterialTheme.shapes.medium).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(LocalCarTheme.current.appIcon))
+        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(LocalCarTheme.current.appIcon), colorFilter = appIconFilter())
     }
 }
 
@@ -504,7 +530,7 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
 internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null
 
 @Composable
-private fun MicButton(listening: Boolean, onClick: () -> Unit) {
+internal fun MicButton(listening: Boolean, onClick: () -> Unit) {
     val d = LocalCarDimens.current
     val bg = if (listening) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
     val fg = if (listening) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary
@@ -597,10 +623,12 @@ internal fun Dashboard(
 @Composable
 private fun Card(modifier: Modifier, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
     val r = LocalCarDimens.current.cardRadius
+    val border = LocalCarTheme.current.cardBorder
     Box(
         modifier
             .clip(RoundedCornerShape(r))
             .background(MaterialTheme.colorScheme.surfaceContainer)
+            .let { if (border > 0.dp) it.border(border, MaterialTheme.colorScheme.outline, RoundedCornerShape(r)) else it }
             .let { if (onClick != null) it.carFocusHighlight(RoundedCornerShape(r)).clickable(onClick = onClick) else it },
     ) { content() }
 }
@@ -679,7 +707,7 @@ private fun AppChip(app: CarAppEntry, onClick: () -> Unit) {
 fun AppIcon(app: CarAppEntry, sizeDp: Int) {
     Box(contentAlignment = Alignment.BottomEnd) {
         if (app.icon != null) {
-            Image(app.icon.asImageBitmap(), app.label, Modifier.size(sizeDp.dp).clip(LocalCarTheme.current.appIcon))
+            Image(app.icon.asImageBitmap(), app.label, Modifier.size(sizeDp.dp).clip(LocalCarTheme.current.appIcon), colorFilter = appIconFilter())
         } else {
             Box(Modifier.size(sizeDp.dp).clip(LocalCarTheme.current.appIcon).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
                 Text(app.label.take(1), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -810,7 +838,7 @@ fun RoundIcon(icon: ImageVector, label: String, filled: Boolean, onClick: () -> 
 // ---------------------------------------------------------------- launcher
 
 @Composable
-private fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier) {
+internal fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier) {
     val menus = LocalRailMenus.current
     LazyVerticalGrid(
         columns = GridCells.Adaptive(150.dp),

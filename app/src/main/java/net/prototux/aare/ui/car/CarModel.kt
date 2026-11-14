@@ -56,6 +56,13 @@ fun CarScreen.shows(id: String?): Boolean = when (this) {
     else -> false
 }
 
+/** Whether a media app is on screen, full screen or in either pane; [kind] looks an app up by id. */
+fun CarScreen.showsMedia(kind: (String) -> CarAppKind?): Boolean = when (this) {
+    is CarScreen.App -> kind(appId) == CarAppKind.MEDIA
+    is CarScreen.Split -> kind(left) == CarAppKind.MEDIA || kind(right) == CarAppKind.MEDIA
+    else -> false
+}
+
 /** A pane released within this share of the width from an edge closes. */
 const val SPLIT_SNAP = 0.1f
 

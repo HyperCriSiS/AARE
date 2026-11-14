@@ -64,6 +64,7 @@ import net.prototux.aare.aap.channels.SensorChannel
 import net.prototux.aare.aap.channels.VideoChannel
 import net.prototux.aare.aap.channels.WifiProjectionChannel
 import net.prototux.aare.DiagLog
+import net.prototux.aare.ui.car.showsMedia
 import net.prototux.aare.PinnedHeadUnits
 import net.prototux.aare.audio.AudioPolicySource
 import net.prototux.aare.audio.CaptureMethod
@@ -636,6 +637,10 @@ class CarSession(
             if (!down) DiagLog.add("ignoring ${KeyEvent.keyCodeToString(code)} from the car: no car screen yet")
             return
         }
+        // The car's buttons, in the connection log: which ones reach the phone at all (the voice
+        // button on some cars only on a long press, or not during projection). Not the rotary
+        // knob's steps or the touchpad's moves, which come by the dozen.
+        if (!down && code !in NAV_KEYS) DiagLog.add("car key ${KeyEvent.keyCodeToString(code)}${if (longPress) ", held" else ""}")
         when (code) {
             KeyEvent.KEYCODE_HOME -> homeKey.onKey(down, longPress)
             KeyEvent.KEYCODE_BACK -> if (!down) back()
@@ -780,7 +785,7 @@ class CarSession(
                     }
                 }
             }
-        })
+        }, holdOpen = { !guidance && runtime.ui.screen.showsMedia { id -> runtime.ui.app(id)?.kind } })
         audioOuts[channel.streamType] = out.also { it.start() }
     }
 
@@ -1031,6 +1036,12 @@ class CarSession(
     companion object {
         private const val TAG = "AareSession"
         private const val VIDEO_FOCUS_RETRY_MS = 3_000L
+        /** The rotary knob and touchpad keys, left out of the connection log. */
+        private val NAV_KEYS = setOf(
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_TAB, KeyEvent.KEYCODE_NAVIGATE_NEXT,
+            KeyEvent.KEYCODE_NAVIGATE_PREVIOUS, KeyEvent.KEYCODE_NAVIGATE_IN, KeyEvent.KEYCODE_NAVIGATE_OUT,
+        )
         /** The keys that start, stop or skip media, which [onKey] ignores until there is a car screen. */
         private val MEDIA_KEYS = setOf(
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY,

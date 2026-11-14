@@ -344,8 +344,22 @@ class CarSession(
             if (settings.callsOnPhoneSpeaker) callSpeaker = CallSpeaker(context).also { it.start() }
             if (settings.carMicForPhoneApps) mic?.let { m ->
                 val cfg = m.config
-                phoneAppsMic = CarMicForApps(context, micRouter, cfg?.samplingRate ?: 16_000, cfg?.numberOfChannels ?: 1).also { it.start() }
+                phoneAppsMic = CarMicForApps(context, micRouter, cfg?.samplingRate ?: 16_000, cfg?.numberOfChannels ?: 1, ::onPhoneAppRecording).also { it.start() }
             }
+        }
+    }
+
+    /** Music or a video AARE paused because a phone app records: it plays on once the app is done. */
+    @Volatile private var pausedForRecording = false
+
+    /** A phone app (a voice message, an assistant) records: what plays would talk over it. */
+    private fun onPhoneAppRecording(recording: Boolean) {
+        if (recording) {
+            pausedForRecording = runtime.ui.nowPlaying?.playing == true
+            if (pausedForRecording) media.pause()
+        } else if (pausedForRecording) {
+            pausedForRecording = false
+            if (runtime.ui.nowPlaying?.playing != true) media.playPause()
         }
     }
 

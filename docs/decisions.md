@@ -197,3 +197,16 @@ voice.
 - AARE has no listening (speech-to-text) of its own to apply the "exclusive transient focus while
   listening" half of the request to: `CarRuntime.openMicrophone` only relays the car's microphone
   to a connected car app (an assistant such as Lapin), which requests its own focus if it wants to.
+
+## Reconnecting a wireless link that dropped
+
+A wireless session that reached the car screen and then failed without a bye-bye from either side
+is reconnected by itself: 5 single attempts, after 3, 6, 9, 12 and 15 s (`WirelessReconnect`),
+apart from the initial connect's "car not ready yet" retries. A Disconnect, the car's bye-bye and
+the phone's Stop all say goodbye first, so they are never reconnected.
+
+- Ignition off drops the link without a bye-bye too; it is told apart by the car's Bluetooth
+  disconnecting (ACL_DISCONNECTED) up to 20 s before the drop or any time after it. Further back
+  doesn't count: some adapters hang up their Bluetooth link right after the bootstrap.
+- A reconnected session that drops again within a minute continues the same budget, so a link
+  that keeps failing is not reconnected forever.

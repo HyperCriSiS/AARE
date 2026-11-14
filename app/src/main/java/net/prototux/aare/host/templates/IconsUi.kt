@@ -53,8 +53,11 @@ import net.prototux.aare.ui.theme.LocalCarColors
  * CarIcon objects (a nav app refreshes every second: no flicker allowed).
  *
  * The CarIcon tint wins; otherwise [monochromeTint] is applied to resource (vector) icons only,
- * like Android Auto does for action buttons. Photos/bitmaps are never tinted without a tint,
- * except a white glyph on a light car screen ([whiteGlyphTint]).
+ * like Android Auto does for action buttons. For a custom bitmap, which has no colour of its own
+ * to fall back to, a white glyph drawn for Android Auto's dark screen would otherwise vanish on a
+ * light theme: on a light theme only, one whose opaque pixels look like a monochrome glyph (see
+ * [looksLikeMonochromeGlyph]) is tinted with the current content colour instead. Photos, album
+ * art and coloured logos fail that check and are never touched, on either kind of theme.
  */
 @Composable
 internal fun CarIconView(
@@ -74,16 +77,19 @@ internal fun CarIconView(
         CarIcon.TYPE_CUSTOM -> {
             // wide images (lanes, junctions) get a box [widthFactor] times wider than tall
             val sizePx = with(LocalDensity.current) { (size * maxOf(1f, widthFactor)).roundToPx() }
-            val bitmap = rememberCarIconBitmap(icon, sizePx)
+            val loaded = rememberCarIconBitmap(icon, sizePx)
             val box = modifier.size(width = size * widthFactor, height = size)
             val clipped = if (shape != null) box.clip(shape) else box
-            if (bitmap == null) {
+            if (loaded == null) {
                 Box(clipped)
                 return
             }
-            val filterColor = tint ?: monochromeTint?.takeIf { icon.isResource() } ?: whiteGlyphTint(bitmap)
+            // A white glyph the app drew for Android Auto's own dark screen is invisible here on a
+            // light theme; a photo, album art or a coloured logo fails the pixel check and is left alone.
+            val glyphTint = LocalContentColor.current.takeIf { !scheme.isNight && loaded.monochromeGlyph }
+            val filterColor = tint ?: monochromeTint?.takeIf { icon.isResource() } ?: glyphTint
             Image(
-                bitmap,
+                loaded.bitmap,
                 contentDescription,
                 clipped,
                 contentScale = contentScale,
@@ -119,9 +125,9 @@ internal fun standardIcon(type: Int): ImageVector? = when (type) {
 internal fun AppIconView(size: Dp, modifier: Modifier = Modifier) {
     val host = LocalTemplateHost.current
     val sizePx = with(LocalDensity.current) { size.roundToPx() }
-    val bitmap = rememberCarIconBitmap(CarIcon.APP_ICON, sizePx, key = "app-icon@${System.identityHashCode(host)}@$sizePx")
-    if (bitmap != null) {
-        Image(bitmap, host.appLabel, modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
+    val loaded = rememberCarIconBitmap(CarIcon.APP_ICON, sizePx, key = "app-icon@${System.identityHashCode(host)}@$sizePx")
+    if (loaded != null) {
+        Image(loaded.bitmap, host.appLabel, modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
     } else {
         Box(
             modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
@@ -140,27 +146,39 @@ internal fun AppIconView(size: Dp, modifier: Modifier = Modifier) {
 private fun CarIcon.isResource(): Boolean =
     runCatching { icon?.type == IconCompat.TYPE_RESOURCE }.getOrDefault(false)
 
+/** A loaded custom icon's bitmap, and whether it looks like a monochrome glyph (see [looksLikeMonochromeGlyph]). */
+private class LoadedCarIcon(val bitmap: ImageBitmap, val monochromeGlyph: Boolean)
+
 /** Loads (and caches) the bitmap of a custom CarIcon; keeps showing the previous one while loading. */
 @Composable
-private fun rememberCarIconBitmap(icon: CarIcon, sizePx: Int, key: Any? = null): ImageBitmap? {
+private fun rememberCarIconBitmap(icon: CarIcon, sizePx: Int, key: Any? = null): LoadedCarIcon? {
     val host = LocalTemplateHost.current
     val night = host.night
     // Keyed on identity: CarIcon.equals finds any two bitmap icons equal, so a new arrow would keep the old key.
     // Each refresh deserializes new icons, so the content key is still computed only once per refresh.
     val cacheKey: Any = remember(Same(icon), sizePx, key, night) { key ?: contentKey(icon, night)?.let { "$it@$sizePx" } ?: Same(icon) }
-    var bitmap by remember { mutableStateOf(IconCache.get(cacheKey)) }
+    var loaded by remember { mutableStateOf(IconCache.get(cacheKey)) }
     LaunchedEffect(cacheKey) {
         val cached = IconCache.get(cacheKey)
         if (cached != null) {
-            bitmap = cached
+            loaded = cached
             return@LaunchedEffect
         }
-        // loadIcon may hit another app's resources or a content URI: keep it off the main thread
-        val loaded = withContext(Dispatchers.IO) { runCatching { host.loadIcon(icon, sizePx) }.getOrNull() }
-        if (loaded != null) IconCache.put(cacheKey, loaded)
-        bitmap = loaded
+        // loadIcon may hit another app's resources or a content URI: keep it off the main thread.
+        // The monochrome-glyph check reads every opaque pixel, so it rides along on the same thread
+        // and is cached with the bitmap: a refreshing nav app must not redo it every second.
+        val result = withContext(Dispatchers.IO) {
+            runCatching {
+                val bitmap = host.loadIcon(icon, sizePx) ?: return@runCatching null
+                val pixels = IntArray(bitmap.width * bitmap.height)
+                bitmap.readPixels(pixels)
+                LoadedCarIcon(bitmap, looksLikeMonochromeGlyph(pixels))
+            }.getOrNull()
+        }
+        if (result != null) IconCache.put(cacheKey, result)
+        loaded = result
     }
-    return bitmap
+    return loaded
 }
 
 /**
@@ -213,41 +231,13 @@ private class Same(private val value: Any) {
 
 /** Process-wide bitmap cache for template icons, bounded in bytes. */
 private object IconCache {
-    private val cache = object : LruCache<Any, ImageBitmap>(24 * 1024 * 1024) {
-        override fun sizeOf(key: Any, value: ImageBitmap): Int = maxOf(1, value.width * value.height * 4)
+    private val cache = object : LruCache<Any, LoadedCarIcon>(24 * 1024 * 1024) {
+        override fun sizeOf(key: Any, value: LoadedCarIcon): Int = maxOf(1, value.bitmap.width * value.bitmap.height * 4)
     }
 
-    fun get(key: Any): ImageBitmap? = cache.get(key)
-    fun put(key: Any, value: ImageBitmap) {
+    fun get(key: Any): LoadedCarIcon? = cache.get(key)
+    fun put(key: Any, value: LoadedCarIcon) {
         cache.put(key, value)
     }
 }
 
-/**
- * Car apps mostly draw their glyphs white, for Android Auto's dark screen. On a light car screen
- * such an icon (white on a transparent ground, with no tint of its own) disappears on a light card,
- * so it takes the content color there. Colored icons and photos keep their colors.
- */
-@Composable
-private fun whiteGlyphTint(bitmap: ImageBitmap): Color? {
-    if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) return null
-    val white = remember(bitmap) {
-        runCatching {
-            val b = bitmap.asAndroidBitmap()
-            IntArray(b.width * b.height).also { b.getPixels(it, 0, b.width, 0, 0, b.width, b.height) }
-        }.map(::isWhiteGlyph).getOrDefault(false)
-    }
-    return if (white) LocalContentColor.current else null
-}
-
-/** Whether [argb] pixels are a white glyph: every visible pixel close to white, with clear space around them. */
-internal fun isWhiteGlyph(argb: IntArray): Boolean {
-    var visible = 0
-    for (p in argb) {
-        if (p ushr 24 < 64) continue
-        visible++
-        if (minOf(p shr 16 and 0xff, p shr 8 and 0xff, p and 0xff) < 200) return false
-    }
-    // A glyph leaves much of its box clear; a white tile or photo fills it.
-    return visible > 0 && visible < argb.size * 0.85
-}

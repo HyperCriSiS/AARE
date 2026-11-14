@@ -145,9 +145,9 @@ class CarAppConnection(
         val bindIntent = Intent(CarAppInfo.SERVICE_ACTION).setComponent(info.service)
         // A second session of the same app, for the cluster display: the library tells them apart by SessionInfo.
         if (cluster) SessionInfoIntentEncoder.encode(SessionInfo(SessionInfo.DISPLAY_TYPE_CLUSTER, "aare-cluster"), bindIntent)
-        // The app may start its own activities on the phone while AARE is shown, as with Android Auto:
-        // CarContext.requestPermissions starts the app's permission activity itself, and without this
-        // flag Android blocks that background start, so the app's "grant" button does nothing.
+        // CarContext.requestPermissions makes the app start its own permission screen on the phone,
+        // from its service: a background activity start, which Android blocks. Since Android 14 the
+        // host's binding can allow it, as long as the host itself is in the foreground.
         val allowActivityStarts = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) Context.BIND_ALLOW_ACTIVITY_STARTS else 0
         val ok = runCatching {
             context.bindService(bindIntent, serviceConnection,

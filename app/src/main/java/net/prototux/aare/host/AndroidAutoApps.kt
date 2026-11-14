@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.provider.Telephony
 import androidx.core.graphics.drawable.toBitmap
 import net.prototux.aare.media.MediaDiscovery
+import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import org.xmlpull.v1.XmlPullParser
 
 /** An app that declares Android Auto support but that AARE doesn't show, and why. */
@@ -34,38 +35,6 @@ object AndroidAutoApps {
     private const val META_CAR_APPLICATION = "com.google.android.gms.car.application"
     private val MESSAGING_USES = setOf("notification", "sms")
 
-    /**
-     * Navigation apps that only Google's Android Auto can host, recognized even before they post
-     * guidance. Some declare `<uses name="notification"/>` (Google Maps does), which made them
-     * empty messaging apps in the car; they are listed with the apps AARE can't show instead.
-     */
-    val KNOWN_NAVIGATION = setOf(
-        "com.google.android.apps.maps",
-        "com.google.android.apps.mapslite", // Google Maps Go
-        "com.waze",
-        "com.here.app.maps",
-        "com.sygic.aura",
-        "com.tomtom.gplay.navapp",
-        "com.generalmagic.magicearth",
-        "com.mapfactor.navigator",
-        "cz.seznam.mapy", // Mapy.com
-        "com.huawei.maps.app", // Petal Maps, on phones without Google services
-        // China (#150)
-        "com.autonavi.minimap", // Amap (Gaode)
-        "com.autonavi.amapauto", // Amap Auto
-        "com.baidu.BaiduMap",
-        "com.tencent.map",
-        // Russia and neighbours
-        "ru.yandex.yandexnavi",
-        "ru.yandex.yandexmaps",
-        "ru.dublgis.dgismobile", // 2GIS
-        "com.navitel",
-        // South Korea
-        "com.nhn.android.nmap", // Naver Map
-        "net.daum.android.map", // KakaoMap
-        "com.locnall.KimGiSa", // Kakao Navi
-        "com.skt.tmap.ku", // TMAP
-    )
 
     /**
      * Messaging apps, as Android Auto finds them: apps declaring `<uses name="notification"/>`
@@ -75,7 +44,7 @@ object AndroidAutoApps {
         val pm = context.packageManager
         val sms = runCatching { Telephony.Sms.getDefaultSmsPackage(context) }.getOrNull()
         return declaring(context)
-            .filter { (app, uses) -> (uses.any { it in MESSAGING_USES } && app.packageName !in KNOWN_NAVIGATION) || app.packageName == sms }
+            .filter { (app, uses) -> isMessaging(app.packageName, uses) || app.packageName == sms }
             .map { (app, uses) ->
                 PhoneApp(app.packageName, app.loadLabel(pm).toString(), runCatching { app.loadIcon(pm).toBitmap(iconSizePx, iconSizePx) }.getOrNull(), "media" in uses)
             }
@@ -88,6 +57,15 @@ object AndroidAutoApps {
             }
             .sortedBy { it.label.lowercase() }
     }
+
+    /**
+     * Whether an app declaring these `<uses>` is a messaging app. Navigation apps can declare
+     * `notification` too, for their own alerts, but have no conversations: listed as messaging
+     * apps, they only ever showed an empty list. They are told apart by package, like on the
+     * phone screen.
+     */
+    internal fun isMessaging(packageName: String, uses: Set<String>): Boolean =
+        uses.any { it in MESSAGING_USES } && packageName !in KNOWN_NAVIGATION
 
     /**
      * The [messaging] apps that must not be listed as media apps: a media browser alone, like
@@ -113,7 +91,7 @@ object AndroidAutoApps {
         val pm = context.packageManager
         val shown = carApps.toSet() + mediaPackages(pm)
         return declaring(context)
-            .filter { (app, uses) -> app.packageName !in shown && (uses.none { it in MESSAGING_USES } || app.packageName in KNOWN_NAVIGATION) }
+            .filter { (app, uses) -> app.packageName !in shown && !isMessaging(app.packageName, uses) }
             .map { (app, uses) ->
                 UnsupportedCarApp(
                     packageName = app.packageName,

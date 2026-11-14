@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import net.prototux.aare.R
-import net.prototux.aare.host.AndroidAutoApps
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.media.Placeholder
 import net.prototux.aare.notify.CarNotificationListener
@@ -47,7 +46,7 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     val context = LocalContext.current
     val guidance by CarNotificationListener.guidance.collectAsState()
     val foreground by MirrorTouchService.foregroundApp.collectAsState()
-    val navApps = AndroidAutoApps.KNOWN_NAVIGATION + listOfNotNull(guidance?.packageName) + runtime.navigationPackages()
+    val navApps = KNOWN_NAVIGATION + listOfNotNull(guidance?.packageName) + runtime.navigationPackages()
     // Driving: only when the app in front is known to be a navigation app. An unknown one (no
     // accessibility service) could be anything, a video included, even while a route is guiding.
     val locked = rememberKeyguardLocked()
@@ -141,3 +140,36 @@ private fun replay(context: android.content.Context, viewW: Int, viewH: Int, poi
     else if (durationMs > 500) touch.swipe(listOf(mapped.first()), durationMs) // long press
     else touch.tap(mapped.first().first, mapped.first().second)
 }
+
+/**
+ * Navigation apps that can't be hosted, recognised even before they post guidance: while driving,
+ * the phone screen shows only these (or the app guiding). Many have no Android Auto support, or
+ * only Google's, so the phone screen is how they reach the car.
+ */
+internal val KNOWN_NAVIGATION = setOf(
+    "com.google.android.apps.maps",
+    "com.google.android.apps.mapslite", // Google Maps Go
+    "com.waze",
+    "com.here.app.maps",
+    "com.sygic.aura",
+    "com.tomtom.gplay.navapp",
+    "com.generalmagic.magicearth",
+    "com.mapfactor.navigator",
+    "cz.seznam.mapy", // Mapy.com
+    "com.huawei.maps.app", // Petal Maps, on phones without Google services
+    // China (#150)
+    "com.autonavi.minimap", // Amap (Gaode)
+    "com.autonavi.amapauto", // Amap Auto
+    "com.baidu.BaiduMap",
+    "com.tencent.map",
+    // Russia and neighbours
+    "ru.yandex.yandexnavi",
+    "ru.yandex.yandexmaps",
+    "ru.dublgis.dgismobile", // 2GIS
+    "com.navitel",
+    // South Korea
+    "com.nhn.android.nmap", // Naver Map
+    "net.daum.android.map", // KakaoMap
+    "com.locnall.KimGiSa", // Kakao Navi
+    "com.skt.tmap.ku", // TMAP
+)

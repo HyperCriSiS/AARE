@@ -911,7 +911,7 @@ class ProjectionService : Service() {
         fun probeUsb(context: Context) {
             if (_state.value.connected) return
             val usb = context.getSystemService(UsbManager::class.java) ?: return
-            val accessory = runCatching { usb.accessoryList }.getOrNull()?.firstOrNull(UsbAccessoryTransport::isAndroidAuto) ?: return
+            val accessory = runCatching { usb.accessoryList }.getOrNull()?.firstOrNull { UsbAccessoryTransport.isAndroidAuto(it) } ?: return
             startUsb(context, accessory)
         }
 

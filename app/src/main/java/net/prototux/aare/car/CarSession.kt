@@ -21,6 +21,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import android.location.Location
+import android.media.AudioManager
+import android.media.AudioRecordingConfiguration
 import android.media.projection.MediaProjection
 import android.os.Build
 import android.os.Handler
@@ -77,6 +79,9 @@ import net.prototux.aare.audio.ShizukuPolicySource
 import net.prototux.aare.audio.ShizukuSource
 import net.prototux.aare.audio.SuSource
 import net.prototux.aare.audio.MicRouter
+import net.prototux.aare.audio.MicTakeover
+import net.prototux.aare.audio.PhoneAppsMic
+import net.prototux.aare.audio.PhoneRecording
 import net.prototux.aare.R
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.media.MediaHub
@@ -342,25 +347,49 @@ class CarSession(
             startPlaybackStatus()
             phoneBridge = PhoneStatusBridge(context, aap, phoneStatus).also { it.start() }
             if (settings.callsOnPhoneSpeaker) callSpeaker = CallSpeaker(context).also { it.start() }
+            context.getSystemService(AudioManager::class.java)?.registerAudioRecordingCallback(recordings, main)
             if (settings.carMicForPhoneApps) mic?.let { m ->
                 val cfg = m.config
-                phoneAppsMic = CarMicForApps(context, micRouter, cfg?.samplingRate ?: 16_000, cfg?.numberOfChannels ?: 1, ::onPhoneAppRecording).also { it.start() }
+                phoneAppsMic = CarMicForApps(context, micRouter, cfg?.samplingRate ?: 16_000, cfg?.numberOfChannels ?: 1).also { it.start() }
             }
         }
     }
 
     /** Music or a video AARE paused because a phone app records: it plays on once the app is done. */
-    @Volatile private var pausedForRecording = false
-
-    /** A phone app (a voice message, an assistant) records: what plays would talk over it. */
-    private fun onPhoneAppRecording(recording: Boolean) {
-        if (recording) {
-            pausedForRecording = runtime.ui.nowPlaying?.playing == true
-            if (pausedForRecording) media.pause()
-        } else if (pausedForRecording) {
+    private var pausedForRecording = false
+    /** When a phone app records and when it is done, a moment's break (a recording moving to the car's mic) not counted. */
+    private val recordingPause = MicTakeover()
+    private val recordingDone = Runnable {
+        if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE && pausedForRecording) {
             pausedForRecording = false
             if (runtime.ui.nowPlaying?.playing != true) media.playPause()
         }
+        scheduleRecordingDone()
+    }
+
+    /**
+     * A phone app records (a voice message, an assistant listening): what plays would talk over it,
+     * so it pauses, and plays on once the app is done. Android tells every app about recordings,
+     * without their apps' names, so this needs no Shizuku and no setting.
+     */
+    private val recordings = object : AudioManager.AudioRecordingCallback() {
+        override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>) {
+            val recording = PhoneAppsMic.anyTakesOver(
+                configs.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
+                emptySet(),
+            )
+            if (recordingPause.onRecording(recording, SystemClock.uptimeMillis()) == MicTakeover.Action.OPEN) {
+                pausedForRecording = runtime.ui.nowPlaying?.playing == true
+                if (pausedForRecording) media.pause()
+            }
+            scheduleRecordingDone()
+        }
+    }
+
+    private fun scheduleRecordingDone() {
+        main.removeCallbacks(recordingDone)
+        val at = recordingPause.nextTick()
+        if (at >= 0) main.postAtTime(recordingDone, at)
     }
 
     override fun onAudioFocus(session: AapSession, notification: AudioFocusNotification) {
@@ -1005,6 +1034,8 @@ class CarSession(
         drivingMode.stop()
         cluster?.stop()
         phoneAppsMic?.stop(); phoneAppsMic = null
+        context.getSystemService(AudioManager::class.java)?.unregisterAudioRecordingCallback(recordings)
+        main.removeCallbacks(recordingDone)
         micRouter.shutdown()
         teardownVideo()
         runtime.stop()

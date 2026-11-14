@@ -19,15 +19,13 @@ import net.prototux.aare.DiagLog
  * The audio side runs as the shell in the Shizuku helper ([ShellAudioService], [ShellMicInjector]),
  * which also says when such an app records. This class opens the car's mic then (through
  * [router], which shares it with car apps), pipes its PCM to the helper, and closes it once they
- * stop ([MicTakeover]). [rate] and [channels] are the car mic's format. [onTakeover] hears when
- * the car's mic opens for them (true) and closes again (false).
+ * stop ([MicTakeover]). [rate] and [channels] are the car mic's format.
  */
 class CarMicForApps(
     private val context: Context,
     private val router: MicRouter,
     private val rate: Int,
     private val channels: Int,
-    private val onTakeover: (Boolean) -> Unit = {},
 ) {
     private val thread = HandlerThread("aare-apps-mic").apply { start() }
     // Everything below runs on this thread, binder calls to the helper included (not on main).
@@ -101,7 +99,6 @@ class CarMicForApps(
                 // Injecting before the car answers, so its first words reach the recording.
                 runCatching { s.setMicInjecting(true) }
                 if (router.openForPhoneApps(::enqueue) { ok -> handler.post { onCarAnswer(ok) } }) {
-                    onTakeover(true)
                     DiagLog.add("car mic for phone apps: a phone app records, opening the car's mic")
                 } else {
                     takeover.onRefused()
@@ -113,7 +110,6 @@ class CarMicForApps(
                 router.closeForPhoneApps()
                 runCatching { s.setMicInjecting(false) }
                 queue.clear()
-                onTakeover(false)
                 DiagLog.add("car mic for phone apps: no phone app records any more, closing the car's mic" +
                     if (dropped > 0) " ($dropped chunks dropped)" else "")
                 dropped = 0

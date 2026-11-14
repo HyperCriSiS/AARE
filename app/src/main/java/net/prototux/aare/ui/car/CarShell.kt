@@ -108,6 +108,7 @@ import net.prototux.aare.R
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.CarTheme
 import net.prototux.aare.ui.theme.LocalCarDimens
+import net.prototux.aare.ui.theme.LocalCarTheme
 
 /**
  * Root of the car screen: a rail on the driver's side and the content area.
@@ -126,8 +127,8 @@ fun CarShell(
     /** Insets the UI into the head unit's visible area (the codec frame minus its margins). */
     modifier: Modifier = Modifier,
 ) {
-    if (state.carPlayStyle) {
-        CarPlayShell(state, actions, appContent, navMap, overlay, modifier)
+    if (state.layout == CarLayout.DOCK) {
+        DockShell(state, actions, appContent, navMap, overlay, modifier)
         return
     }
     // A long press on a rail app asks which pane to open it in (see PaneChooser).
@@ -429,7 +430,7 @@ private fun RailButton(icon: ImageVector, label: String, selected: Boolean, pane
     val bg = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     val fg = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Box(
-        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(bg).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(pane, onClick),
+        Modifier.size(d.railButton).clip(MaterialTheme.shapes.medium).background(bg).carFocusHighlight(MaterialTheme.shapes.medium).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(icon, contentDescription = label, tint = fg, modifier = Modifier.size(d.railIcon))
@@ -445,10 +446,10 @@ private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean,
     }
     val ring = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(
-        Modifier.size(d.railButton).clip(RoundedCornerShape(20.dp)).background(ring).carFocusHighlight(RoundedCornerShape(20.dp)).railClick(pane, onClick),
+        Modifier.size(d.railButton).clip(MaterialTheme.shapes.medium).background(ring).carFocusHighlight(MaterialTheme.shapes.medium).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(CircleShape))
+        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(LocalCarTheme.current.appIcon))
     }
 }
 
@@ -654,8 +655,8 @@ private fun GuidanceCard(g: PhoneGuidance) {
 @Composable
 private fun AppChip(app: CarAppEntry, onClick: () -> Unit) {
     Row(
-        Modifier.height(64.dp).clip(RoundedCornerShape(32.dp)).background(MaterialTheme.colorScheme.secondaryContainer)
-            .carFocusHighlight(RoundedCornerShape(32.dp)).clickable(onClick = onClick).padding(start = 10.dp, end = 20.dp),
+        Modifier.height(64.dp).clip(MaterialTheme.shapes.extraLarge).background(MaterialTheme.colorScheme.secondaryContainer)
+            .carFocusHighlight(MaterialTheme.shapes.extraLarge).clickable(onClick = onClick).padding(start = 10.dp, end = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(app, 44)
@@ -668,9 +669,9 @@ private fun AppChip(app: CarAppEntry, onClick: () -> Unit) {
 fun AppIcon(app: CarAppEntry, sizeDp: Int) {
     Box(contentAlignment = Alignment.BottomEnd) {
         if (app.icon != null) {
-            Image(app.icon.asImageBitmap(), app.label, Modifier.size(sizeDp.dp).clip(CircleShape))
+            Image(app.icon.asImageBitmap(), app.label, Modifier.size(sizeDp.dp).clip(LocalCarTheme.current.appIcon))
         } else {
-            Box(Modifier.size(sizeDp.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(sizeDp.dp).clip(LocalCarTheme.current.appIcon).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
                 Text(app.label.take(1), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
         }
@@ -769,7 +770,7 @@ private fun CoverArt(np: NowPlaying?, media: CarAppEntry?, modifier: Modifier) {
 
 @Composable
 private fun Art(np: NowPlaying?, sizeDp: Int) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = MaterialTheme.shapes.small
     if (np?.art != null) {
         Image(np.art.asImageBitmap(), null, Modifier.size(sizeDp.dp).clip(shape), contentScale = ContentScale.Crop)
     } else {
@@ -814,7 +815,7 @@ private fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier)
             // Like the rail: held offers the panes, a sideways swipe opens it in one.
             val pane = RailPane({ center -> menus.choosePane(app, center, true) }, { left -> actions.openInPane(app, left) })
             Column(
-                Modifier.clip(RoundedCornerShape(24.dp)).railClick(pane) { actions.openApp(app) }.padding(12.dp),
+                Modifier.clip(MaterialTheme.shapes.medium).railClick(pane) { actions.openApp(app) }.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AppIcon(app, 80)
@@ -835,7 +836,7 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
         actions.dismissNotice(notice)
     }
     Row(
-        modifier.padding(16.dp).fillMaxWidth(0.6f).clip(RoundedCornerShape(28.dp))
+        modifier.padding(16.dp).fillMaxWidth(0.6f).clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -852,7 +853,7 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
         }
         notice.actions.forEach { (label, run) ->
             Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { run(); actions.dismissNotice(notice) }.padding(16.dp))
+                modifier = Modifier.clip(MaterialTheme.shapes.medium).clickable { run(); actions.dismissNotice(notice) }.padding(16.dp))
         }
         RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_dismiss), filled = false) { actions.dismissNotice(notice) }
     }

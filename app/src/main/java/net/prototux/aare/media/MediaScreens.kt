@@ -1,5 +1,6 @@
 package net.prototux.aare.media
 
+import net.prototux.aare.mirror.LocalPhoneVideo
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
@@ -69,8 +70,26 @@ import net.prototux.aare.ui.theme.LocalCarDimens
 @Composable
 internal fun MediaAppScreen(hub: DefaultMediaHub, app: MediaApp, driving: Boolean, modifier: Modifier) {
     LaunchedEffect(app.service) { hub.select(app) }
+    val video = LocalPhoneVideo.current
     val current by hub.connection.collectAsState()
     val connection = current?.takeIf { it.app.service == app.service }
+    if (video?.shown == true) {
+        // The app itself, its own controls included, in all of this screen: no top bar, nothing
+        // else, so a video gets all the room left of the rail. Its own buttons go back to the cover;
+        // ours play, pause and skip like a video player's, also when the app's are hidden.
+        video.content(modifier, connection?.sessionActivity) {
+            connection?.let { c ->
+                val state by c.state.collectAsState()
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    state.info?.let { Progress(it, state.canSeek, c::seekTo) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Transport(c, state, playSize = LocalCarDimens.current.touchTarget)
+                    }
+                }
+            }
+        }
+        return
+    }
     if (connection == null) {
         Placeholder(stringResource(R.string.media_connecting_to, app.label), loading = true, modifier = modifier.background(MaterialTheme.colorScheme.background))
         return

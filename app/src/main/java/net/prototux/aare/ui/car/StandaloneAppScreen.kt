@@ -30,6 +30,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import net.prototux.aare.R
 import net.prototux.aare.Settings
 import net.prototux.aare.host.CarRuntime
@@ -69,14 +74,18 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
     Box(modifier.background(Color.Black)) {
         if (!driving) {
             HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
-            // A quiet reminder that this isn't an Android Auto app.
-            Text(
-                stringResource(R.string.standalone_not_native),
-                style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.35f)).padding(horizontal = 12.dp, vertical = 3.dp),
-            )
+            // A quiet reminder that this isn't an Android Auto app, for a few seconds once it shows: left
+            // there it read as a block, in passenger mode too.
+            var hint by remember(packageName) { mutableStateOf(true) }
+            LaunchedEffect(packageName) { delay(HINT_MS); hint = false }
+            AnimatedVisibility(hint, Modifier.align(Alignment.TopCenter).fillMaxWidth(), enter = fadeIn(), exit = fadeOut()) {
+                Text(
+                    stringResource(R.string.standalone_not_native),
+                    style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().background(Color.Black.copy(alpha = 0.35f)).padding(horizontal = 12.dp, vertical = 3.dp),
+                )
+            }
             if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
         } else {
             Placeholder(stringResource(R.string.standalone_paused_driving), loading = false, icon = Icons.Rounded.PauseCircle)
@@ -143,3 +152,6 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
 
 /** The density for a [w]×[h] pixel display to be at least 600 dp each way, no higher than [dpi] and no lower than the helper's floor of 120. */
 internal fun hostedDpi(w: Int, h: Int, dpi: Int): Int = minOf(dpi, minOf(w, h) * 160 / 600).coerceAtLeast(120)
+
+/** How long the not-an-Android-Auto-app hint shows over a hosted app. */
+private const val HINT_MS = 4_000L

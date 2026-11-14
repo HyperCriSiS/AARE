@@ -76,13 +76,47 @@ Alright, have a good trip!
 
 ## MacroDroid macro
 
-- **Trigger:** *Screen Content*, only in the assistant app (for example Claude), text contains
-  any of the emojis above (one trigger per emoji, or a regular expression).
-- **Action:** *UI Interaction → Click* on the same text (the emoji).
+Assistant apps draw their links as text without a clickable node, so an accessibility click on the
+emoji does nothing: the macro taps it for real, through Shizuku.
+
+- **Trigger:** *Screen Content*, only in the assistant app (for example Claude), text matches the
+  regular expression `^(🧭|▶|⏸|⏭|⏮|📱|🌓|ℹ|📨)\x{FE0F}?$`.
+- **Action:** *Shell Script*, with *Shizuku*: `sh /sdcard/Download/aare-tap.sh`.
 - **Constraint (optional):** only while the phone is connected to the car.
 
-MacroDroid needs its accessibility service for both. The tap comes from inside the assistant app,
-so Android reports the assistant as the link's sender, which AARE requires.
+`/sdcard/Download/aare-tap.sh` finds the newest link emoji on the screen, taps it, and then taps
+*Open* in the assistant's "Open this website?" prompt. It remembers the answer it tapped, so
+reopening an old chat doesn't run its link again:
+
+```sh
+# Taps the newest AARE car link emoji in the assistant's reply, then "Open" in the app's link prompt.
+# Remembers the reply it tapped, so reopening an old chat doesn't run its link again.
+dir=/sdcard/Download
+links='&#129517;|▶️?|⏸️?|⏭️?|⏮️?|&#128241;|&#127763;|ℹ️?|&#128232;'
+dump() { uiautomator dump $dir/aare-ui.xml >/dev/null 2>&1; }
+# Taps the last node whose text matches $1; fails when there is none.
+tap() {
+  b=$(grep -oE "text=\"($1)\"[^>]*bounds=\"\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]\"" $dir/aare-ui.xml | tail -n 1 | grep -oE '[0-9]+' | tail -n 4 | tr '\n' ' ')
+  set -- $b
+  [ -n "$4" ] && input tap $(( ($1 + $3) / 2 )) $(( ($2 + $4) / 2 ))
+}
+dump
+# The reply text right before the newest link, with the link: what identifies this answer.
+key=$(grep -oE 'text="[^"]+"' $dir/aare-ui.xml | grep -B1 -E "text=\"($links)\"" | tail -n 2 | tr '\n' ' ')
+[ -z "$key" ] && exit 1
+[ "$key" = "$(cat $dir/aare-last.txt 2>/dev/null)" ] && exit 0
+echo "$key" > $dir/aare-last.txt
+tap "$links" || exit 1
+for i in 1 2 3 4 5 6 7 8 9 10; do
+  sleep 0.5
+  dump
+  tap 'Öffnen|Open' && exit 0
+done
+exit 1
+```
+
+The tap comes from inside the assistant app, so Android reports the assistant as the link's
+sender, which AARE requires.
 
 ## Not tested yet
 

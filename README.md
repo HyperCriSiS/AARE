@@ -403,6 +403,12 @@ Lapin adds them to its own device tools when it runs on AARE, so you can say "ta
 nearest charger", "what's the next turn?", "read my messages" or "reply to Alex that I'm 10
 minutes late".
 
+**Car links.** Assistants that can only write text, such as the Claude or ChatGPT app, reach
+these tools through links like
+`https://aare.internal/go/car_navigate?destination=Berlin`. With the assistant told
+to put them behind an emoji and a MacroDroid macro tapping that emoji, they run without a touch.
+See [Car links](docs/assistant-links.md).
+
 ### Car audio
 
 AARE uses the best way to send the phone's sound to the car that the phone allows:

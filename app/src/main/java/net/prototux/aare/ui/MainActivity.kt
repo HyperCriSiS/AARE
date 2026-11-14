@@ -909,6 +909,7 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
     var addingShortcuts by mutableStateOf(false)
     val drag = RowDrag()
     var standalone by mutableStateOf(settings.standaloneApps)
+    var keepAwake by mutableStateOf(settings.standaloneKeepScreenAwake)
     var allowed by mutableStateOf(settings.standaloneAppPackages)
     var launchable by mutableStateOf<List<LauncherEntry>?>(null)
     val launcherAvailable = AppLauncher.available(ctx)
@@ -1259,6 +1260,11 @@ private fun LazyListScope.standaloneApps(p: AppsPage) {
         if (p.standalone && !p.launcherAvailable) {
             Text(stringResource(R.string.standalone_need_root), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+        }
+        if (p.standalone) {
+            Toggle(stringResource(R.string.standalone_keep_awake_title), stringResource(R.string.standalone_keep_awake_subtitle), p.keepAwake) {
+                p.keepAwake = it; p.settings.standaloneKeepScreenAwake = it
+            }
         }
     }, rows = rows)
 }

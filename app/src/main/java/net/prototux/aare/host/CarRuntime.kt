@@ -712,6 +712,7 @@ class CarRuntime(
         val entry = ui.apps.firstOrNull { it.packageName == pkg && it.kind != CarAppKind.MEDIA && it.kind != CarAppKind.NAVIGATION }
         // A phone app (Claude, ChatGPT…) hosted on the car screen: shown there, touched there, heard in the car.
         if (entry?.kind == CarAppKind.STANDALONE) {
+            ui.assistantVoice = pkg
             actions.openApp(entry)
             return
         }

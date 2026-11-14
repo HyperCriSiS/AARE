@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.app.PendingIntent
+import android.content.pm.LauncherApps
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -253,6 +254,26 @@ class LaunchHostService : ILaunchHost.Stub {
         }.onFailure { Log.w(TAG, "openPending on display $id failed: ${it.message}") }.getOrDefault(false)
     }
 
+    override fun openShortcut(packageName: String, keyword: String): Boolean {
+        val id = displayId
+        if (id < 0) return false
+        // As the shell, which may start other apps' shortcuts like a launcher (ACCESS_SHORTCUTS).
+        val ctx = callerContext() ?: return false
+        return runCatching {
+            val apps = ctx.getSystemService(LauncherApps::class.java)
+            val user = android.os.Process.myUserHandle()
+            val query = LauncherApps.ShortcutQuery().setPackage(packageName)
+                .setQueryFlags(LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST)
+            val shortcut = shortcutFor(apps.getShortcuts(query, user).orEmpty().map { it.id }, keyword)
+            if (shortcut == null) {
+                Log.w(TAG, "no '$keyword' shortcut in $packageName")
+                return false
+            }
+            apps.startShortcut(packageName, shortcut, null, ActivityOptions.makeBasic().setLaunchDisplayId(id).toBundle(), user)
+            true
+        }.onFailure { Log.w(TAG, "openShortcut($packageName) on display $id failed: ${it.message}") }.getOrDefault(false)
+    }
+
     /** Launch [pkg]'s main activity onto [onDisplay]. */
     @SuppressLint("QueryPermissionsNeeded")
     private fun launch(ctx: Context, pkg: String, onDisplay: Int): Boolean {
@@ -354,3 +375,6 @@ class LaunchHostService : ILaunchHost.Stub {
         const val MIN_DPI = 120
     }
 }
+
+/** The id among an app's shortcut [ids] that contains [keyword], whatever its case; null when none does. */
+internal fun shortcutFor(ids: List<String>, keyword: String): String? = ids.firstOrNull { it.contains(keyword, ignoreCase = true) }

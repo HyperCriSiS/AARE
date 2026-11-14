@@ -94,6 +94,10 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     fun openPending(intent: PendingIntent): Boolean =
         runCatching { host?.openPending(intent) ?: false }.onFailure { Log.w(TAG, "openPending", it) }.getOrDefault(false)
 
+    /** Start [pkg]'s shortcut whose id contains [keyword] on the display [start] made; false if it can't. */
+    fun openShortcut(pkg: String, keyword: String): Boolean =
+        runCatching { host?.openShortcut(pkg, keyword) ?: false }.onFailure { Log.w(TAG, "openShortcut", it) }.getOrDefault(false)
+
     /** Create the display into [surface] and launch [pkg] on it. Returns the display id, or -1. */
     fun start(surface: Surface, width: Int, height: Int, dpi: Int, pkg: String, keepDisplayAwake: Boolean): Int =
         runCatching { host?.start(surface, width, height, dpi, pkg, keepDisplayAwake) ?: -1 }

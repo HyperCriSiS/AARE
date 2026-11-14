@@ -34,6 +34,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import net.prototux.aare.R
 import net.prototux.aare.Settings
@@ -74,6 +76,13 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
     Box(modifier.background(Color.Black)) {
         if (!driving) {
             HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+            // The voice button: the assistant opens straight into its voice mode, where it has one.
+            LaunchedEffect(started, runtime.ui.assistantVoice) {
+                if (started && runtime.ui.assistantVoice == packageName) {
+                    runtime.ui.assistantVoice = null
+                    withContext(Dispatchers.IO) { launcher.openShortcut(packageName, VOICE_SHORTCUT) }
+                }
+            }
             // A quiet reminder that this isn't an Android Auto app, for a few seconds once it shows: left
             // there it read as a block, in passenger mode too.
             var hint by remember(packageName) { mutableStateOf(true) }
@@ -155,3 +164,6 @@ internal fun hostedDpi(w: Int, h: Int, dpi: Int): Int = minOf(dpi, minOf(w, h) *
 
 /** How long the not-an-Android-Auto-app hint shows over a hosted app. */
 private const val HINT_MS = 4_000L
+
+/** What an assistant's voice-mode shortcut has in its id (Claude: quick_action_voice). */
+private const val VOICE_SHORTCUT = "voice"

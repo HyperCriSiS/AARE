@@ -36,6 +36,9 @@ interface ILaunchHost {
     /** Start [intent] (an app's own activity, say its player) on the display made by [start]. False if it can't. */
     boolean openPending(in PendingIntent intent) = 8;
 
+    /** Start [packageName]'s app shortcut whose id contains [keyword] (its voice mode, say) on that display. False if it can't. */
+    boolean openShortcut(String packageName, String keyword) = 9;
+
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;
 }

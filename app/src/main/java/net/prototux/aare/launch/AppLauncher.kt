@@ -126,6 +126,9 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     companion object {
         private const val TAG = "AareAppLauncher"
 
+        /** In place of a package for [start]: the phone's own desktop, its home screen and any app, at the car screen's size. */
+        const val PHONE_DESKTOP = ":desktop"
+
         /** A process name suffix for the helper of [key]: letters, digits and underscores only. */
         internal fun helperName(key: String) = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")
         /** Whether a privileged backend (Shizuku or allowed root) is available to run the launcher. */

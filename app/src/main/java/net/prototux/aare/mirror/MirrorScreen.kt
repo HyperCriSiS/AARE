@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import net.prototux.aare.R
+import net.prototux.aare.launch.AppLauncher
+import net.prototux.aare.ui.car.HostedAppSurface
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.media.Placeholder
 import net.prototux.aare.notify.CarNotificationListener
@@ -44,12 +46,19 @@ import net.prototux.aare.service.ProjectionService
 @Composable
 internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modifier) {
     val context = LocalContext.current
+    val locked = rememberKeyguardLocked()
+    // Parked with Shizuku or root: the phone itself at the car screen's size, touched live, instead of its
+    // mirror. Not while the phone is locked: its display would let anyone in the car use it.
+    if (!driving && remember { AppLauncher.available(context) }) {
+        if (locked) Placeholder(stringResource(R.string.mirror_locked_placeholder), loading = false, icon = Icons.Rounded.Lock, modifier = modifier.background(Color.Black))
+        else PhoneDesktop(runtime, modifier)
+        return
+    }
     val guidance by CarNotificationListener.guidance.collectAsState()
     val foreground by MirrorTouchService.foregroundApp.collectAsState()
     val navApps = KNOWN_NAVIGATION + listOfNotNull(guidance?.packageName) + runtime.navigationPackages()
     // Driving: only when the app in front is known to be a navigation app. An unknown one (no
     // accessibility service) could be anything, a video included, even while a route is guiding.
-    val locked = rememberKeyguardLocked()
     val allowed = !locked && (!driving || (foreground != null && foreground in navApps))
     var mirroring by remember { mutableStateOf(true) }
     // The screen-capture consent. Car audio through Shizuku, root or an audio policy never asks
@@ -100,6 +109,35 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
             MirrorTouchService.instance == null -> Placeholder(stringResource(R.string.mirror_need_accessibility),
                 loading = false, icon = Icons.Rounded.TouchApp, modifier = Modifier.fillMaxSize())
         }
+    }
+}
+
+/**
+ * The phone's own desktop on a display of the car screen's size: its home screen, navigation bar
+ * and any app opened from there, landscape and full size, with the car's touches going straight to
+ * it as they happen. The phone's screen keeps showing what it showed.
+ */
+@Composable
+private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
+    val context = LocalContext.current
+    val launcher = remember { AppLauncher(context, "desktop") }
+    var started by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) {
+        val back: () -> Boolean = {
+            val t = android.os.SystemClock.uptimeMillis()
+            launcher.key(t, android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_BACK)
+            launcher.key(t, android.view.KeyEvent.ACTION_UP, android.view.KeyEvent.KEYCODE_BACK)
+            launcher.connected
+        }
+        runtime.setScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
+        onDispose {
+            runtime.clearScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
+            launcher.release()
+        }
+    }
+    Box(modifier.background(Color.Black)) {
+        HostedAppSurface(launcher, AppLauncher.PHONE_DESKTOP, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+        if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
     }
 }
 

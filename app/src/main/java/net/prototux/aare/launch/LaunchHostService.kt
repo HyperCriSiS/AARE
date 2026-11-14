@@ -63,11 +63,14 @@ class LaunchHostService : ILaunchHost.Stub {
         stop()
         approveCarLinks()
         val ctx = callerContext() ?: return -1
-        val vd = createDisplay(ctx, surface, width, height, dpi) ?: return -1
+        val desktop = packageName == AppLauncher.PHONE_DESKTOP
+        val vd = createDisplay(ctx, surface, width, height, dpi, desktop) ?: return -1
         display = vd
         displayId = vd.display.displayId
         keyboardOn(displayId)
         if (keepDisplayAwake) enableKeepAwakeFallback(ctx, displayId)
+        // The phone's own desktop: Android puts its home screen and navigation bar there by itself.
+        if (desktop) return displayId
         if (!launch(ctx, packageName, displayId)) {
             // Left empty the display would only stay black: say it failed instead.
             Log.w(TAG, "created display ${displayId} but could not launch $packageName on it")
@@ -209,13 +212,13 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     /** Build the virtual display. Trusted + its own display group lets an arbitrary app run and focus on it. */
-    private fun createDisplay(ctx: Context, surface: Surface, w: Int, h: Int, dpi: Int): VirtualDisplay? {
+    private fun createDisplay(ctx: Context, surface: Surface, w: Int, h: Int, dpi: Int, desktop: Boolean = false): VirtualDisplay? {
         val dm = ctx.getSystemService(DisplayManager::class.java) ?: return null
         // Preferred flags for hosting a foreign app interactively; fall back to the plain public ones
         // if the framework rejects the hidden bits for this uid/version.
         // Only its own content: a public display without it mirrors the phone's screen while empty,
         // and Android then also puts it in the phone's display group.
-        val full = FULL_FLAGS or (if (Build.VERSION.SDK_INT >= 34) FLAG_OWN_FOCUS else 0)
+        val full = FULL_FLAGS or (if (Build.VERSION.SDK_INT >= 34) FLAG_OWN_FOCUS else 0) or (if (desktop) FLAG_SYSTEM_DECORATIONS else 0)
         for (flags in intArrayOf(full, FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY)) {
             val vd = runCatching { dm.createVirtualDisplay("AARE app", w, h, dpi.coerceAtLeast(MIN_DPI), surface, flags) }
                 .onFailure { Log.w(TAG, "createVirtualDisplay(flags=$flags) failed: ${it.message}") }
@@ -365,6 +368,7 @@ class LaunchHostService : ILaunchHost.Stub {
         const val FLAG_PUBLIC = 1 shl 0
         const val FLAG_PRESENTATION = 1 shl 1
         const val FLAG_AUTO_MIRROR = 1 shl 4
+        const val FLAG_SYSTEM_DECORATIONS = 1 shl 9 // hidden: a home screen and navigation bar of its own
         const val FLAG_TRUSTED = 1 shl 10 // hidden, API 29+
         const val FLAG_OWN_DISPLAY_GROUP = 1 shl 11 // hidden, API 31+
         const val FLAG_ALWAYS_UNLOCKED = 1 shl 12 // hidden, API 30+

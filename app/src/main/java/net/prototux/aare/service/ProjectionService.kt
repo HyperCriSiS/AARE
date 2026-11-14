@@ -48,6 +48,7 @@ import net.prototux.aare.car.CarSession
 import net.prototux.aare.car.DrivingMode
 import net.prototux.aare.cert.CertificateDownload
 import net.prototux.aare.cert.CertificateStore
+import net.prototux.aare.cert.CertificateUpdates
 import net.prototux.aare.media.MediaHub
 import net.prototux.aare.transport.LocalSocketTransport
 import net.prototux.aare.transport.TcpServer
@@ -434,6 +435,8 @@ class ProjectionService : Service() {
                 // A new refusal replaces it; a session that got past the handshake means it is settled.
                 pendingTrust = pinRefusal ?: it.pendingTrust.takeIf { session.headUnitName.isEmpty() }) }
             updateNotification(getString(R.string.notif_status_not_connected))
+            // After a drive is when a phone without the app open learns its certificate is about to expire.
+            CertificateUpdates.refresh(this@ProjectionService)
             // A USB link that dropped while still plugged in usually comes back: retry a few times.
             // Not a refused certificate: it would be refused again until the user trusts it.
             // The budget counts drops in a row, not per plug-in: a head unit that drops each link at once is not retried forever.
@@ -649,6 +652,7 @@ class ProjectionService : Service() {
                     // Offer the downloaded certificate first on the next connection.
                     settings.certificateIndex = certs.indexOf(entry.name)
                     certDownloadPrompted = false
+                    CertificateUpdates.refresh(this@ProjectionService)
                     val address = lastWirelessAddress
                     if (lastSessionWireless && address != null && session == null) {
                         // Wireless can reconnect itself over the still-bonded Bluetooth link.
@@ -701,7 +705,7 @@ class ProjectionService : Service() {
 
     companion object {
         private const val TAG = "AareService"
-        private const val CHANNEL = "connection"
+        internal const val CHANNEL = "connection"
         private const val NOTIFICATION_ID = 1
         // 2 = wireless re-connect, 3 = trust prompt (TrustReceiver); 4 = certificate download prompt.
         private const val CERT_DOWNLOAD_NOTIFICATION_ID = 4

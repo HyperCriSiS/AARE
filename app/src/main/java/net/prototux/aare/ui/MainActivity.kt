@@ -958,6 +958,8 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
     var rail by mutableStateOf(settings.railApps)
     var shortcuts by mutableStateOf(settings.shortcutApps)
     var hidePinned by mutableStateOf(settings.launcherHidesPinned)
+    var paneSwipe by mutableStateOf(settings.paneSwipe)
+    var paneMenu by mutableStateOf(settings.paneMenu)
     var addingRail by mutableStateOf(false)
     var addingShortcuts by mutableStateOf(false)
     val drag = RowDrag()
@@ -1091,6 +1093,14 @@ private fun LazyListScope.appsPage(p: AppsPage) {
         pickList("shortcuts", R.string.setup_section_shortcuts, R.string.setup_shortcuts_hint, entries, p.shortcuts, p.drag, p.addingShortcuts, { p.addingShortcuts = it }) {
             p.shortcuts = it; p.settings.shortcutApps = it
         }
+        card("gestures", R.string.setup_section_pane_gestures, intro = {
+            Toggle(stringResource(R.string.setup_toggle_pane_swipe_title), stringResource(R.string.setup_toggle_pane_swipe_subtitle), p.paneSwipe) {
+                p.paneSwipe = it; p.settings.paneSwipe = it
+            }
+            Toggle(stringResource(R.string.setup_toggle_pane_menu_title), stringResource(R.string.setup_toggle_pane_menu_subtitle), p.paneMenu) {
+                p.paneMenu = it; p.settings.paneMenu = it
+            }
+        })
         card("filter", R.string.setup_section_app_list_filter, intro = {
             Toggle(stringResource(R.string.setup_toggle_hide_pinned_title), stringResource(R.string.setup_toggle_hide_pinned_subtitle), p.hidePinned) {
                 p.hidePinned = it; p.settings.launcherHidesPinned = it

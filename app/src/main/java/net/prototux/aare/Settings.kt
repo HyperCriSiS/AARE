@@ -332,6 +332,16 @@ class Settings(context: Context) {
         get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
 
+    /** A sideways swipe on an app in the car's rail or launcher opens it in the pane on that side. */
+    var paneSwipe: Boolean
+        get() = prefs.getBoolean("pane_swipe", true)
+        set(v) = prefs.edit { putBoolean("pane_swipe", v) }
+
+    /** A long press on an app in the car's rail or launcher offers the two panes for it. */
+    var paneMenu: Boolean
+        get() = prefs.getBoolean("pane_menu", true)
+        set(v) = prefs.edit { putBoolean("pane_menu", v) }
+
     /** The car's launcher leaves out the apps in [railApps] and [shortcutApps]. */
     var launcherHidesPinned: Boolean
         get() = prefs.getBoolean("launcher_hides_pinned", false)

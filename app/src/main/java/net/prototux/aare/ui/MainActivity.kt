@@ -954,9 +954,11 @@ private fun rememberAppsPage(settings: Settings): AppsPage {
             // One row per app: the rows are keyed by package, and a duplicate key would crash the page.
             val car = CarAppCatalog.query(ctx).distinctBy { it.packageName }
             val carPkgs = car.mapTo(HashSet()) { it.packageName }
-            val media = AndroidAutoApps.mediaApps(ctx).filter { it.packageName !in carPkgs }
+            val messaging = AndroidAutoApps.messagingApps(ctx)
+            val messagingOnly = AndroidAutoApps.messagingOnly(messaging)
+            val media = AndroidAutoApps.mediaApps(ctx).filter { it.packageName !in carPkgs && it.packageName !in messagingOnly }
             val shown = carPkgs + media.map { it.packageName }
-            LauncherLists(car, media, AndroidAutoApps.messagingApps(ctx).filter { it.packageName !in shown })
+            LauncherLists(car, media, messaging.filter { it.packageName !in shown })
         }
         page.lists = l
         page.unsupported = withContext(Dispatchers.IO) { AndroidAutoApps.unsupported(ctx, l.carApps.map { it.packageName }) }

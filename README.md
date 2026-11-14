@@ -373,7 +373,7 @@ minutes late".
 
 **Car links.** Assistants that can only write text, such as the Claude or ChatGPT app, reach
 these tools through links like
-`https://hypercrisis.github.io/AARE/go/car_navigate?destination=Berlin`. With the assistant told
+`https://aare.internal/go/car_navigate?destination=Berlin`. With the assistant told
 to put them behind an emoji and a MacroDroid macro tapping that emoji, they run without a touch.
 See [Car links](docs/assistant-links.md).
 

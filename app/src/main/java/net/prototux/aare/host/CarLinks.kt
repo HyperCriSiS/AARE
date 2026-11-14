@@ -2,14 +2,14 @@ package net.prototux.aare.host
 
 /**
  * Links that act on the car, for assistants that can only write text (Claude, ChatGPT): the reply
- * puts `https://hypercrisis.github.io/AARE/go/car_navigate?destination=Berlin` behind an emoji,
+ * puts `https://aare.internal/go/car_navigate?destination=Berlin` behind an emoji,
  * the voice reading it aloud skips the address, and a tap on the emoji hands it to AARE
  * (CarLinkActivity), which runs the car tool of the same name. The assistant never sees the
  * result, so AARE speaks what the driver asked to hear (messages, status) or a failure itself.
  */
 object CarLinks {
-    const val HOST = "hypercrisis.github.io"
-    const val PATH = "/AARE/go/"
+    const val HOST = "aare.internal"
+    const val PATH = "/go/"
 
     /**
      * The tool a link to [host] and [path] asks for, with its [query] as arguments, or null for

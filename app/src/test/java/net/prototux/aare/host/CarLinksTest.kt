@@ -16,16 +16,16 @@ class CarLinksTest {
     @Test
     fun aLinkNamesTheToolAndItsArguments() {
         val args = mapOf("destination" to "Berlin")
-        assertEquals("car_navigate" to args, parse("/AARE/go/car_navigate", args))
-        assertEquals("car_media" to mapOf("action" to "next"), parse("/AARE/go/car_media/", mapOf("action" to "next")))
+        assertEquals("car_navigate" to args, parse("/go/car_navigate", args))
+        assertEquals("car_media" to mapOf("action" to "next"), parse("/go/car_media/", mapOf("action" to "next")))
     }
 
     @Test
     fun everyCarToolIsALink() {
-        assertEquals("car_reply" to mapOf("conversation" to "Max", "message" to "hi"), parse("/AARE/go/car_reply", mapOf("conversation" to "Max", "message" to "hi")))
-        assertEquals("car_messages" to emptyMap<String, String>(), parse("/AARE/go/car_messages"))
-        assertNull(parse("/AARE/go/status"))
-        assertNull(parse("/AARE/go/car_x/car_media"))
+        assertEquals("car_reply" to mapOf("conversation" to "Max", "message" to "hi"), parse("/go/car_reply", mapOf("conversation" to "Max", "message" to "hi")))
+        assertEquals("car_messages" to emptyMap<String, String>(), parse("/go/car_messages"))
+        assertNull(parse("/go/status"))
+        assertNull(parse("/go/car_x/car_media"))
     }
 
     @Test
@@ -38,17 +38,17 @@ class CarLinksTest {
 
     @Test
     fun onlyTheAssistantMaySendOne() {
-        assertNull(parse("/AARE/go/car_media", mapOf("action" to "next"), caller = "com.android.chrome"))
-        assertNull(parse("/AARE/go/car_media", mapOf("action" to "next"), caller = null))
-        assertNull(CarLinks.parse(CarLinks.HOST, "/AARE/go/car_media", emptyMap(), null, null))
+        assertNull(parse("/go/car_media", mapOf("action" to "next"), caller = "com.android.chrome"))
+        assertNull(parse("/go/car_media", mapOf("action" to "next"), caller = null))
+        assertNull(CarLinks.parse(CarLinks.HOST, "/go/car_media", emptyMap(), null, null))
     }
 
     @Test
     fun otherAddressesAreNotLinks() {
         assertNull(parse("/AARE/"))
-        assertNull(parse("/AARE/go/"))
+        assertNull(parse("/go/"))
         assertNull(parse("/other/go/car_media", mapOf("action" to "next")))
-        assertNull(parse("/AARE/go/car_media", mapOf("action" to "next"), host = "example.com"))
-        assertNull(parse("/AARE/go/x/../car_media", mapOf("action" to "next")))
+        assertNull(parse("/go/car_media", mapOf("action" to "next"), host = "example.com"))
+        assertNull(parse("/go/x/../car_media", mapOf("action" to "next")))
     }
 }

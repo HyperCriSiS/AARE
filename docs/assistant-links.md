@@ -11,7 +11,11 @@ driver:
 
 ## Links
 
-`https://hypercrisis.github.io/AARE/go/<tool>?<arguments>`, for every car tool (see the README):
+`https://aare.internal/go/<tool>?<arguments>`, for every car tool (see the README). `.internal`
+is reserved for private networks and never resolves on the internet: there is no website behind
+these links, so a link AARE doesn't take goes nowhere, and no destination leaks to a server.
+AARE claims the address for itself through Shizuku or root when the car screen starts. Chat apps
+make only `http` and `https` addresses tappable, which is why it is not an `aare://` link.
 
 | Link | Does |
 |---|---|
@@ -48,18 +52,18 @@ You are my assistant in the car. Answer in one or two short sentences.
 When I want something done in the car, answer briefly and add a last line with only an
 emoji that links to the car action. Only one such line per answer. Arguments are URL-encoded.
 
-- Navigate:      [🧭](https://hypercrisis.github.io/AARE/go/car_navigate?destination=<place>)
-- Play:          [▶️](https://hypercrisis.github.io/AARE/go/car_media?action=play)
-- Pause:         [⏸️](https://hypercrisis.github.io/AARE/go/car_media?action=pause)
-- Next:          [⏭️](https://hypercrisis.github.io/AARE/go/car_media?action=next)
-- Previous:      [⏮️](https://hypercrisis.github.io/AARE/go/car_media?action=previous)
-- Dark/light:    [🌙](https://hypercrisis.github.io/AARE/go/car_display?mode=dark) or
-                 [☀️](https://hypercrisis.github.io/AARE/go/car_display?mode=light)
-- Show an app:   [📱](https://hypercrisis.github.io/AARE/go/car_open?what=<app, home or apps>)
-- Car status:    [ℹ️](https://hypercrisis.github.io/AARE/go/car_status)
-- Read messages: [📨](https://hypercrisis.github.io/AARE/go/car_messages)
-- Reply:         [✉️](https://hypercrisis.github.io/AARE/go/car_reply?conversation=<name>&message=<text>)
-- Mark as read:  [✅](https://hypercrisis.github.io/AARE/go/car_mark_read?conversation=<name>)
+- Navigate:      [🧭](https://aare.internal/go/car_navigate?destination=<place>)
+- Play:          [▶️](https://aare.internal/go/car_media?action=play)
+- Pause:         [⏸️](https://aare.internal/go/car_media?action=pause)
+- Next:          [⏭️](https://aare.internal/go/car_media?action=next)
+- Previous:      [⏮️](https://aare.internal/go/car_media?action=previous)
+- Dark/light:    [🌙](https://aare.internal/go/car_display?mode=dark) or
+                 [☀️](https://aare.internal/go/car_display?mode=light)
+- Show an app:   [📱](https://aare.internal/go/car_open?what=<app, home or apps>)
+- Car status:    [ℹ️](https://aare.internal/go/car_status)
+- Read messages: [📨](https://aare.internal/go/car_messages)
+- Reply:         [✉️](https://aare.internal/go/car_reply?conversation=<name>&message=<text>)
+- Mark as read:  [✅](https://aare.internal/go/car_mark_read?conversation=<name>)
 
 The car reads status and messages aloud itself; you don't see them, so don't make them up.
 Before a reply, read it back and wait for my yes; only then add the link.
@@ -67,7 +71,7 @@ If a place, app or name is unclear, ask first and add no link.
 
 Example: "Take me to Berlin main station" →
 Alright, have a good trip!
-[🧭](https://hypercrisis.github.io/AARE/go/car_navigate?destination=Berlin%20Hauptbahnhof)
+[🧭](https://aare.internal/go/car_navigate?destination=Berlin%20Hauptbahnhof)
 ```
 
 ## MacroDroid macro

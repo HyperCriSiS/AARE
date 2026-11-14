@@ -4,6 +4,7 @@ import android.os.IBinder
 import android.os.Bundle
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -236,6 +237,20 @@ class LaunchHostService : ILaunchHost.Stub {
         val dm = ctx.getSystemService(DisplayManager::class.java) ?: return null
         return runCatching { dm.createVirtualDisplay("AARE mirror", w, h, dpi.coerceAtLeast(MIN_DPI), surface, FLAG_PUBLIC or FLAG_AUTO_MIRROR) }
             .onFailure { Log.w(TAG, "mirror display failed: ${it.message}") }.getOrNull()
+    }
+
+    override fun openPending(intent: PendingIntent): Boolean {
+        val id = displayId
+        if (id < 0) return false
+        return runCatching {
+            val opts = ActivityOptions.makeBasic().setLaunchDisplayId(id)
+            // Sent from here, not from the app: Android lets it start only when the sender says so.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                opts.setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED)
+            }
+            intent.send(null, 0, null, null, null, null, opts.toBundle())
+            true
+        }.onFailure { Log.w(TAG, "openPending on display $id failed: ${it.message}") }.getOrDefault(false)
     }
 
     /** Launch [pkg]'s main activity onto [onDisplay]. */

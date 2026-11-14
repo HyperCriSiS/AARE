@@ -1,5 +1,11 @@
 package net.prototux.aare.mirror
 
+import android.app.PendingIntent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import net.prototux.aare.media.CircleButton
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.rounded.Image
@@ -49,10 +55,11 @@ import net.prototux.aare.media.Placeholder
 import net.prototux.aare.ui.car.LocalFullScreen
 
 /**
- * A media app's own picture (its video), parked: [content] draws it with the given transport
- * controls under it, [shown] says whether it takes the art's place, [toggle] switches between the two.
+ * A media app's own picture (its video), parked: [content] draws it with the app's player activity
+ * (its media session's, or null) and the given transport controls under it, [shown] says whether it
+ * takes the art's place, [toggle] switches between the two.
  */
-class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier, @Composable () -> Unit) -> Unit)
+class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier, PendingIntent?, @Composable () -> Unit) -> Unit)
 
 /** The [PhoneVideoSlot] for media apps; null while driving or where the phone screen can't show. */
 val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
@@ -62,11 +69,12 @@ val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
  * privileged helper (Shizuku or root), whatever the phone shows: a video fills it, and touches go
  * to the app. Its buttons, back to the cover ([onCover]) and full screen over the whole car
  * screen, rail included, and the media [controls] fade out when left alone and come back on a
- * touch. While it runs here the
+ * touch. Once it runs, its [player] is opened on the same display: started from the car, an app
+ * otherwise shows its start screen rather than the video. While it runs here the
  * app isn't on the phone's screen; it goes back there when this closes.
  */
 @Composable
-internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier, onCover: () -> Unit, controls: @Composable () -> Unit = {}) {
+internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modifier, onCover: () -> Unit, player: PendingIntent? = null, controls: @Composable () -> Unit = {}) {
     val context = LocalContext.current
     val full = LocalFullScreen.current
     val available = remember { AppLauncher.available(context) }
@@ -74,6 +82,14 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
     val launcher = remember(packageName) { AppLauncher(context, "video-$packageName") }
     // Null while starting, then whether the app runs here.
     var started by remember(packageName) { mutableStateOf<Boolean?>(null) }
+    // Once per display: the media connection may only come after the app is up.
+    var playerShown by remember(packageName) { mutableStateOf(false) }
+    LaunchedEffect(started, player) {
+        if (started == true && player != null && !playerShown) {
+            playerShown = true
+            withContext(Dispatchers.IO) { launcher.openPending(player) }
+        }
+    }
     // Gone (driving, another screen): so are its full-screen copy and its display.
     DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
     if (!available) {
@@ -120,9 +136,9 @@ private fun VideoButtons(modifier: Modifier, controls: @Composable () -> Unit, b
     ) {
         video()
         AnimatedVisibility(shown, Modifier.align(Alignment.BottomCenter).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
-            Row(
-                Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
+            Box(
+                Modifier.widthIn(max = 720.dp).fillMaxWidth(0.7f).clip(RoundedCornerShape(28.dp))
+                    .background(Color.Black.copy(alpha = 0.5f)).padding(horizontal = 20.dp, vertical = 4.dp),
             ) { controls() }
         }
         AnimatedVisibility(shown, Modifier.align(Alignment.BottomEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {

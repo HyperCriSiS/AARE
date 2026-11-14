@@ -1,5 +1,6 @@
 package net.prototux.aare.launch
 
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -88,6 +89,10 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     }
 
     val connected: Boolean get() = host != null
+
+    /** Start [intent] on the display [start] made, in place of the app's start screen; false if it can't. */
+    fun openPending(intent: PendingIntent): Boolean =
+        runCatching { host?.openPending(intent) ?: false }.onFailure { Log.w(TAG, "openPending", it) }.getOrDefault(false)
 
     /** Create the display into [surface] and launch [pkg] on it. Returns the display id, or -1. */
     fun start(surface: Surface, width: Int, height: Int, dpi: Int, pkg: String, keepDisplayAwake: Boolean): Int =

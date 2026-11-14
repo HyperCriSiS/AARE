@@ -1,5 +1,6 @@
 package net.prototux.aare.launch;
 
+import android.app.PendingIntent;
 import android.view.Surface;
 
 /**
@@ -31,6 +32,9 @@ interface ILaunchHost {
 
     /** Stop the mirror started by [mirror]. */
     void stopMirror() = 7;
+
+    /** Start [intent] (an app's own activity, say its player) on the display made by [start]. False if it can't. */
+    boolean openPending(in PendingIntent intent) = 8;
 
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;

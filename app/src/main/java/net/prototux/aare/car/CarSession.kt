@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import net.prototux.aare.Settings
 import net.prototux.aare.aap.AapLog
 import net.prototux.aare.aap.AapSession
+import net.prototux.aare.aap.CertificateRefusal
 import net.prototux.aare.aap.PhoneDescription
 import net.prototux.aare.aap.PhoneIdentity
 import net.prototux.aare.aap.PinRefusal
@@ -105,8 +106,11 @@ class CarSession(
 
     interface Listener {
         fun onStatus(session: CarSession, status: String)
-        /** [pinRefusal] is set when the phone refused the head unit's certificate. */
-        fun onEnded(session: CarSession, reason: String, certificateRejected: Boolean, pinRefusal: PinRefusal?)
+        /**
+         * [certificateRefusal] is set when the head unit refused the phone's certificate,
+         * [pinRefusal] when the phone refused the head unit's.
+         */
+        fun onEnded(session: CarSession, reason: String, certificateRefusal: CertificateRefusal?, pinRefusal: PinRefusal?)
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -340,13 +344,8 @@ class CarSession(
     /** Media paused by an unsolicited transient focus loss, to resume on the next gain (main thread). */
     private var pausedByCar = false
 
-    /** The head unit refused the phone certificate in so many words, not by hanging up during the handshake. */
-    @Volatile var authRejected = false
-        private set
-
     override fun onClosed(session: AapSession, reason: String, error: Throwable?) {
-        val rejected = session.certificateRejected
-        authRejected = session.authRejected
+        val rejected = session.certificateRefusal
         val refusal = session.pinRefusal
         main.post {
             teardown()

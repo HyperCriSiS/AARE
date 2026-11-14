@@ -182,6 +182,10 @@ class CarUiState {
     var shortcutAppIds by mutableStateOf<List<String>>(emptyList())
     /** The launcher leaves out the apps in [railAppIds] and [shortcutAppIds]. */
     var launcherHidesPinned by mutableStateOf(false)
+    /** A sideways swipe on an app in the rail or launcher opens it in that side's pane. */
+    var paneSwipe by mutableStateOf(true)
+    /** A long press on an app in the rail or launcher offers the panes. */
+    var paneMenu by mutableStateOf(true)
     /** The left pane's share of the width in a split, kept between splits. */
     var splitFraction by mutableFloatStateOf(0.5f)
     /** The pane touched last in a split: the car's Back key goes to its app. */

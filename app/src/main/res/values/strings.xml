@@ -551,11 +551,16 @@
     <string name="setup_section_rail">Car rail</string>
     <string name="setup_rail_hint">The apps in the car\'s side bar, in this order; it scrolls when they don\'t fit. With none picked, it shows the last navigation and media apps and Phone.</string>
     <string name="setup_section_shortcuts">Shortcuts</string>
-    <string name="setup_shortcuts_hint">Hold the app list button in the car to open these. Like in the bar: hold one to open it in a half of the screen.</string>
+    <string name="setup_shortcuts_hint">Hold the app list button in the car to open these. Like in the bar: swipe one sideways to open it in that pane, hold it to choose.</string>
     <string name="setup_section_app_list_filter">App list in the car</string>
     <string name="setup_toggle_hide_pinned_title">Leave out the rail\'s and the shortcuts\' apps</string>
     <string name="setup_toggle_hide_pinned_subtitle">Off, the app list shows every app.</string>
     <string name="common_remove">Remove</string>
     <string name="common_done">Done</string>
     <string name="common_add_apps">Add apps</string>
+    <string name="setup_section_pane_gestures">Split screen gestures</string>
+    <string name="setup_toggle_pane_swipe_title">Swipe to open in a half</string>
+    <string name="setup_toggle_pane_swipe_subtitle">A sideways swipe on an app in the bar or the app list opens it in that half of the car screen.</string>
+    <string name="setup_toggle_pane_menu_title">Hold for the halves menu</string>
+    <string name="setup_toggle_pane_menu_subtitle">Holding an app in the bar or the app list offers to open it in the left or right half.</string>
 </resources>

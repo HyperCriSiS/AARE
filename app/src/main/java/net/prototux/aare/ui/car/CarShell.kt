@@ -184,7 +184,7 @@ internal fun shortcutColumns(count: Int): Int = (1..4).firstOrNull { it * it >= 
 /**
  * The launcher button's shortcuts, picked on the phone, beside the held button ([at], in the
  * shell's coordinates) and over everything else. Each works like a rail app: a tap opens it, a
- * long press offers the panes. A tap elsewhere closes it.
+ * sideways swipe opens it in that pane, a long press offers the panes. A tap elsewhere closes it.
  */
 @Composable
 private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, horizontal: Boolean, onDone: () -> Unit) {
@@ -220,7 +220,10 @@ private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, hor
             apps.chunked(shortcutColumns(apps.size)).forEach { line ->
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     line.forEach { app ->
-                        val pane = RailPane(choose = { center: Offset -> onDone(); menus.choosePane(app, center, horizontal) })
+                        val pane = RailPane(
+                            choose = { center: Offset -> onDone(); menus.choosePane(app, center, horizontal) }.takeIf { state.paneMenu },
+                            open = { left: Boolean -> onDone(); actions.openInPane(app, left) }.takeIf { state.paneSwipe },
+                        )
                         RailApp(app, Icons.Rounded.Apps, state.screen.shows(app.id), pane) { onDone(); actions.openApp(app) }
                     }
                 }
@@ -332,7 +335,10 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     fun on(app: CarAppEntry?) = app != null && state.screen.shows(app.id)
     // Held: offer the two panes for it, next to the icon.
     val menus = LocalRailMenus.current
-    val hold: (CarAppEntry) -> RailPane = { app -> RailPane({ center -> menus.choosePane(app, center, horizontal) }) }
+    // A bottom bar scrolls sideways, so a sideways swipe there scrolls instead of picking a pane.
+    val hold: (CarAppEntry) -> RailPane = { app ->
+        paneFor(state, menus, actions, app, horizontal, swipe = !horizontal)
+    }
     // Like Android Auto's taskbar: the apps used last, besides the fixed ones (one on a side rail, for height).
     val fixed = setOfNotNull(nav?.id, media?.id, phone?.id, settings?.id)
     val recent = state.recentAppIds.filter { it !in fixed }.mapNotNull(state::app)
@@ -789,7 +795,7 @@ internal fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier
         val pinned = if (state.launcherHidesPinned) (state.railAppIds + state.shortcutAppIds).toSet() else emptySet()
         items(state.apps.filter { it.id !in pinned }, key = { it.id }) { app ->
             Column(
-                Modifier.clip(MaterialTheme.shapes.medium).railClick(RailPane({ center -> menus.choosePane(app, center, true) })) { actions.openApp(app) }.padding(12.dp),
+                Modifier.clip(MaterialTheme.shapes.medium).railClick(paneFor(state, menus, actions, app, true)) { actions.openApp(app) }.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 AppIcon(app, 80)
@@ -833,17 +839,57 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
     }
 }
 
-/** What a rail app offers besides a tap: a long press hands [choose] the button's center (root coordinates). */
-private class RailPane(val choose: ((Offset) -> Unit)?)
+/**
+ * What a rail app offers besides a tap: a long press hands [choose] the button's center (root
+ * coordinates), and a sideways swipe calls [open] with the side.
+ */
+private class RailPane(val choose: ((Offset) -> Unit)?, val open: ((left: Boolean) -> Unit)? = null)
+
+/** [RailPane] for [app], less what the user switched off: the panes on a long press, the swipe. */
+private fun paneFor(state: CarUiState, menus: RailMenus, actions: CarActions, app: CarAppEntry, horizontal: Boolean, swipe: Boolean = true) = RailPane(
+    { center: Offset -> menus.choosePane(app, center, horizontal) }.takeIf { state.paneMenu },
+    { left: Boolean -> actions.openInPane(app, left) }.takeIf { swipe && state.paneSwipe },
+)
 
 /** The shell's menus over everything: the panes for an app at a point, and the launcher's shortcuts next to a button. */
 private class RailMenus(val choosePane: (CarAppEntry, Offset, Boolean) -> Unit, val showShortcuts: (Offset, Boolean) -> Unit)
 
 private val LocalRailMenus = staticCompositionLocalOf { RailMenus({ _, _, _ -> }, { _, _ -> }) }
 
-/** A tap opens. With [pane], a long press offers the panes (or, on the launcher button, the shortcuts). */
+/**
+ * A tap opens. With [pane], a long press offers the panes and a sideways swipe opens the app in
+ * the pane on that side.
+ */
 private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier = composed {
     var center by remember { mutableStateOf(Offset.Zero) }
+    val current by rememberUpdatedState(pane)
     onGloballyPositioned { center = it.boundsInRoot().center }
+        .then(if (pane?.open == null) Modifier else Modifier.pointerInput(Unit) {
+            // Little room to swipe on a rail at the screen's edge: a short swipe is enough.
+            val min = 24.dp.toPx()
+            // Judged from where the finger went down to where it lifted, not from drag events: a
+            // car's touch screen may report a quick swipe with few moves or none in between. Seen
+            // before the click handler, so a swipe's lift isn't also a tap.
+            awaitEachGesture {
+                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                // Once the finger has moved sideways, it is a swipe, however slow: its moves are
+                // consumed so the click handler drops both the tap and the long press.
+                var swiping = false
+                while (true) {
+                    val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+                    val d = change.position - down.position
+                    if (!swiping && abs(d.x) > viewConfiguration.touchSlop && abs(d.x) > abs(d.y)) swiping = true
+                    if (change.pressed) {
+                        if (swiping) change.consume()
+                        continue
+                    }
+                    swipeSide(d.x, d.y, min)?.let { left -> change.consume(); current?.open?.invoke(left) }
+                    break
+                }
+            }
+        })
         .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
+
+/** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
+internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null

@@ -335,7 +335,7 @@ class CarRuntime(
             // Switched from the car's media screen: show or drop the video now.
             "video_apps" -> main.post { videoApps = settings.videoApps }
             // Apps shown or hidden from the phone: update the car's app list now.
-            "hidden_apps", "phone_screen", "assistant_pkg", "app_order" -> main.post { refreshApps() }
+            "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned" -> main.post { refreshApps() }
         }
     }
 
@@ -459,6 +459,10 @@ class CarRuntime(
         }
         ui.apps.clear()
         ui.apps.addAll(entries)
+        fun ids(keys: List<String>) = keys.mapNotNull { k -> entries.firstOrNull { orderKey(it) == k }?.id }
+        ui.railAppIds = ids(settings.railApps)
+        ui.shortcutAppIds = ids(settings.shortcutApps)
+        ui.launcherHidesPinned = settings.launcherHidesPinned
         // An app gone from a pane would leave it blank.
         ui.screen = ui.screen.withoutApps { id -> entries.none { it.id == id } }
         // Restore the last navigation and media apps, so the dashboard isn't empty. Not a navigation app that

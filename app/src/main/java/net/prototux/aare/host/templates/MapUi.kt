@@ -297,19 +297,22 @@ private fun Modifier.mapGestures(host: TemplateHost, canPan: () -> Boolean, onDr
 /** Width of the start-side card column: about 40% of the screen, within readable bounds. */
 internal fun BoxWithConstraintsScope.panelWidth(): Dp = (maxWidth * 0.42f).coerceIn(320.dp, 480.dp).coerceAtMost(maxWidth)
 
+/** What narrow screens leave free at the bottom end for the map action strip, beside bottom cards. */
+internal val MapActionStripRoom = 96.dp
+
 /** Narrow/portrait screens put cards above/below the map instead of beside it. */
 internal val BoxWithConstraintsScope.narrow: Boolean get() = maxWidth < 600.dp || maxHeight > maxWidth
 
 /**
  * The floating content card of map templates: start side and full height on wide screens,
- * a bottom sheet-like card on narrow ones (a dashboard card, a split-screen pane), which leaves
- * room at the end for the map action strip, as the navigation template's estimate card does.
+ * a bottom sheet-like card on narrow ones (a dashboard card, a split-screen pane, a portrait
+ * screen), which leaves the bottom end to the map action strip so its buttons stay reachable.
  */
 @Composable
 internal fun BoxWithConstraintsScope.MapContentCard(content: @Composable () -> Unit) {
     val r = LocalCarDimens.current.cardRadius
     val m = if (narrow) {
-        Modifier.align(Alignment.BottomStart).width(maxWidth - 96.dp).height(maxHeight * 0.55f)
+        Modifier.align(Alignment.BottomStart).width(maxWidth - MapActionStripRoom).height(maxHeight * 0.55f)
     } else {
         Modifier.align(Alignment.TopStart).width(panelWidth()).fillMaxHeight()
     }

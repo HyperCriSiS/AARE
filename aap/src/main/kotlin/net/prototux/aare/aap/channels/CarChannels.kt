@@ -242,6 +242,14 @@ class BluetoothChannel(service: Service, private val phoneAddress: String?, priv
         phoneAddress?.let { requestPairing(it) }
     }
 
+    /**
+     * Announces the phone again, once the session is running. A VW Play (Visteon MIB Regio) drops
+     * its Bluetooth link to the phone when projection starts, answers the request sent at channel
+     * open with "already paired", and only connects hands-free again (calls through the car) when
+     * the request comes after the session is up. Returns whether it was sent.
+     */
+    fun announceAgain(): Boolean = phoneAddress?.let { requestPairing(it); true } ?: false
+
     fun requestPairing(phoneAddress: String) {
         val method = when {
             BluetoothPairingMethod.BLUETOOTH_PAIRING_NUMERIC_COMPARISON in methods -> BluetoothPairingMethod.BLUETOOTH_PAIRING_NUMERIC_COMPARISON

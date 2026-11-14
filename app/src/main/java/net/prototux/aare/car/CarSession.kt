@@ -295,6 +295,7 @@ class CarSession(
                         }
                     })
                     channels += bt
+                    bluetooth = bt
                     main.post { if (!closed) bluetoothPower = PhoneBluetoothPower(context) { announceAgain(bt) }.also { it.start() } }
                 }
             }
@@ -335,6 +336,7 @@ class CarSession(
     }
 
     override fun onRunning(session: AapSession) {
+        if (bluetooth?.announceAgain() == true) DiagLog.add("car bluetooth: announcing the phone again, session running")
         main.post {
             if (closed) return@post
             listener.onStatus(this, context.getString(R.string.notif_status_projecting_to, headUnitName))
@@ -1119,6 +1121,9 @@ class CarSession(
         val m = Build.MODEL
         return if (m.startsWith(Build.MANUFACTURER, ignoreCase = true)) m else "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} $m"
     }
+
+    /** The car's Bluetooth service, to announce the phone again once the session runs. */
+    private var bluetooth: BluetoothChannel? = null
 
     /**
      * The phone's own Bluetooth MAC for the car's pairing handshake, or null if unknown. Prefer the

@@ -1,7 +1,10 @@
 package net.prototux.aare.host
 
+import net.prototux.aare.ui.car.CarAppKind
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CarLinksTest {
@@ -18,11 +21,19 @@ class CarLinksTest {
     }
 
     @Test
-    fun toolsThatSendReadOrOpenAppsAreRefused() {
-        assertNull(parse("/AARE/go/car_reply", mapOf("conversation" to "Mom", "message" to "hi")))
-        assertNull(parse("/AARE/go/car_messages"))
-        assertNull(parse("/AARE/go/car_mark_read", mapOf("conversation" to "Mom")))
-        assertNull(parse("/AARE/go/car_open", mapOf("what" to "phone screen")))
+    fun everyCarToolIsALink() {
+        assertEquals("car_reply" to mapOf("conversation" to "Max", "message" to "hi"), parse("/AARE/go/car_reply", mapOf("conversation" to "Max", "message" to "hi")))
+        assertEquals("car_messages" to emptyMap<String, String>(), parse("/AARE/go/car_messages"))
+        assertNull(parse("/AARE/go/status"))
+        assertNull(parse("/AARE/go/car_x/car_media"))
+    }
+
+    @Test
+    fun aLinkCantOpenThePhoneScreen() {
+        assertFalse(CarTools.openable(CarAppKind.PHONE_SCREEN, link = true))
+        assertTrue(CarTools.openable(CarAppKind.PHONE_SCREEN, link = false))
+        assertTrue(CarTools.openable(CarAppKind.MEDIA, link = true))
+        assertFalse(CarTools.openable(CarAppKind.EXIT, link = false))
     }
 
     @Test

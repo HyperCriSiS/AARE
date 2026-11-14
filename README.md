@@ -372,7 +372,7 @@ nearest charger", "what's the next turn?", "read my messages" or "reply to Alex 
 minutes late".
 
 **Car links.** Assistants that can only write text, such as the Claude or ChatGPT app, reach
-`car_navigate`, `car_media` and `car_display` through links like
+these tools through links like
 `https://hypercrisis.github.io/AARE/go/car_navigate?destination=Berlin`. With the assistant told
 to put them behind an emoji and a MacroDroid macro tapping that emoji, they run without a touch.
 See [Car links](docs/assistant-links.md).

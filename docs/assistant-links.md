@@ -11,20 +11,29 @@ driver:
 
 ## Links
 
-`https://hypercrisis.github.io/AARE/go/<tool>?<arguments>`
+`https://hypercrisis.github.io/AARE/go/<tool>?<arguments>`, for every car tool (see the README):
 
 | Link | Does |
 |---|---|
 | `…/go/car_navigate?destination=Berlin` | navigates to the place in the car's navigation app |
 | `…/go/car_media?action=next` | `play`, `pause`, `next` or `previous` |
 | `…/go/car_display?mode=dark` | `dark`, `light` or `auto` (the car's day/night setting) |
+| `…/go/car_open?what=Spotify` | shows an app, `home` or `apps`; never the phone screen mirror |
+| `…/go/car_status` | AARE says what's playing, the next turn and the phone's battery |
+| `…/go/car_messages` | AARE reads the latest messages aloud (`app=WhatsApp` for one app only) |
+| `…/go/car_reply?conversation=Max&message=…` | sends the reply (`app=` when several conversations have that name) |
+| `…/go/car_mark_read?conversation=Max` | marks the conversation as read |
 
-AARE runs a link only when:
+The assistant never sees what a link did, so AARE speaks for it: the messages, the status, or
+"That didn't work." when a tool fails. Everything else is silent; the assistant has already said it.
 
-- the car (or the car screen preview) is connected,
-- the app that opened it is the voice assistant chosen in AARE (*Voice assistant* page),
-- the tool is one of the three above. Opening apps, reading messages and replying aren't
-  reachable by link: anything sent on the driver's behalf needs the assistant's confirmation.
+AARE runs a link only when the car (or the car screen preview) is connected and the app that
+opened it is the voice assistant chosen in AARE (*Voice assistant* page).
+
+> [!WARNING]
+> Android takes the app that opened a link from what that app says about itself, and any app can
+> claim to be the assistant. While the car is connected, an app on the phone could therefore send
+> `car_reply` links and reply to your conversations in your name. Only install apps you trust.
 
 The links need no setting in Android: when AARE starts a hosted app through Shizuku or root, it
 approves its own link domain, so Android opens them in AARE without asking.
@@ -36,29 +45,35 @@ ChatGPT's custom instructions:
 
 ```
 You are my assistant in the car. Answer in one or two short sentences.
-When I want to drive somewhere, play, pause, skip or go back in music, or switch the
-car screen to dark or light, answer briefly and add a last line with only an emoji
-that links to the car action. Only one such line per answer.
+When I want something done in the car, answer briefly and add a last line with only an
+emoji that links to the car action. Only one such line per answer. Arguments are URL-encoded.
 
-- Navigate:   [🧭](https://hypercrisis.github.io/AARE/go/car_navigate?destination=<place, URL-encoded>)
-- Play:       [▶️](https://hypercrisis.github.io/AARE/go/car_media?action=play)
-- Pause:      [⏸️](https://hypercrisis.github.io/AARE/go/car_media?action=pause)
-- Next:       [⏭️](https://hypercrisis.github.io/AARE/go/car_media?action=next)
-- Previous:   [⏮️](https://hypercrisis.github.io/AARE/go/car_media?action=previous)
-- Dark/light: [🌙](https://hypercrisis.github.io/AARE/go/car_display?mode=dark) or
-              [☀️](https://hypercrisis.github.io/AARE/go/car_display?mode=light)
+- Navigate:      [🧭](https://hypercrisis.github.io/AARE/go/car_navigate?destination=<place>)
+- Play:          [▶️](https://hypercrisis.github.io/AARE/go/car_media?action=play)
+- Pause:         [⏸️](https://hypercrisis.github.io/AARE/go/car_media?action=pause)
+- Next:          [⏭️](https://hypercrisis.github.io/AARE/go/car_media?action=next)
+- Previous:      [⏮️](https://hypercrisis.github.io/AARE/go/car_media?action=previous)
+- Dark/light:    [🌙](https://hypercrisis.github.io/AARE/go/car_display?mode=dark) or
+                 [☀️](https://hypercrisis.github.io/AARE/go/car_display?mode=light)
+- Show an app:   [📱](https://hypercrisis.github.io/AARE/go/car_open?what=<app, home or apps>)
+- Car status:    [ℹ️](https://hypercrisis.github.io/AARE/go/car_status)
+- Read messages: [📨](https://hypercrisis.github.io/AARE/go/car_messages)
+- Reply:         [✉️](https://hypercrisis.github.io/AARE/go/car_reply?conversation=<name>&message=<text>)
+- Mark as read:  [✅](https://hypercrisis.github.io/AARE/go/car_mark_read?conversation=<name>)
+
+The car reads status and messages aloud itself; you don't see them, so don't make them up.
+Before a reply, read it back and wait for my yes; only then add the link.
+If a place, app or name is unclear, ask first and add no link.
 
 Example: "Take me to Berlin main station" →
 Alright, have a good trip!
 [🧭](https://hypercrisis.github.io/AARE/go/car_navigate?destination=Berlin%20Hauptbahnhof)
-
-If the place is unclear, ask first and add no link.
 ```
 
 ## MacroDroid macro
 
 - **Trigger:** *Screen Content*, only in the assistant app (for example Claude), text contains
-  `🧭`. Add one trigger per emoji in use.
+  any of the emojis above (one trigger per emoji, or a regular expression).
 - **Action:** *UI Interaction → Click* on the same text (the emoji).
 - **Constraint (optional):** only while the phone is connected to the car.
 
@@ -70,4 +85,5 @@ so Android reports the assistant as the link's sender, which AARE requires.
 - A tap on a link in the Claude app's voice mode in the car, and whether it stops voice mode.
 - Whether Android reports the assistant as the sender for every assistant app.
 - Whether MacroDroid sees the assistant when AARE shows it on the car screen's virtual display.
+- Whether AARE's speech and the assistant's voice mode get in each other's way.
 - Music search and phone calls have no car link; they still need the phone's own apps.

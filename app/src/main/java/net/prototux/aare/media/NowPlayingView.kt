@@ -178,7 +178,7 @@ private val PLAY_SIZE = 96.dp
 
 /** Position extrapolated from the last sample while playing; a slider when seeking is allowed. */
 @Composable
-private fun Progress(info: PlaybackInfo, canSeek: Boolean, seekTo: (Long) -> Unit) {
+internal fun Progress(info: PlaybackInfo, canSeek: Boolean, seekTo: (Long) -> Unit) {
     var now by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
     LaunchedEffect(info.playing, info.sampledAtMs) {
         now = SystemClock.elapsedRealtime()

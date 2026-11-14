@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import net.prototux.aare.R
@@ -153,18 +154,24 @@ private fun Controls(hub: DefaultMediaHub, source: PlaybackSource, state: Source
         val left = actions.take((actions.size + 1) / 2)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceEvenly) {
             left.forEach { ActionButton(hub, it) }
-            CircleButton(Icons.Rounded.SkipPrevious, stringResource(R.string.media_action_previous), onClick = source::previous, enabled = state.canPrevious)
-            CircleButton(
-                if (state.showPause) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (state.showPause) R.string.media_action_pause else R.string.media_action_play),
-                onClick = source::playPause, filled = true, size = PLAY_SIZE,
-            )
-            CircleButton(Icons.Rounded.SkipNext, stringResource(R.string.media_action_next), onClick = source::next, enabled = state.canNext)
+            Transport(source, state)
             actions.drop(left.size).forEach { ActionButton(hub, it) }
             if (hasQueue) CircleButton(Icons.AutoMirrored.Rounded.QueueMusic, stringResource(R.string.media_queue_title), onClick = { setView(MediaView.QUEUE) })
             // Between the phone's video and the art.
             video?.let { CircleButton(if (it.shown) Icons.Rounded.Image else Icons.Rounded.Videocam, stringResource(if (it.shown) R.string.media_action_show_art else R.string.media_action_show_video), onClick = it.toggle) }
         }
     }
+}
+
+/** Previous, play or pause, next: in the now-playing row and over a media app's video. */
+@Composable
+internal fun Transport(source: PlaybackSource, state: SourceState, playSize: Dp = PLAY_SIZE) {
+    CircleButton(Icons.Rounded.SkipPrevious, stringResource(R.string.media_action_previous), onClick = source::previous, enabled = state.canPrevious)
+    CircleButton(
+        if (state.showPause) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, stringResource(if (state.showPause) R.string.media_action_pause else R.string.media_action_play),
+        onClick = source::playPause, filled = true, size = playSize,
+    )
+    CircleButton(Icons.Rounded.SkipNext, stringResource(R.string.media_action_next), onClick = source::next, enabled = state.canNext)
 }
 
 private val PLAY_SIZE = 96.dp

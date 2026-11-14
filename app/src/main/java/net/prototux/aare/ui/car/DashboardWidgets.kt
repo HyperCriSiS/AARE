@@ -67,6 +67,16 @@ internal fun WeatherChip(weather: Weather?) {
     }
 }
 
+/** The weather as a dashboard card: the sky and the temperature, big. */
+@Composable
+internal fun WeatherCard(weather: Weather) {
+    Row(Modifier.fillMaxSize().padding(24.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Icon(weatherIcon(weather), null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(72.dp))
+        Spacer(Modifier.width(16.dp))
+        Text("${weather.temperature}${weather.unit}", style = MaterialTheme.typography.displaySmall, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
 /**
  * The next calendar events: the first large, with a shortcut to navigate to its place, the ones
  * after it as lines underneath, as many as the card has room for. One event alone stays centered.

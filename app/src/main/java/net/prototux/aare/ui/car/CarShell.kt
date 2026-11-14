@@ -223,8 +223,8 @@ private fun ShortcutList(state: CarUiState, actions: CarActions, at: Offset, hor
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     line.forEach { app ->
                         val pane = RailPane(
-                            choose = { center -> onDone(); menus.choosePane(app, center, horizontal) },
-                            open = { left -> onDone(); actions.openInPane(app, left) },
+                            choose = { center: Offset -> onDone(); menus.choosePane(app, center, horizontal) }.takeIf { state.paneMenu },
+                            open = { left: Boolean -> onDone(); actions.openInPane(app, left) }.takeIf { state.paneSwipe },
                         )
                         RailApp(app, Icons.Rounded.Apps, state.screen.shows(app.id), pane) { onDone(); actions.openApp(app) }
                     }
@@ -339,7 +339,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     val menus = LocalRailMenus.current
     // A bottom bar scrolls sideways, so a sideways swipe there scrolls instead of picking a pane.
     val hold: (CarAppEntry) -> RailPane = { app ->
-        RailPane({ center -> menus.choosePane(app, center, horizontal) }, if (horizontal) null else { left: Boolean -> actions.openInPane(app, left) })
+        paneFor(state, menus, actions, app, horizontal, swipe = !horizontal)
     }
     // Like Android Auto's taskbar: the apps used last, besides the fixed ones (one on a side rail, for height).
     val fixed = setOfNotNull(nav?.id, media?.id, phone?.id, settings?.id)
@@ -484,7 +484,13 @@ private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean,
  * What a rail app offers besides a tap: a long press hands [choose] the button's center (root
  * coordinates), and a sideways swipe calls [open] with the side.
  */
-private class RailPane(val choose: (Offset) -> Unit, val open: ((left: Boolean) -> Unit)? = null)
+private class RailPane(val choose: ((Offset) -> Unit)?, val open: ((left: Boolean) -> Unit)? = null)
+
+/** [RailPane] for [app], less what the user switched off: the panes on a long press, the swipe. */
+private fun paneFor(state: CarUiState, menus: RailMenus, actions: CarActions, app: CarAppEntry, horizontal: Boolean, swipe: Boolean = true) = RailPane(
+    { center: Offset -> menus.choosePane(app, center, horizontal) }.takeIf { state.paneMenu },
+    { left: Boolean -> actions.openInPane(app, left) }.takeIf { swipe && state.paneSwipe },
+)
 
 /** The shell's menus over everything: the panes for an app at a point, and the launcher's shortcuts next to a button. */
 private class RailMenus(val choosePane: (CarAppEntry, Offset, Boolean) -> Unit, val showShortcuts: (Offset, Boolean) -> Unit)
@@ -523,7 +529,7 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
                 }
             }
         })
-        .combinedClickable(onClick = onClick, onLongClick = pane?.let { p -> { p.choose(center) } })
+        .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
 
 /** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
@@ -865,7 +871,7 @@ internal fun Launcher(state: CarUiState, actions: CarActions, modifier: Modifier
         val pinned = if (state.launcherHidesPinned) (state.railAppIds + state.shortcutAppIds).toSet() else emptySet()
         items(state.apps.filter { it.id !in pinned }, key = { it.id }) { app ->
             // Like the rail: held offers the panes, a sideways swipe opens it in one.
-            val pane = RailPane({ center -> menus.choosePane(app, center, true) }, { left -> actions.openInPane(app, left) })
+            val pane = paneFor(state, menus, actions, app, true)
             Column(
                 Modifier.clip(MaterialTheme.shapes.medium).railClick(pane) { actions.openApp(app) }.padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

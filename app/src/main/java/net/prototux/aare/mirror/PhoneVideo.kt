@@ -8,7 +8,7 @@ import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.fadeIn
@@ -97,7 +97,7 @@ internal fun PhoneVideo(runtime: CarRuntime, packageName: String, modifier: Modi
 }
 
 /**
- * A video with [buttons] in its bottom right corner that fade out after a few seconds untouched.
+ * A video with [buttons] stacked in its bottom right corner that fade out after a few seconds untouched.
  * A touch anywhere brings them back and still reaches the app below.
  */
 @Composable
@@ -115,7 +115,7 @@ private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, vi
     ) {
         video()
         AnimatedVisibility(shown, Modifier.align(Alignment.BottomEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { buttons() }
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { buttons() }
         }
     }
 }

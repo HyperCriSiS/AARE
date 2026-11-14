@@ -14,7 +14,7 @@ Android Auto, tuned for Mercedes-Benz MBUX head units. It is used daily with an 
 a car screen built for a wide, short display and fixes found on the way. Upstream changes are
 taken in regularly, and fixes that help every car are offered back upstream.
 
-# Every feature in this repository will be pushed to the upstream as soon as it is finished.
+# Every feature of the fork will be pushed to the upstream as soon as it is finished.
 
 > [!IMPORTANT]
 > MBUX only accepts a Google-issued phone certificate: download it in the app under

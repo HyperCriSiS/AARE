@@ -5,7 +5,14 @@ import android.os.Bundle
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.app.PendingIntent
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.UiAutomation
 import android.content.pm.LauncherApps
+import android.graphics.Rect
+import android.os.HandlerThread
+import android.os.Looper
+import android.os.SystemClock
+import android.view.accessibility.AccessibilityNodeInfo
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -274,6 +281,62 @@ class LaunchHostService : ILaunchHost.Stub {
         }.onFailure { Log.w(TAG, "openShortcut($packageName) on display $id failed: ${it.message}") }.getOrDefault(false)
     }
 
+    override fun tapLabel(pattern: String, timeoutMs: Long): Boolean {
+        val id = displayId
+        if (id < 0 || Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val regex = runCatching { Regex(pattern, RegexOption.IGNORE_CASE) }.getOrNull() ?: return false
+        val thread = HandlerThread("aare-ui").apply { start() }
+        val ui = uiAutomation(thread.looper)
+        try {
+            if (ui == null) return false
+            val until = SystemClock.uptimeMillis() + timeoutMs
+            while (true) {
+                val node = ui.windowsOnAllDisplays.get(id).orEmpty().firstNotNullOfOrNull { w -> w.root?.let { findLabel(it, regex) } }
+                if (node != null) {
+                    // A finger's tap on its middle: some apps (web pages) ignore an accessibility click.
+                    val r = Rect().also(node::getBoundsInScreen)
+                    val t = SystemClock.uptimeMillis()
+                    touch(t, t, MotionEvent.ACTION_DOWN, r.exactCenterX(), r.exactCenterY(), 0)
+                    touch(t, t + 50, MotionEvent.ACTION_UP, r.exactCenterX(), r.exactCenterY(), 0)
+                    Log.i(TAG, "tapped '$pattern' at $r on display $id")
+                    return true
+                }
+                if (SystemClock.uptimeMillis() >= until) {
+                    Log.w(TAG, "no button matching '$pattern' on display $id")
+                    return false
+                }
+                Thread.sleep(300)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "tapLabel on display $id failed: ${e.message}")
+            return false
+        } finally {
+            runCatching { UiAutomation::class.java.getMethod("disconnect").invoke(ui) }
+            thread.quitSafely()
+        }
+    }
+
+    /** The first node under [node] whose text or description matches [regex], depth first. */
+    private fun findLabel(node: AccessibilityNodeInfo, regex: Regex): AccessibilityNodeInfo? {
+        if (listOfNotNull(node.text, node.contentDescription).any { regex.containsMatchIn(it) }) return node
+        for (i in 0 until node.childCount) node.getChild(i)?.let { c -> findLabel(c, regex)?.let { return it } }
+        return null
+    }
+
+    /**
+     * Reads other apps' screens the way test tools do (uiautomator): a UiAutomation on its own
+     * connection, which the shell may open. It leaves the phone's accessibility services running.
+     */
+    private fun uiAutomation(looper: Looper): UiAutomation? = runCatching {
+        val iface = Class.forName("android.app.IUiAutomationConnection")
+        val connection = Class.forName("android.app.UiAutomationConnection").getDeclaredConstructor().newInstance()
+        val ui = runCatching { UiAutomation::class.java.getDeclaredConstructor(Looper::class.java, iface).newInstance(looper, connection) }
+            .getOrElse { UiAutomation::class.java.getDeclaredConstructor(Context::class.java, iface).newInstance(callerContext(), connection) }
+        UiAutomation::class.java.getMethod("connect", Int::class.javaPrimitiveType).invoke(ui, UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES)
+        ui.serviceInfo = ui.serviceInfo.apply { flags = flags or AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS }
+        ui
+    }.onFailure { Log.w(TAG, "no UiAutomation: ${it.message}") }.getOrNull()
+
     /** Launch [pkg]'s main activity onto [onDisplay]. */
     @SuppressLint("QueryPermissionsNeeded")
     private fun launch(ctx: Context, pkg: String, onDisplay: Int): Boolean {
@@ -347,7 +410,7 @@ class LaunchHostService : ILaunchHost.Stub {
         runCatching {
             HiddenApiBypass.addHiddenApiExemptions(
                 "Landroid/app/ActivityThread;", "Landroid/app/ActivityManager;", "Landroid/app/IActivityManager", "Landroid/app/IApplicationThread;",
-                "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;",
+                "Landroid/app/ProfilerInfo;", "Landroid/app/UiAutomation", "Landroid/app/IUiAutomationConnection", "Landroid/hardware/input/InputManager;",
                 "Landroid/hardware/display/DisplayManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
             )
         }

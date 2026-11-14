@@ -364,6 +364,8 @@
     <string name="assistant_no_default">No default assistant set on the phone</string>
     <string name="assistant_has_car_app_subtitle">On the car screen, with the car\'s microphone</string>
     <string name="assistant_opens_on_phone">Opens on the phone</string>
+    <string name="assistant_link_label">Start link</string>
+    <string name="assistant_link_hint">For an assistant on the car screen: a link it opens before it listens, such as a Claude project (https://claude.ai/project/…). Empty: a new chat.</string>
     <string name="assistant_hint">The steering-wheel voice button and the rail\'s microphone open this assistant. Assistants with a car app, such as Lapin, work best.</string>
 
     <!-- notif: notifications and in-car notices -->

@@ -34,6 +34,12 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.LaunchedEffect
+import android.app.ActivityOptions
+import android.app.PendingIntent
+import android.content.Context
+import android.os.Build
+import android.content.Intent
+import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
@@ -79,8 +85,16 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             // The voice button: the assistant opens straight into its voice mode, where it has one.
             LaunchedEffect(started, runtime.ui.assistantVoice) {
                 if (started && runtime.ui.assistantVoice == packageName) {
+                    val link = Settings(context).assistantLink
+                    withContext(Dispatchers.IO) {
+                        // With a start link (a project), the link first, then its voice button; without, or when that
+                        // button doesn't show, the app's voice shortcut, in a new chat.
+                        val linked = link.isNotEmpty() && launcher.openPending(linkIntent(context, link, packageName)) &&
+                            launcher.tapLabel(VOICE_BUTTON, VOICE_BUTTON_WAIT_MS)
+                        if (!linked) launcher.openShortcut(packageName, VOICE_SHORTCUT)
+                    }
+                    // Only now: the request is this effect's key, and clearing it cancels the effect.
                     runtime.ui.assistantVoice = null
-                    withContext(Dispatchers.IO) { launcher.openShortcut(packageName, VOICE_SHORTCUT) }
                 }
             }
             // A quiet reminder that this isn't an Android Auto app, for a few seconds once it shows: left
@@ -165,5 +179,19 @@ internal fun hostedDpi(w: Int, h: Int, dpi: Int): Int = minOf(dpi, minOf(w, h) *
 /** How long the not-an-Android-Auto-app hint shows over a hosted app. */
 private const val HINT_MS = 4_000L
 
+/** [link] opened in [packageName], for the helper to start on the car display: AARE lets it start an activity from there. */
+private fun linkIntent(context: Context, link: String, packageName: String): PendingIntent {
+    val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        ActivityOptions.makeBasic().setPendingIntentCreatorBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED).toBundle()
+    } else null
+    return PendingIntent.getActivity(context, 0, Intent(Intent.ACTION_VIEW, Uri.parse(link)).setPackage(packageName), PendingIntent.FLAG_IMMUTABLE, options)
+}
+
 /** What an assistant's voice-mode shortcut has in its id (Claude: quick_action_voice). */
 private const val VOICE_SHORTCUT = "voice"
+
+/** The label of an assistant's voice-mode button, in English or German (Claude: "Voice mode", "Sprachmodus"). */
+private const val VOICE_BUTTON = "voice mode|sprachmodus"
+
+/** How long the start link may take to show its voice button. */
+private const val VOICE_BUTTON_WAIT_MS = 8_000L

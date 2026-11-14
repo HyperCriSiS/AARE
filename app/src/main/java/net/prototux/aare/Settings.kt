@@ -217,6 +217,14 @@ class Settings(context: Context) {
         get() = prefs.getString("assistant_pkg", null)
         set(v) = prefs.edit { if (v == null) remove("assistant_pkg") else putString("assistant_pkg", v) }
 
+    /**
+     * A link the assistant hosted on the car screen opens before it listens (a Claude project, say),
+     * so the voice button starts it there; empty = its own voice mode, in a new chat.
+     */
+    var assistantLink: String
+        get() = prefs.getString("assistant_link", "") ?: ""
+        set(v) = prefs.edit { putString("assistant_link", v) }
+
     /** Offer "Phone screen" in the car: the phone's own screen, for apps AARE can't host (Google Maps, Waze). */
     var phoneScreen: Boolean
         get() = prefs.getBoolean("phone_screen", false)

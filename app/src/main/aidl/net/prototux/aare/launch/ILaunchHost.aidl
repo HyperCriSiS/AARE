@@ -39,6 +39,9 @@ interface ILaunchHost {
     /** Start [packageName]'s app shortcut whose id contains [keyword] (its voice mode, say) on that display. False if it can't. */
     boolean openShortcut(String packageName, String keyword) = 9;
 
+    /** Tap the button on that display whose label matches [pattern] (a regex, any case), waiting up to [timeoutMs] for it. False if none showed. */
+    boolean tapLabel(String pattern, long timeoutMs) = 10;
+
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;
 }

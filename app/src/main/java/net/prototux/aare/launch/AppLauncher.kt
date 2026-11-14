@@ -98,6 +98,10 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     fun openShortcut(pkg: String, keyword: String): Boolean =
         runCatching { host?.openShortcut(pkg, keyword) ?: false }.onFailure { Log.w(TAG, "openShortcut", it) }.getOrDefault(false)
 
+    /** Tap the button whose label matches [pattern] on that display, waiting up to [timeoutMs]; false if none showed. */
+    fun tapLabel(pattern: String, timeoutMs: Long): Boolean =
+        runCatching { host?.tapLabel(pattern, timeoutMs) ?: false }.onFailure { Log.w(TAG, "tapLabel", it) }.getOrDefault(false)
+
     /** Create the display into [surface] and launch [pkg] on it. Returns the display id, or -1. */
     fun start(surface: Surface, width: Int, height: Int, dpi: Int, pkg: String, keepDisplayAwake: Boolean): Int =
         runCatching { host?.start(surface, width, height, dpi, pkg, keepDisplayAwake) ?: -1 }

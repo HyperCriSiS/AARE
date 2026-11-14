@@ -1427,6 +1427,10 @@ private fun AssistantCard(settings: Settings) {
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.assistant_hint),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        var link by remember { mutableStateOf(settings.assistantLink) }
+        OutlinedTextField(link, { link = it; settings.assistantLink = it.trim() }, Modifier.fillMaxWidth().padding(top = 8.dp),
+            label = { Text(stringResource(R.string.assistant_link_label)) }, singleLine = true,
+            supportingText = { Text(stringResource(R.string.assistant_link_hint)) })
     }
 }
 

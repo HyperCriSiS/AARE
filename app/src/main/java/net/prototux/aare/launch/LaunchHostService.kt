@@ -297,7 +297,9 @@ class LaunchHostService : ILaunchHost.Stub {
                     val r = Rect().also(node::getBoundsInScreen)
                     val t = SystemClock.uptimeMillis()
                     touch(t, t, MotionEvent.ACTION_DOWN, r.exactCenterX(), r.exactCenterY(), 0)
-                    touch(t, t + 50, MotionEvent.ACTION_UP, r.exactCenterX(), r.exactCenterY(), 0)
+                    // Lifted a moment later, as a finger is: an up stamped ahead of time is dropped.
+                    Thread.sleep(60)
+                    touch(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, r.exactCenterX(), r.exactCenterY(), 0)
                     Log.i(TAG, "tapped '$pattern' at $r on display $id")
                     return true
                 }

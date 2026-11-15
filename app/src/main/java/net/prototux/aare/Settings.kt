@@ -152,6 +152,11 @@ class Settings(context: Context) {
         get() = prefs.getStringSet("video_apps", emptySet()) ?: emptySet()
         set(v) = prefs.edit { putStringSet("video_apps", v) }
 
+    /** While a media app shows its video in the car, the phone turns to landscape: players go full screen at once. */
+    var videoLandscape: Boolean
+        get() = prefs.getBoolean("video_landscape", false)
+        set(v) = prefs.edit { putBoolean("video_landscape", v) }
+
 
     /** Behind the dashboard: none, one of the built-in gradients, or [WALLPAPER_CUSTOM] (filesDir/wallpaper.jpg). */
     var wallpaper: String

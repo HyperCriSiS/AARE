@@ -795,6 +795,13 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                     }
                 }
             }
+            // Media apps' videos run through the helper whether or not the phone screen is offered.
+            if (remember { AppLauncher.available(ctx) }) {
+                var landscape by remember { mutableStateOf(settings.videoLandscape) }
+                Toggle(stringResource(R.string.video_toggle_landscape_title), stringResource(R.string.video_toggle_landscape_subtitle), landscape) {
+                    landscape = it; settings.videoLandscape = it
+                }
+            }
             // Without a helper the touches go through it; with one the helper replays them and tells the app in
             // front while driving, so it isn't needed.
             if (phoneScreen) {

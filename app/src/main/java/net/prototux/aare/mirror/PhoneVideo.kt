@@ -4,6 +4,28 @@ import android.app.PendingIntent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
+import android.view.KeyEvent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Fullscreen
+import androidx.compose.material.icons.rounded.FullscreenExit
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import net.prototux.aare.Settings
+import net.prototux.aare.media.CircleButton
+import net.prototux.aare.ui.car.LocalFullScreen
 import net.prototux.aare.ui.car.HostedAppSurface
 import net.prototux.aare.launch.AppLauncher
 import androidx.compose.ui.platform.LocalContext
@@ -43,15 +65,19 @@ val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
 
 /**
  * The media app [packageName] itself, running on a display of exactly this size through the
- * privileged helper (Shizuku or root), whatever the phone shows: a video fills it, and every touch
- * goes to the app, its own controls included. The car's Back key goes back to the cover
- * ([onCover]) of the media app [appId]. Once it runs, its [player] is opened on the same display: started from the car, an
- * app otherwise shows its start screen rather than the video. While it runs here the app isn't on
- * the phone's screen; it goes back there when this closes.
+ * privileged helper (Shizuku or root), whatever the phone shows: a video fills it, and touches go
+ * to the app, its own controls included. The car's Back key goes to the app too, so its own full
+ * screen and screens close as on the phone. Two buttons, back to the cover ([onCover]) of the media
+ * app [appId] and full screen over the whole car screen, rail included, fade out when left alone
+ * and come back on a touch. With [Settings.videoLandscape] the phone turns to landscape while the
+ * app runs here, so players go full screen at once. Once it runs, its [player] is opened on the
+ * same display: started from the car, an app otherwise shows its start screen rather than the
+ * video. While it runs here the app isn't on the phone's screen; it goes back there when this closes.
  */
 @Composable
 internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String, modifier: Modifier, onCover: () -> Unit, player: PendingIntent? = null) {
     val context = LocalContext.current
+    val full = LocalFullScreen.current
     val available = remember { AppLauncher.available(context) }
     // Its own helper, apart from the phone apps' and other videos': releasing one leaves the others running.
     val launcher = remember(packageName) { AppLauncher(context, "video-$packageName") }
@@ -65,15 +91,24 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
             withContext(Dispatchers.IO) { launcher.openPending(player) }
         }
     }
-    DisposableEffect(launcher) { onDispose { launcher.release() } }
-    // Turned to landscape while it plays here: players (WizeStream, NewPipe) size their full screen by the
-    // phone's own orientation, and upright they offered "toggle orientation" instead of the video.
-    // Put back when the helper stops (release() below).
-    LaunchedEffect(started) { if (started == true) withContext(Dispatchers.IO) { launcher.phoneScreen(active = true, panelOff = false) } }
-    // Back from the car (or the car screen preview) leaves the video for the cover.
+    // Gone (driving, another screen): so are its full-screen copy and its display.
+    DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
+    // Players (WizeStream, NewPipe) go full screen by the phone's own orientation; upright they
+    // offer "toggle orientation" for it. Put back when the helper stops (release() above).
+    LaunchedEffect(started) {
+        if (started == true && Settings(context).videoLandscape) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = true, awake = false, panelOff = false) }
+    }
+    // Back from the car (or the car screen preview) goes to the app; without it, to the cover.
     val cover by rememberUpdatedState(onCover)
     DisposableEffect(appId) {
-        val back: () -> Boolean = { cover(); true }
+        val back: () -> Boolean = {
+            if (launcher.connected) {
+                val t = android.os.SystemClock.uptimeMillis()
+                launcher.key(t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK)
+                launcher.key(t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)
+            } else cover()
+            true
+        }
         runtime.setScreenBack(appId, back)
         onDispose { runtime.clearScreenBack(appId, back) }
     }
@@ -81,12 +116,50 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = modifier.background(Color.Black))
         return
     }
-    Box(modifier.background(Color.Black)) {
+    VideoButtons(modifier, buttons = {
+        CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = onCover)
+        if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = {
+            full.value = {
+                VideoButtons(Modifier.fillMaxSize(), buttons = {
+                    CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { full.value = null })
+                }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
+            }
+        })
+    }) video@{
+        // Full screen, the one display moves onto the copy over everything.
+        if (full?.value != null) return@video
         HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) { started = it }
         when (started) {
             null -> Placeholder(stringResource(R.string.standalone_starting), loading = true)
             false -> Placeholder(stringResource(R.string.standalone_failed), loading = false, icon = Icons.Rounded.PhoneAndroid)
             true -> Unit
+        }
+    }
+}
+
+/**
+ * A video with [buttons] stacked in its bottom right corner, fading out after a few seconds
+ * untouched. A touch anywhere brings them back and still reaches the app below.
+ */
+@Composable
+private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, video: @Composable () -> Unit) {
+    var touches by remember { mutableIntStateOf(0) }
+    var shown by remember { mutableStateOf(true) }
+    LaunchedEffect(touches) { shown = true; delay(3_000); shown = false }
+    Box(
+        modifier.background(Color.Black).pointerInput(Unit) {
+            // Seen before the app's touch forwarding, and not consumed.
+            awaitPointerEventScope {
+                while (true) if (awaitPointerEvent(PointerEventPass.Initial).changes.any { it.changedToDown() }) touches++
+            }
+        },
+    ) {
+        video()
+        AnimatedVisibility(shown, Modifier.align(Alignment.BottomEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
+            Column(
+                Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).padding(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) { buttons() }
         }
     }
 }

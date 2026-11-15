@@ -570,6 +570,12 @@ private fun ConnectionSettings(settings: Settings, refresh: Int) {
             }
         }
         Section(stringResource(R.string.setup_section_location)) {
+            if (remember { AppLauncher.available(ctx) }) {
+                var locationOn by remember { mutableStateOf(settings.locationOnInCar) }
+                Toggle(stringResource(R.string.setup_toggle_location_on_title), stringResource(R.string.setup_toggle_location_on_subtitle), locationOn) {
+                    locationOn = it; settings.locationOnInCar = it
+                }
+            }
             Toggle(stringResource(R.string.setup_toggle_car_gps_title), stringResource(R.string.setup_toggle_car_gps_subtitle), carGps) {
                 carGps = it; settings.carGpsForPhone = it
             }

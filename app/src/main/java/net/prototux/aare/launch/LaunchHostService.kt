@@ -326,6 +326,11 @@ class LaunchHostService : ILaunchHost.Stub {
     override fun topApp(): String? = runCatching {
         topResumedPackage(shell("dumpsys", "activity", "activities"))
     }.onFailure { Log.w(TAG, "top app unknown: ${it.message}") }.getOrNull()
+    override fun setLocationEnabled(on: Boolean): Boolean = runCatching {
+        val cmd = ProcessBuilder("cmd", "location", "set-location-enabled", on.toString()).redirectErrorStream(true).start()
+        val out = cmd.inputStream.bufferedReader().readText()
+        (cmd.waitFor() == 0).also { if (!it) Log.w(TAG, "location not switched: $out") }
+    }.onFailure { Log.w(TAG, "location not switched: ${it.message}") }.getOrDefault(false)
 
     override fun openPending(intent: PendingIntent): Boolean {
         val id = displayId

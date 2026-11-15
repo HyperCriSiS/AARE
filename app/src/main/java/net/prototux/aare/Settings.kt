@@ -291,6 +291,11 @@ class Settings(context: Context) {
         get() = prefs.getFloat("call_bar_y", 0f)
         set(v) = prefs.edit { putFloat("call_bar_y", v) }
 
+    /** While connected, the phone's location is on (with Shizuku or root), and back off afterwards if it was off. */
+    var locationOnInCar: Boolean
+        get() = prefs.getBoolean("location_on_in_car", false)
+        set(v) = prefs.edit { putBoolean("location_on_in_car", v) }
+
     /** While connected, the car's GPS becomes the phone's location (needs AARE as mock location app). */
     var carGpsForPhone: Boolean
         get() = prefs.getBoolean("car_gps", true)

@@ -91,8 +91,10 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     override fun touch(downTime: Long, eventTime: Long, action: Int, x: Float, y: Float, pointerId: Int) {
-        val ev = MotionEvent.obtain(downTime, eventTime, action, x, y, 0)
-        ev.source = SOURCE_TOUCHSCREEN
+        // A finger, as the phone's own screen reports one: Compose apps (Claude) ignore a tap of unknown tool type.
+        val props = MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_FINGER }
+        val coords = MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 1f; size = 1f }
+        val ev = MotionEvent.obtain(downTime, eventTime, action, 1, arrayOf(props), arrayOf(coords), 0, 0, 1f, 1f, 0, 0, SOURCE_TOUCHSCREEN, 0)
         setDisplayId(ev, displayId)
         inject(ev)
         ev.recycle()

@@ -24,4 +24,12 @@ class StandalonePackagesTest {
         assertEquals(listOf("org.newpipe"), standalonePackages(true, listOf("org.newpipe"), null, emptySet()))
         assertEquals(emptyList<String>(), standalonePackages(false, listOf("org.newpipe"), null, emptySet()))
     }
+
+    @Test
+    fun navigationAppsWithoutACarAppAreAddedOnce() {
+        assertEquals(listOf("com.google.android.apps.maps"),
+            standalonePackages(false, emptyList(), null, setOf("com.waze"), listOf("com.waze", "com.google.android.apps.maps")))
+        assertEquals(listOf("com.google.android.apps.maps"),
+            standalonePackages(true, listOf("com.google.android.apps.maps"), null, emptySet(), listOf("com.google.android.apps.maps")))
+    }
 }

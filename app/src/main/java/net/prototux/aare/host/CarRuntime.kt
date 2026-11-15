@@ -445,7 +445,10 @@ class CarRuntime(
         // and the assistant picked in AARE when it has no car app, so the voice button opens it there.
         if (AppLauncher.available(context)) {
             val taken = entries.mapTo(HashSet()) { it.packageName }
-            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken)) {
+            // Apps whose Android Auto side only Google's Android Auto can show (Google Maps, the Play Store) and the
+            // other navigation apps are there as phone apps without being picked.
+            val hostedAnyway = KNOWN_NAVIGATION + AndroidAutoApps.unsupported(context, taken, iconSizePx = 1).map { it.packageName }
+            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken, hostedAnyway)) {
                 if (pkg in hidden) continue
                 val info = runCatching { context.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: continue
                 val label = context.packageManager.getApplicationLabel(info).toString()
@@ -862,7 +865,10 @@ class CarRuntime(
 /** Whether a messaging app or the phone app shows as the phone's own app: [chosen] in AARE, parked, and with a [helper] (Shizuku or root). */
 internal fun showsFullApp(chosen: Boolean, driving: Boolean, helper: Boolean) = chosen && !driving && helper
 
-internal fun standalonePackages(enabled: Boolean, allowed: Collection<String>, assistant: String?, taken: Set<String>): List<String> = buildList {
+internal fun standalonePackages(
+    enabled: Boolean, allowed: Collection<String>, assistant: String?, taken: Set<String>, navigation: Collection<String> = emptyList(),
+): List<String> = buildList {
     if (enabled) addAll(allowed)
     if (assistant != null && assistant !in taken && assistant !in this) add(assistant)
+    navigation.filterTo(this) { it !in taken && it !in this }
 }

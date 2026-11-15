@@ -118,7 +118,7 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
                 loading = false, icon = Icons.Rounded.PauseCircle)
             !mirroring -> Placeholder(stringResource(if (consent) R.string.mirror_capture_failed else R.string.mirror_need_screen_capture),
                 loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = Modifier.background(Color.Black))
-            MirrorTouchService.instance == null -> Placeholder(stringResource(R.string.mirror_need_accessibility),
+            !helper && MirrorTouchService.instance == null -> Placeholder(stringResource(R.string.mirror_need_accessibility),
                 loading = false, icon = Icons.Rounded.TouchApp, modifier = Modifier.fillMaxSize())
         }
     }

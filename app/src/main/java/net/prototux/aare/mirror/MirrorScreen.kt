@@ -3,6 +3,8 @@ package net.prototux.aare.mirror
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.view.MotionEvent
+import net.prototux.aare.Settings
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.foundation.background
@@ -47,9 +49,12 @@ import net.prototux.aare.service.ProjectionService
 internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modifier) {
     val context = LocalContext.current
     val locked = rememberKeyguardLocked()
-    // Parked with Shizuku or root: the phone itself at the car screen's size, touched live, instead of its
-    // mirror. Not while the phone is locked: its display would let anyone in the car use it.
-    if (!driving && remember { AppLauncher.available(context) }) {
+    val settings = remember { Settings(context) }
+    // Shizuku or root: touches go to the phone live, and it can turn to landscape or show a desktop of its own.
+    val helper = remember { AppLauncher.available(context) }
+    // Parked, as chosen: a desktop of the phone's own at the car screen's size, instead of its mirror.
+    // Not while the phone is locked: its display would let anyone in the car use it.
+    if (!driving && helper && settings.phoneScreenMode == Settings.PHONE_SCREEN_DESKTOP) {
         if (locked) Placeholder(stringResource(R.string.mirror_locked_placeholder), loading = false, icon = Icons.Rounded.Lock, modifier = modifier.background(Color.Black))
         else PhoneDesktop(runtime, modifier)
         return
@@ -79,8 +84,15 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
         if (allowed) key(consent) {
             // A new view when the consent comes or goes, so the mirror starts as soon as it's given.
             MirrorSurface(runtime, Modifier.fillMaxSize()) { mirroring = it }
-            // Touches are caught above the mirror and replayed on the phone.
-            Box(Modifier.fillMaxSize().pointerInput(Unit) {
+            if (helper) {
+                // Landscape, as wide as the car screen, and its panel dark if chosen; all back once it's left.
+                DisposableEffect(Unit) {
+                    PhoneMirror.phoneScreen(context, true, settings.phoneScreenOff)
+                    onDispose { PhoneMirror.phoneScreen(context, false, false) }
+                }
+                LiveTouch(context)
+            } else Box(Modifier.fillMaxSize().pointerInput(Unit) {
+                // Touches are caught above the mirror and replayed on the phone.
                 awaitEachGesture {
                     val down = awaitFirstDown()
                     val start = down.uptimeMillis
@@ -161,16 +173,50 @@ internal fun rememberKeyguardLocked(): Boolean {
     return locked
 }
 
+/** The car's touches on the mirror, sent to the phone as they happen through the helper: a drag scrolls as it goes. */
+@Composable
+private fun LiveTouch(context: Context) {
+    Box(Modifier.fillMaxSize().pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown()
+            val phone = PhoneMirror.phoneScreenSize(context)
+            fun send(action: Int, x: Float, y: Float, time: Long): Boolean {
+                val (px, py) = toPhone(x, y, size.width, size.height, phone.x, phone.y, clamp = action != MotionEvent.ACTION_DOWN) ?: return false
+                return PhoneMirror.touch(context, down.uptimeMillis, time, action, px, py)
+            }
+            // A touch beside the phone's picture starts nothing.
+            if (!send(MotionEvent.ACTION_DOWN, down.position.x, down.position.y, down.uptimeMillis)) return@awaitEachGesture
+            down.consume()
+            while (true) {
+                val c = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                c.consume()
+                if (!c.pressed) {
+                    send(MotionEvent.ACTION_UP, c.position.x, c.position.y, c.uptimeMillis)
+                    break
+                }
+                send(MotionEvent.ACTION_MOVE, c.position.x, c.position.y, c.uptimeMillis)
+            }
+        }
+    })
+}
+
+/**
+ * A point of a [viewW]×[viewH] view showing the [phoneW]×[phoneH] phone screen in proportion and
+ * centered, in phone pixels; null beside the picture, or brought to its edge with [clamp].
+ */
+internal fun toPhone(x: Float, y: Float, viewW: Int, viewH: Int, phoneW: Int, phoneH: Int, clamp: Boolean = false): Pair<Float, Float>? {
+    val scale = minOf(viewW.toFloat() / phoneW, viewH.toFloat() / phoneH)
+    val px = (x - (viewW - phoneW * scale) / 2) / scale
+    val py = (y - (viewH - phoneH * scale) / 2) / scale
+    if (clamp) return px.coerceIn(0f, phoneW.toFloat()) to py.coerceIn(0f, phoneH.toFloat())
+    return (px to py).takeIf { px in 0f..phoneW.toFloat() && py in 0f..phoneH.toFloat() }
+}
+
 /** Replays a car gesture on the phone: car pixels to phone pixels, through the letterboxing. */
 private fun replay(context: android.content.Context, viewW: Int, viewH: Int, points: List<Pair<Float, Float>>, durationMs: Long, slop: Float) {
     val touch = MirrorTouchService.instance ?: return
     val phone = PhoneMirror.phoneScreenSize(context)
-    // The mirror keeps the phone's aspect ratio, centered.
-    val scale = minOf(viewW.toFloat() / phone.x, viewH.toFloat() / phone.y)
-    val ox = (viewW - phone.x * scale) / 2
-    val oy = (viewH - phone.y * scale) / 2
-    val mapped = points.map { (x, y) -> (x - ox) / scale to (y - oy) / scale }
-        .filter { (x, y) -> x in 0f..phone.x.toFloat() && y in 0f..phone.y.toFloat() }
+    val mapped = points.mapNotNull { (x, y) -> toPhone(x, y, viewW, viewH, phone.x, phone.y) }
     if (mapped.isEmpty()) return
     val (x0, y0) = points.first()
     val moved = points.any { (x, y) -> kotlin.math.hypot(x - x0, y - y0) > slop }

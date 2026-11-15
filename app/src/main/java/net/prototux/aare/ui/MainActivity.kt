@@ -776,7 +776,21 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
             Toggle(stringResource(R.string.phone_toggle_enable_title), stringResource(R.string.phone_toggle_enable_subtitle), phoneScreen) {
                 phoneScreen = it; settings.phoneScreen = it
             }
-            if (phoneScreen) {
+            if (phoneScreen && remember { AppLauncher.available(ctx) }) {
+                var mode by remember { mutableStateOf(settings.phoneScreenMode) }
+                Choices(stringResource(R.string.phone_mode_title), listOf(
+                    Settings.PHONE_SCREEN_MIRROR to stringResource(R.string.phone_mode_mirror),
+                    Settings.PHONE_SCREEN_DESKTOP to stringResource(R.string.phone_mode_desktop),
+                ), mode) { mode = it; settings.phoneScreenMode = it }
+                Text(stringResource(if (mode == Settings.PHONE_SCREEN_MIRROR) R.string.phone_mode_mirror_hint else R.string.phone_mode_desktop_hint),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (mode == Settings.PHONE_SCREEN_MIRROR) {
+                    var off by remember { mutableStateOf(settings.phoneScreenOff) }
+                    Toggle(stringResource(R.string.phone_toggle_off_title), stringResource(R.string.phone_toggle_off_subtitle), off) {
+                        off = it; settings.phoneScreenOff = it
+                    }
+                }
+            } else if (phoneScreen) {
                 Check(stringResource(R.string.phone_check_touch_title), stringResource(R.string.phone_check_touch_subtitle), touch) {
                     ctx.startSafely(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS), appDetails(ctx))
                 }

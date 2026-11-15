@@ -94,6 +94,9 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     fun openPending(intent: PendingIntent): Boolean =
         runCatching { host?.openPending(intent) ?: false }.onFailure { Log.w(TAG, "openPending", it) }.getOrDefault(false)
 
+    /** The phone's own screen shown in the car: landscape and awake, its panel off with [panelOff]; inactive, all back. */
+    fun phoneScreen(active: Boolean, panelOff: Boolean) { runCatching { host?.phoneScreen(active, panelOff) } }
+
     /** Create the display into [surface] and launch [pkg] on it. Returns the display id, or -1. */
     fun start(surface: Surface, width: Int, height: Int, dpi: Int, pkg: String, keepDisplayAwake: Boolean): Int =
         runCatching { host?.start(surface, width, height, dpi, pkg, keepDisplayAwake) ?: -1 }

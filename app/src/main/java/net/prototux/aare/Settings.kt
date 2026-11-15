@@ -217,6 +217,19 @@ class Settings(context: Context) {
         get() = prefs.getString("assistant_pkg", null)
         set(v) = prefs.edit { if (v == null) remove("assistant_pkg") else putString("assistant_pkg", v) }
 
+    /**
+     * With Shizuku or root, what "Phone screen" shows parked: [PHONE_SCREEN_MIRROR] the phone's own
+     * screen turned to landscape, or [PHONE_SCREEN_DESKTOP] a desktop of its own at the car screen's size.
+     */
+    var phoneScreenMode: String
+        get() = prefs.getString("phone_screen_mode", PHONE_SCREEN_MIRROR) ?: PHONE_SCREEN_MIRROR
+        set(v) = prefs.edit { putString("phone_screen_mode", v) }
+
+    /** While the phone's screen is mirrored with Shizuku or root, its panel is off (the power key turns it back on). */
+    var phoneScreenOff: Boolean
+        get() = prefs.getBoolean("phone_screen_off", true)
+        set(v) = prefs.edit { putBoolean("phone_screen_off", v) }
+
     /** Offer "Phone screen" in the car: the phone's own screen, for apps AARE can't host (Google Maps, Waze). */
     var phoneScreen: Boolean
         get() = prefs.getBoolean("phone_screen", false)
@@ -400,6 +413,8 @@ class Settings(context: Context) {
 
     companion object {
         const val BROWSER_DEFAULT_URL = "https://duckduckgo.com/"
+        const val PHONE_SCREEN_MIRROR = "mirror"
+        const val PHONE_SCREEN_DESKTOP = "desktop"
         const val RAIL_AUTO = "auto"
         const val RAIL_LEFT = "left"
         const val RAIL_RIGHT = "right"

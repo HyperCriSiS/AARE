@@ -127,9 +127,55 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     override fun stopMirror() {
+        phoneScreen(false, false)
         mirrorDisplay?.let { runCatching { it.release() } }
         mirrorDisplay = null
     }
+
+    /** The rotation setting before [phoneScreen] turned the phone, to put back ("free" or "lock N"); null when untouched. */
+    private var savedRotation: String? = null
+    private var panelOff = false
+    private var phoneAwake: PowerManager.WakeLock? = null
+
+    @SuppressLint("WakelockTimeout")
+    @Suppress("DEPRECATION")
+    override fun phoneScreen(active: Boolean, panelOff: Boolean) {
+        if (active && savedRotation == null) {
+            savedRotation = savedRotation(shell("cmd", "window", "user-rotation"))
+            shell("cmd", "window", "user-rotation", "lock", "1")
+            // Untouched, the phone would time out and lock, and the mirror with it.
+            phoneAwake = runCatching {
+                callerContext()?.getSystemService(PowerManager::class.java)
+                    ?.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "aare:phone-screen")?.apply { acquire() }
+            }.onFailure { Log.w(TAG, "phone screen wake lock failed: ${it.message}") }.getOrNull()
+        } else if (!active) {
+            savedRotation?.let { shell(*("cmd window user-rotation $it").split(' ').toTypedArray()) }
+            savedRotation = null
+            phoneAwake?.let { runCatching { if (it.isHeld) it.release() } }
+            phoneAwake = null
+        }
+        val off = active && panelOff
+        if (off != this.panelOff && setPanel(!off)) this.panelOff = off
+    }
+
+    /**
+     * The phone's panel on or off while Android keeps drawing its screen, like scrcpy's
+     * --turn-screen-off: the mirror goes on, and the power key brings the panel back. Android 15+.
+     */
+    private fun setPanel(on: Boolean): Boolean = runCatching {
+        val binder = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java).invoke(null, "display") as IBinder
+        val manager = Class.forName("android.hardware.display.IDisplayManager\$Stub").getMethod("asInterface", IBinder::class.java).invoke(null, binder)
+        val method = manager.javaClass.methods.first { it.name == "requestDisplayPower" && it.parameterTypes.size == 2 }
+        // Android 15 takes on/off, later versions a Display.STATE_ (2 on, 1 off).
+        val state: Any = if (method.parameterTypes[1] == Boolean::class.javaPrimitiveType) on else if (on) 2 else 1
+        method.invoke(manager, android.view.Display.DEFAULT_DISPLAY, state) as? Boolean ?: true
+    }.onFailure { Log.w(TAG, "phone panel ${if (on) "on" else "off"} failed: ${it.message}") }.getOrDefault(false)
+
+    /** Runs a shell command as this helper and returns its output. */
+    private fun shell(vararg command: String): String = runCatching {
+        val p = ProcessBuilder(*command).redirectErrorStream(true).start()
+        p.inputStream.bufferedReader().use { it.readText() }.also { p.waitFor() }
+    }.onFailure { Log.w(TAG, "${command.joinToString(" ")} failed: ${it.message}") }.getOrDefault("")
 
     override fun destroy() {
         stop()
@@ -352,7 +398,9 @@ class LaunchHostService : ILaunchHost.Stub {
             HiddenApiBypass.addHiddenApiExemptions(
                 "Landroid/app/ActivityThread;", "Landroid/app/ActivityManager;", "Landroid/app/IActivityManager", "Landroid/app/IApplicationThread;",
                 "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;", "Landroid/hardware/input/InputManagerGlobal;",
-                "Landroid/hardware/display/DisplayManager;", "Landroid/view/WindowManagerGlobal;", "Landroid/view/IWindowManager", "Landroid/os/ServiceManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
+                "Landroid/hardware/display/DisplayManager;", "Landroid/view/WindowManagerGlobal;", "Landroid/view/IWindowManager",
+                "Landroid/os/ServiceManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
+                "Landroid/hardware/display/IDisplayManager",
             )
         }
     }
@@ -381,3 +429,7 @@ class LaunchHostService : ILaunchHost.Stub {
         const val MIN_DPI = 120
     }
 }
+
+/** What `cmd window user-rotation` printed, as the arguments that put it back: "free" or "lock N"; "free" for anything else. */
+internal fun savedRotation(output: String): String =
+    output.trim().lowercase().takeIf { Regex("free|lock [0-3]").matches(it) } ?: "free"

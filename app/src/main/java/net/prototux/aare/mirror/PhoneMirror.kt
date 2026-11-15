@@ -45,6 +45,12 @@ object PhoneMirror {
         }.isSuccess
     }
 
+    /** A car touch for the phone's own screen, at its pixels, through the helper: live, as it happens. False without one. */
+    fun touch(context: Context, downTime: Long, eventTime: Long, action: Int, x: Float, y: Float): Boolean = Helper.touch(context, downTime, eventTime, action, x, y)
+
+    /** The phone's screen landscape and awake (its panel off with [panelOff]) while shown in the car; inactive, all back. */
+    fun phoneScreen(context: Context, active: Boolean, panelOff: Boolean) = Helper.phoneScreen(context, active, panelOff)
+
     /** Stops drawing (the display stays, for the next [attach]). */
     fun detach() {
         display?.surface = null
@@ -65,16 +71,28 @@ object PhoneMirror {
 
         fun attach(context: Context, surface: Surface, width: Int, height: Int, dpi: Int): Boolean {
             if (!AppLauncher.available(context)) return false
-            val app = context.applicationContext
             worker.execute {
-                // A helper that went away (its process ended) is connected again.
-                val l = launcher?.takeIf { it.connected } ?: run {
-                    launcher?.release()
-                    AppLauncher(app, "mirror").let { if (it.connect()) it else { it.release(); null } }.also { launcher = it }
-                }
-                if (l?.mirror(surface, width, height, dpi) != true) Log.w(TAG, "the helper can't mirror the phone screen")
+                if (connected(context)?.mirror(surface, width, height, dpi) != true) Log.w(TAG, "the helper can't mirror the phone screen")
             }
             return true
+        }
+
+        /** The helper, connected again if it went away (its process ended). Worker only. */
+        private fun connected(context: Context): AppLauncher? = launcher?.takeIf { it.connected } ?: run {
+            launcher?.release()
+            AppLauncher(context.applicationContext, "mirror").let { if (it.connect()) it else { it.release(); null } }.also { launcher = it }
+        }
+
+        fun touch(context: Context, downTime: Long, eventTime: Long, action: Int, x: Float, y: Float): Boolean {
+            if (!AppLauncher.available(context)) return false
+            // No display of its own: the helper's touches land on the phone's screen.
+            worker.execute { connected(context)?.touch(downTime, eventTime, action, x, y, 0) }
+            return true
+        }
+
+        fun phoneScreen(context: Context, active: Boolean, panelOff: Boolean) {
+            if (!AppLauncher.available(context)) return
+            worker.execute { connected(context)?.phoneScreen(active, panelOff) }
         }
 
         fun detach() = worker.execute { launcher?.stopMirror() }

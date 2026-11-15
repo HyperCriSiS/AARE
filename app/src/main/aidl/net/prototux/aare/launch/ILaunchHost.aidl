@@ -36,6 +36,12 @@ interface ILaunchHost {
     /** Start [intent] (an app's own activity, say its player) on the display made by [start]. False if it can't. */
     boolean openPending(in PendingIntent intent) = 8;
 
+    /**
+     * While the phone's own screen is shown in the car ([active]): turn it to landscape and keep it
+     * awake, and with [panelOff] switch its panel off while the phone still draws it. Inactive: all back.
+     */
+    void phoneScreen(boolean active, boolean panelOff) = 11;
+
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;
 }

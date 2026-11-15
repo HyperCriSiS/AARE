@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -151,7 +153,11 @@ fun CarShell(
     BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
     LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
     val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
-    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    // A longer hold than the phone's before a long press counts: car touch screens report the lift late,
+    // and a plain tap on the rail opened the pane menu.
+    val base = LocalViewConfiguration.current
+    val viewConfiguration = remember(base) { object : ViewConfiguration by base { override val longPressTimeoutMillis = CAR_LONG_PRESS_MS } }
+    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus, LocalViewConfiguration provides viewConfiguration) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.
@@ -531,6 +537,9 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
         })
         .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
+
+/** How long a finger rests on the car screen before it is a long press (the phone's is 400 ms). */
+private const val CAR_LONG_PRESS_MS = 800L
 
 /** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
 internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null

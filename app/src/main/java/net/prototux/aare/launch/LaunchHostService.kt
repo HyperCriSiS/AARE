@@ -91,13 +91,17 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     override fun touch(downTime: Long, eventTime: Long, action: Int, x: Float, y: Float, pointerId: Int) {
-        // A finger, as the phone's own screen reports one: Compose apps (Claude) ignore a tap of unknown tool type.
-        val props = MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_FINGER }
-        val coords = MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 1f; size = 1f }
-        val ev = MotionEvent.obtain(downTime, eventTime, action, 1, arrayOf(props), arrayOf(coords), 0, 0, 1f, 1f, 0, 0, SOURCE_TOUCHSCREEN, 0)
+        val ev = finger(downTime, eventTime, action, x, y)
         setDisplayId(ev, displayId)
         inject(ev)
         ev.recycle()
+    }
+
+    /** A finger on a touchscreen, as the phone's own screen reports one: some apps ignore a touch of unknown tool type. */
+    private fun finger(downTime: Long, eventTime: Long, action: Int, x: Float, y: Float): MotionEvent {
+        val props = MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_FINGER }
+        val coords = MotionEvent.PointerCoords().apply { this.x = x; this.y = y; pressure = 1f; size = 1f }
+        return MotionEvent.obtain(downTime, eventTime, action, 1, arrayOf(props), arrayOf(coords), 0, 0, 1f, 1f, 0, 0, SOURCE_TOUCHSCREEN, 0)
     }
 
     override fun key(eventTime: Long, action: Int, keyCode: Int) {
@@ -298,10 +302,14 @@ class LaunchHostService : ILaunchHost.Stub {
                     // A finger's tap on its middle: some apps (web pages) ignore an accessibility click.
                     val r = Rect().also(node::getBoundsInScreen)
                     val t = SystemClock.uptimeMillis()
-                    touch(t, t, MotionEvent.ACTION_DOWN, r.exactCenterX(), r.exactCenterY(), 0)
-                    // Lifted a moment later, as a finger is: an up stamped ahead of time is dropped.
-                    Thread.sleep(60)
-                    touch(t, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, r.exactCenterX(), r.exactCenterY(), 0)
+                    // Through the UiAutomation, as uiautomator taps: injected the plain way, the tap reached Claude without pressing.
+                    for (action in intArrayOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
+                        if (action == MotionEvent.ACTION_UP) Thread.sleep(60)
+                        val ev = finger(t, SystemClock.uptimeMillis(), action, r.exactCenterX(), r.exactCenterY())
+                        setDisplayId(ev, id)
+                        ui.injectInputEvent(ev, true)
+                        ev.recycle()
+                    }
                     Log.i(TAG, "tapped '$pattern' at $r on display $id")
                     return true
                 }

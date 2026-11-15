@@ -445,10 +445,8 @@ class CarRuntime(
         // and the assistant picked in AARE when it has no car app, so the voice button opens it there.
         if (AppLauncher.available(context)) {
             val taken = entries.mapTo(HashSet()) { it.packageName }
-            // Apps whose Android Auto side only Google's Android Auto can show (Google Maps, the Play Store) and the
-            // other navigation apps are there as phone apps without being picked.
-            val hostedAnyway = KNOWN_NAVIGATION + AndroidAutoApps.unsupported(context, taken, iconSizePx = 1).map { it.packageName }
-            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken, hostedAnyway)) {
+            // Navigation apps with no car app AARE can host (Google Maps) are there as phone apps without being picked.
+            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken, KNOWN_NAVIGATION)) {
                 if (pkg in hidden) continue
                 val info = runCatching { context.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: continue
                 val label = context.packageManager.getApplicationLabel(info).toString()

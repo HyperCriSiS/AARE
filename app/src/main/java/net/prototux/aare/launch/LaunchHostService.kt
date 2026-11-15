@@ -288,12 +288,15 @@ class LaunchHostService : ILaunchHost.Stub {
         }.onFailure { Log.w(TAG, "injectInputEvent failed: ${it.message}") }
     }
 
-    /** InputManager.getInstance() (hidden; still the simplest handle that exposes injectInputEvent). */
+    /**
+     * The hidden handle that exposes injectInputEvent: InputManagerGlobal from Android 14 (Android 17
+     * dropped InputManager.getInstance()), InputManager.getInstance() before.
+     */
     private val inputManager: Any? by lazy {
-        runCatching {
-            val cls = Class.forName("android.hardware.input.InputManager")
-            cls.getMethod("getInstance").invoke(null)
-        }.onFailure { Log.w(TAG, "InputManager.getInstance failed: ${it.message}") }.getOrNull()
+        listOf("android.hardware.input.InputManagerGlobal", "android.hardware.input.InputManager").firstNotNullOfOrNull { name ->
+            runCatching { Class.forName(name).getMethod("getInstance").invoke(null) }
+                .onFailure { Log.w(TAG, "$name.getInstance failed: ${it.message}") }.getOrNull()
+        }
     }
 
     private fun setDisplayId(event: InputEvent, id: Int) {
@@ -326,7 +329,7 @@ class LaunchHostService : ILaunchHost.Stub {
         runCatching {
             HiddenApiBypass.addHiddenApiExemptions(
                 "Landroid/app/ActivityThread;", "Landroid/app/ActivityManager;", "Landroid/app/IActivityManager", "Landroid/app/IApplicationThread;",
-                "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;",
+                "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;", "Landroid/hardware/input/InputManagerGlobal;",
                 "Landroid/hardware/display/DisplayManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
             )
         }

@@ -37,10 +37,11 @@ interface ILaunchHost {
     boolean openPending(in PendingIntent intent) = 8;
 
     /**
-     * While the phone's own screen is shown in the car ([active]): turn it to landscape and keep it
-     * awake, and with [panelOff] switch its panel off while the phone still draws it. Inactive: all back.
+     * The phone's own screen while the car shows it or one of its apps: [landscape] turned to
+     * landscape, [awake] kept from timing out and locking, [panelOff] its panel dark while the phone
+     * still draws it. All false puts everything back, as stop() does.
      */
-    void phoneScreen(boolean active, boolean panelOff) = 11;
+    void phoneScreen(boolean landscape, boolean awake, boolean panelOff) = 11;
 
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;

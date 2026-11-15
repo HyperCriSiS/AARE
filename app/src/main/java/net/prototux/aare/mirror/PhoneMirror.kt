@@ -92,7 +92,7 @@ object PhoneMirror {
 
         fun phoneScreen(context: Context, active: Boolean, panelOff: Boolean) {
             if (!AppLauncher.available(context)) return
-            worker.execute { connected(context)?.phoneScreen(active, panelOff) }
+            worker.execute { connected(context)?.phoneScreen(active, active, active && panelOff) }
         }
 
         fun detach() = worker.execute { launcher?.stopMirror() }

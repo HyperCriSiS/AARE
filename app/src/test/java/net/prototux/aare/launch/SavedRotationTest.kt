@@ -1,6 +1,7 @@
 package net.prototux.aare.launch
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class SavedRotationTest {
@@ -11,8 +12,8 @@ class SavedRotationTest {
     }
 
     @Test
-    fun anythingElseFreesTheRotation() {
-        assertEquals("free", savedRotation(""))
-        assertEquals("free", savedRotation("Error: unknown command"))
+    fun anythingElseIsNothingToPutBack() {
+        assertNull(savedRotation(""))
+        assertNull(savedRotation("Error: unknown command"))
     }
 }

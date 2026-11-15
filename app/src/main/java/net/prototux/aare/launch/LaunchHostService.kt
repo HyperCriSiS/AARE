@@ -103,6 +103,7 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     override fun stop() {
+        phoneScreen(false, false, false)
         screenOffReceiver?.let { receiver ->
             receiverContext?.let { context -> runCatching { context.unregisterReceiver(receiver) } }
         }
@@ -127,7 +128,7 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     override fun stopMirror() {
-        phoneScreen(false, false)
+        phoneScreen(false, false, false)
         mirrorDisplay?.let { runCatching { it.release() } }
         mirrorDisplay = null
     }
@@ -139,23 +140,29 @@ class LaunchHostService : ILaunchHost.Stub {
 
     @SuppressLint("WakelockTimeout")
     @Suppress("DEPRECATION")
-    override fun phoneScreen(active: Boolean, panelOff: Boolean) {
-        if (active && savedRotation == null) {
+    @Synchronized
+    override fun phoneScreen(landscape: Boolean, awake: Boolean, panelOff: Boolean) {
+        // Nothing shown any more (stop() came first): a late request would stay after this helper ends.
+        if ((landscape || awake || panelOff) && displayId < 0 && mirrorDisplay == null) return
+        if (landscape && savedRotation == null) {
+            // Unreadable, it is left alone: there would be nothing right to put back.
             savedRotation = savedRotation(shell("cmd", "window", "user-rotation"))
-            Log.i(TAG, "phone screen: landscape, rotation was '$savedRotation': ${shell("cmd", "window", "user-rotation", "lock", "1").trim()}")
-            // Untouched, the phone would time out and lock, and the mirror with it.
+            savedRotation?.let { Log.i(TAG, "phone screen: landscape, rotation was '$it': ${shell("cmd", "window", "user-rotation", "lock", "1").trim()}") }
+        } else if (!landscape) {
+            savedRotation?.let { Log.i(TAG, "phone screen: rotation back to '$it': ${shell(*("cmd window user-rotation $it").split(' ').toTypedArray()).trim()}") }
+            savedRotation = null
+        }
+        if (awake && phoneAwake == null) {
+            // Untouched, the phone would time out and lock, and what the car shows with it.
             phoneAwake = runCatching {
                 callerContext()?.getSystemService(PowerManager::class.java)
                     ?.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "aare:phone-screen")?.apply { acquire() }
             }.onFailure { Log.w(TAG, "phone screen wake lock failed: ${it.message}") }.getOrNull()
-        } else if (!active) {
-            savedRotation?.let { Log.i(TAG, "phone screen: rotation back to '$it': ${shell(*("cmd window user-rotation $it").split(' ').toTypedArray()).trim()}") }
-            savedRotation = null
+        } else if (!awake) {
             phoneAwake?.let { runCatching { if (it.isHeld) it.release() } }
             phoneAwake = null
         }
-        val off = active && panelOff
-        if (off != this.panelOff && setPanel(!off)) this.panelOff = off
+        if (panelOff != this.panelOff && setPanel(!panelOff)) this.panelOff = panelOff
     }
 
     /**
@@ -430,6 +437,6 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 }
 
-/** What `cmd window user-rotation` printed, as the arguments that put it back: "free" or "lock N"; "free" for anything else. */
-internal fun savedRotation(output: String): String =
-    output.trim().lowercase().takeIf { Regex("free|lock [0-3]").matches(it) } ?: "free"
+/** What `cmd window user-rotation` printed, as the arguments that put it back ("free" or "lock N"); null for anything else. */
+internal fun savedRotation(output: String): String? =
+    output.trim().lowercase().takeIf { Regex("free|lock [0-3]").matches(it) }

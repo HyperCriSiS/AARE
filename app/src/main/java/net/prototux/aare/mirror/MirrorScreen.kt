@@ -4,6 +4,9 @@ import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.view.MotionEvent
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import net.prototux.aare.Settings
 import android.content.Intent
 import android.content.IntentFilter
@@ -149,6 +152,8 @@ private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
     }
     Box(modifier.background(Color.Black)) {
         HostedAppSurface(launcher, AppLauncher.PHONE_DESKTOP, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+        // Kept awake: untouched, the phone would lock, and the desktop pause with it. Put back when the helper stops.
+        LaunchedEffect(started) { if (started) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = false, awake = true, panelOff = false) } }
         if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
     }
 }

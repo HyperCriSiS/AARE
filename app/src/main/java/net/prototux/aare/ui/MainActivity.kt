@@ -790,7 +790,9 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                         off = it; settings.phoneScreenOff = it
                     }
                 }
-            } else if (phoneScreen) {
+            }
+            // Without a helper the touches go through it; with one it still tells which app is in front, for driving.
+            if (phoneScreen) {
                 Check(stringResource(R.string.phone_check_touch_title), stringResource(R.string.phone_check_touch_subtitle), touch) {
                     ctx.startSafely(Intent(AndroidSettings.ACTION_ACCESSIBILITY_SETTINGS), appDetails(ctx))
                 }

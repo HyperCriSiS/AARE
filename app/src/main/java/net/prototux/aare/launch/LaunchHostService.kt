@@ -142,14 +142,14 @@ class LaunchHostService : ILaunchHost.Stub {
     override fun phoneScreen(active: Boolean, panelOff: Boolean) {
         if (active && savedRotation == null) {
             savedRotation = savedRotation(shell("cmd", "window", "user-rotation"))
-            shell("cmd", "window", "user-rotation", "lock", "1")
+            Log.i(TAG, "phone screen: landscape, rotation was '$savedRotation': ${shell("cmd", "window", "user-rotation", "lock", "1").trim()}")
             // Untouched, the phone would time out and lock, and the mirror with it.
             phoneAwake = runCatching {
                 callerContext()?.getSystemService(PowerManager::class.java)
                     ?.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "aare:phone-screen")?.apply { acquire() }
             }.onFailure { Log.w(TAG, "phone screen wake lock failed: ${it.message}") }.getOrNull()
         } else if (!active) {
-            savedRotation?.let { shell(*("cmd window user-rotation $it").split(' ').toTypedArray()) }
+            savedRotation?.let { Log.i(TAG, "phone screen: rotation back to '$it': ${shell(*("cmd window user-rotation $it").split(' ').toTypedArray()).trim()}") }
             savedRotation = null
             phoneAwake?.let { runCatching { if (it.isHeld) it.release() } }
             phoneAwake = null

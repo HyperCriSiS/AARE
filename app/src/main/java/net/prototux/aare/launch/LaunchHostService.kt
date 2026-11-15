@@ -302,7 +302,8 @@ class LaunchHostService : ILaunchHost.Stub {
                     return true
                 }
                 if (SystemClock.uptimeMillis() >= until) {
-                    Log.w(TAG, "no button matching '$pattern' on display $id")
+                    val seen = ui.windowsOnAllDisplays.get(id).orEmpty().flatMap { w -> w.root?.let(::labels).orEmpty() }
+                    Log.w(TAG, "no button matching '$pattern' on display $id, only: ${seen.take(40).joinToString(" | ")}")
                     return false
                 }
                 Thread.sleep(300)
@@ -315,6 +316,11 @@ class LaunchHostService : ILaunchHost.Stub {
             thread.quitSafely()
         }
     }
+
+    /** Every text and description under [node], for the log when a label isn't there. */
+    private fun labels(node: AccessibilityNodeInfo): List<String> =
+        listOfNotNull(node.text, node.contentDescription).map { it.toString() }.filter { it.isNotBlank() } +
+            (0 until node.childCount).flatMap { i -> node.getChild(i)?.let(::labels).orEmpty() }
 
     /** The first node under [node] whose text or description matches [regex], depth first. */
     private fun findLabel(node: AccessibilityNodeInfo, regex: Regex): AccessibilityNodeInfo? {

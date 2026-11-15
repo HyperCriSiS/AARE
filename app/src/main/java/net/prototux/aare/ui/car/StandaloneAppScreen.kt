@@ -89,8 +89,10 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
                     withContext(Dispatchers.IO) {
                         // With a start link (a project), the link first, then its voice button; without, or when that
                         // button doesn't show, the app's voice shortcut, in a new chat.
+                        // A project opens on its page: a new chat there first, which has the voice button.
                         val linked = link.isNotEmpty() && launcher.openPending(linkIntent(context, link, packageName)) &&
-                            launcher.tapLabel(VOICE_BUTTON, VOICE_BUTTON_WAIT_MS)
+                            (launcher.tapLabel(VOICE_BUTTON, VOICE_BUTTON_FIRST_MS) ||
+                                launcher.tapLabel(NEW_CHAT_BUTTON, VOICE_BUTTON_WAIT_MS) && launcher.tapLabel(VOICE_BUTTON, VOICE_BUTTON_WAIT_MS))
                         if (!linked) launcher.openShortcut(packageName, VOICE_SHORTCUT)
                     }
                     // Only now: the request is this effect's key, and clearing it cancels the effect.
@@ -193,5 +195,9 @@ private const val VOICE_SHORTCUT = "voice"
 /** The label of an assistant's voice-mode button, in English or German (Claude: "Voice mode", "Sprachmodus"). */
 private const val VOICE_BUTTON = "voice mode|sprachmodus"
 
-/** How long the start link may take to show its voice button. */
+/** The label of the button that starts a chat on a project's page (Claude: "New session", "Neue Sitzung"). */
+private const val NEW_CHAT_BUTTON = "^(new session|new chat|neue sitzung|neuer chat)$"
+
+/** How long the start link may take to show a button, and how long to look for the voice button before a new chat. */
 private const val VOICE_BUTTON_WAIT_MS = 8_000L
+private const val VOICE_BUTTON_FIRST_MS = 2_500L

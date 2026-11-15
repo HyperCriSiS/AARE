@@ -115,6 +115,8 @@ class CarAppConnection(
     private var started = false
     private var pendingIntent: Intent? = null
     private var retries = 0
+    /** When it last came up (onAppCreate done), on the elapsed-realtime clock. */
+    private var readyAt = 0L
     /** Screen stack of the last template applied, top first (as ScreenManager lists it). */
     private var screenStack: List<TemplateInfo> = emptyList()
     /** getTemplate calls started / the newest one applied: replies can come back out of order. */
@@ -313,7 +315,7 @@ class CarAppConnection(
                     }) { app.getManager("navigation", it) }
                 }
                 status = Status.READY
-                retries = 0
+                readyAt = android.os.SystemClock.elapsedRealtime()
                 screenStack = emptyList() // a new session: its first template is never a refresh
                 fetchTemplate()
                 applyVisibility()
@@ -384,7 +386,12 @@ class CarAppConnection(
         unbind()
         status = Status.FAILED
         error = context.getString(R.string.carapp_error_stopped, info.label)
-        // Reconnect while it's on screen, a few times: apps get killed and restarted by the OS.
+        // Reconnect while it's on screen, a few times: apps get killed and restarted by the OS. The count
+        // starts afresh only after a while up: an app that crashes right after it starts (Blitzer.de with
+        // the phone's location off) would otherwise come back forever.
+        // Never up since the last crash: no time up at all.
+        retries = retriesAfterCrash(retries, if (readyAt == 0L) 0L else android.os.SystemClock.elapsedRealtime() - readyAt)
+        readyAt = 0L
         if (visible && retries++ < 3) main.postDelayed({ if (visible && status == Status.FAILED) connect() }, 1_000L * retries)
     }
 
@@ -712,3 +719,9 @@ class CarAppConnection(
         }
     }
 }
+
+/** How long an app must have been up for a crash to start the reconnect count afresh. */
+internal const val STABLE_MS = 60_000L
+
+/** The reconnects already used before this crash: none once it ran [STABLE_MS] since it came up. */
+internal fun retriesAfterCrash(retries: Int, upMs: Long) = if (upMs >= STABLE_MS) 0 else retries

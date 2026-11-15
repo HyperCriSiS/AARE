@@ -6,26 +6,19 @@ import android.util.Log
 import net.prototux.aare.launch.AppLauncher
 
 /**
- * Turns the phone's location on while a car is connected, as Android Auto asks the driver to, and
- * back off at the end if it was off before: apps (Blitzer.de, Maps) need it, and the car's GPS only
- * reaches them through it. Needs Shizuku or root; without them it does nothing. Main thread.
+ * Turns the phone's location on when a car connects, as Android Auto asks the driver to, and off
+ * when it goes, each if chosen: apps (Blitzer.de, Maps) need it, and the car's GPS only reaches them
+ * through it. Needs Shizuku or root; without them it does nothing.
  */
 class PhoneLocationSwitch(private val context: Context) {
-    /** It was off and this turned it on: put back off at [stop]. */
-    @Volatile private var turnedOn = false
+    fun start() = switch(true)
 
-    fun start() {
+    fun stop() = switch(false)
+
+    private fun switch(on: Boolean) {
         val lm = context.getSystemService(LocationManager::class.java) ?: return
-        if (lm.isLocationEnabled || !AppLauncher.available(context)) return
-        Thread {
-            if (set(true)) turnedOn = true
-        }.start()
-    }
-
-    fun stop() {
-        if (!turnedOn) return
-        turnedOn = false
-        Thread { set(false) }.start()
+        if (lm.isLocationEnabled == on || !AppLauncher.available(context)) return
+        Thread { set(on) }.start()
     }
 
     private fun set(on: Boolean): Boolean {
@@ -34,7 +27,7 @@ class PhoneLocationSwitch(private val context: Context) {
             launcher.connect() && launcher.setLocationEnabled(on)
         } finally {
             launcher.release()
-        }.also { Log.i(TAG, "phone location ${if (on) "on" else "back off"}: $it") }
+        }.also { Log.i(TAG, "phone location ${if (on) "on" else "off"}: $it") }
     }
 
     private companion object {

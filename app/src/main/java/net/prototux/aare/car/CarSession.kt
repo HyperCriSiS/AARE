@@ -681,7 +681,7 @@ class CarSession(
     /** The car's GPS as the phone's location, so apps don't mix two positions. */
     private val locationFeed = PhoneLocationFeed(context)
 
-    /** The phone's location on while connected, if chosen. */
+    /** The phone's location on when connected and off afterwards, each if chosen. */
     private val locationSwitch = PhoneLocationSwitch(context)
 
     private val sensorListener = object : SensorChannel.Listener {
@@ -992,7 +992,7 @@ class CarSession(
         phoneBridge?.stop(); phoneBridge = null
         callSpeaker?.stop(); callSpeaker = null
         locationFeed.close()
-        locationSwitch.stop()
+        if (settings.locationOffAfterCar) locationSwitch.stop()
         drivingMode.stop()
         cluster?.stop()
         phoneAppsMic?.stop(); phoneAppsMic = null

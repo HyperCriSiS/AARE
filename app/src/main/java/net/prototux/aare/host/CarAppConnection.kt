@@ -393,6 +393,8 @@ class CarAppConnection(
         retries = retriesAfterCrash(retries, if (readyAt == 0L) 0L else android.os.SystemClock.elapsedRealtime() - readyAt)
         readyAt = 0L
         if (visible && retries++ < 3) main.postDelayed({ if (visible && status == Status.FAILED) connect() }, 1_000L * retries)
+        // Given up: say so, so the driver knows the app is the trouble, not the car screen.
+        else if (visible) error = context.getString(R.string.carapp_error_stopped_repeatedly, info.label)
     }
 
     private fun fail(message: String) {

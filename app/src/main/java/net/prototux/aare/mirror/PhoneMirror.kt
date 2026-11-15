@@ -48,6 +48,9 @@ object PhoneMirror {
     /** A car touch for the phone's own screen, at its pixels, through the helper: live, as it happens. False without one. */
     fun touch(context: Context, downTime: Long, eventTime: Long, action: Int, x: Float, y: Float): Boolean = Helper.touch(context, downTime, eventTime, action, x, y)
 
+    /** A key (Back) for the phone's own screen, through the helper. False without one. */
+    fun key(context: Context, keyCode: Int): Boolean = Helper.key(context, keyCode)
+
     /** The phone's screen landscape and awake (its panel off with [panelOff]) while shown in the car; inactive, all back. */
     fun phoneScreen(context: Context, active: Boolean, panelOff: Boolean) = Helper.phoneScreen(context, active, panelOff)
 
@@ -87,6 +90,18 @@ object PhoneMirror {
             if (!AppLauncher.available(context)) return false
             // No display of its own: the helper's touches land on the phone's screen.
             worker.execute { connected(context)?.touch(downTime, eventTime, action, x, y, 0) }
+            return true
+        }
+
+        fun key(context: Context, keyCode: Int): Boolean {
+            if (!AppLauncher.available(context)) return false
+            worker.execute {
+                connected(context)?.let { l ->
+                    val t = android.os.SystemClock.uptimeMillis()
+                    l.key(t, android.view.KeyEvent.ACTION_DOWN, keyCode)
+                    l.key(t, android.view.KeyEvent.ACTION_UP, keyCode)
+                }
+            }
             return true
         }
 

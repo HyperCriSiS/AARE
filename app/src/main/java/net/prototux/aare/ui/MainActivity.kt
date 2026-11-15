@@ -784,7 +784,8 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                 ), mode) { mode = it; settings.phoneScreenMode = it }
                 Text(stringResource(if (mode == Settings.PHONE_SCREEN_MIRROR) R.string.phone_mode_mirror_hint else R.string.phone_mode_desktop_hint),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (mode == Settings.PHONE_SCREEN_MIRROR) {
+                // Switching the panel off needs Android 15.
+                if (mode == Settings.PHONE_SCREEN_MIRROR && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
                     var off by remember { mutableStateOf(settings.phoneScreenOff) }
                     Toggle(stringResource(R.string.phone_toggle_off_title), stringResource(R.string.phone_toggle_off_subtitle), off) {
                         off = it; settings.phoneScreenOff = it

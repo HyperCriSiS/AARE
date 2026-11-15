@@ -142,8 +142,6 @@ class LaunchHostService : ILaunchHost.Stub {
     @Suppress("DEPRECATION")
     @Synchronized
     override fun phoneScreen(landscape: Boolean, awake: Boolean, panelOff: Boolean) {
-        // Nothing shown any more (stop() came first): a late request would stay after this helper ends.
-        if ((landscape || awake || panelOff) && displayId < 0 && mirrorDisplay == null) return
         if (landscape && savedRotation == null) {
             // Unreadable, it is left alone: there would be nothing right to put back.
             savedRotation = savedRotation(shell("cmd", "window", "user-rotation"))

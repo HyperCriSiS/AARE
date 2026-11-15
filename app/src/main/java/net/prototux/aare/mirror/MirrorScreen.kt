@@ -74,7 +74,8 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     val consent = ProjectionService.state.collectAsState().value.audioCapture
 
     DisposableEffect(Unit) {
-        val back: () -> Boolean = { MirrorTouchService.instance?.back() == true }
+        // With a helper the key itself, as touches go; without, the accessibility service's Back.
+        val back: () -> Boolean = { if (helper) PhoneMirror.key(context, android.view.KeyEvent.KEYCODE_BACK) else MirrorTouchService.instance?.back() == true }
         runtime.setScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
         // The next screen installs its own handler before this one fades out: leave that one alone.
         onDispose {
@@ -192,14 +193,23 @@ private fun LiveTouch(context: Context) {
             // A touch beside the phone's picture starts nothing.
             if (!send(MotionEvent.ACTION_DOWN, down.position.x, down.position.y, down.uptimeMillis)) return@awaitEachGesture
             down.consume()
-            while (true) {
-                val c = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
-                c.consume()
-                if (!c.pressed) {
-                    send(MotionEvent.ACTION_UP, c.position.x, c.position.y, c.uptimeMillis)
-                    break
+            var last = down.position
+            var lifted = false
+            try {
+                while (true) {
+                    val c = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                    c.consume()
+                    last = c.position
+                    if (!c.pressed) {
+                        send(MotionEvent.ACTION_UP, c.position.x, c.position.y, c.uptimeMillis)
+                        lifted = true
+                        break
+                    }
+                    send(MotionEvent.ACTION_MOVE, c.position.x, c.position.y, c.uptimeMillis)
                 }
-                send(MotionEvent.ACTION_MOVE, c.position.x, c.position.y, c.uptimeMillis)
+            } finally {
+                // The finger gone without a lift (the screen changed, the phone locked): the phone would hold it down.
+                if (!lifted) send(MotionEvent.ACTION_CANCEL, last.x, last.y, android.os.SystemClock.uptimeMillis())
             }
         }
     })

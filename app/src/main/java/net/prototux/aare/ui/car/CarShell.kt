@@ -541,8 +541,11 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
 /** How long a finger rests on the car screen before it is a long press (the phone's is 400 ms). */
 private const val CAR_LONG_PRESS_MS = 800L
 
-/** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
-internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null
+/**
+ * A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when shorter than [min]
+ * sideways or steeper than 45 degrees. In a car a swipe is rarely straight; steeper is the rail's scroll.
+ */
+internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > abs(dy)) dx < 0 else null
 
 @Composable
 internal fun MicButton(listening: Boolean, onClick: () -> Unit) {

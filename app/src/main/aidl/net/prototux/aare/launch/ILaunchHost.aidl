@@ -43,6 +43,9 @@ interface ILaunchHost {
      */
     void phoneScreen(boolean landscape, boolean awake, boolean panelOff) = 11;
 
+    /** The package of the app in front on the phone's own screen, or null. */
+    String topApp() = 16;
+
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;
 }

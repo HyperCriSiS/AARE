@@ -54,6 +54,9 @@ object PhoneMirror {
     /** The phone's screen landscape and awake (its panel off with [panelOff]) while shown in the car; inactive, all back. */
     fun phoneScreen(context: Context, active: Boolean, panelOff: Boolean) = Helper.phoneScreen(context, active, panelOff)
 
+    /** The app in front on the phone's own screen, through the helper (blocks); null without one. */
+    fun topApp(context: Context): String? = Helper.topApp(context)
+
     /** Stops drawing (the display stays, for the next [attach]). */
     fun detach() {
         display?.surface = null
@@ -109,6 +112,10 @@ object PhoneMirror {
             if (!AppLauncher.available(context)) return
             worker.execute { connected(context)?.phoneScreen(active, active, active && panelOff) }
         }
+
+        /** The app in front on the phone's own screen, asked of the helper; blocks, so not on the main thread. */
+        fun topApp(context: Context): String? =
+            if (!AppLauncher.available(context)) null else runCatching { worker.submit<String?> { connected(context)?.topApp() }.get() }.getOrNull()
 
         fun detach() = worker.execute { launcher?.stopMirror() }
 

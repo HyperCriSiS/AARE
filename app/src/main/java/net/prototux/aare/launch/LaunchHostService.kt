@@ -296,6 +296,10 @@ class LaunchHostService : ILaunchHost.Stub {
             .onFailure { Log.w(TAG, "mirror display failed: ${it.message}") }.getOrNull()
     }
 
+    override fun topApp(): String? = runCatching {
+        topResumedPackage(shell("dumpsys", "activity", "activities"))
+    }.onFailure { Log.w(TAG, "top app unknown: ${it.message}") }.getOrNull()
+
     override fun openPending(intent: PendingIntent): Boolean {
         val id = displayId
         if (id < 0) return false
@@ -436,5 +440,16 @@ class LaunchHostService : ILaunchHost.Stub {
 }
 
 /** What `cmd window user-rotation` printed, as the arguments that put it back ("free" or "lock N"); null for anything else. */
+/**
+ * The package of the activity resumed on top of the phone's own screen (display 0), from
+ * `dumpsys activity activities`; null when the dump names none.
+ */
+internal fun topResumedPackage(dump: String): String? {
+    val display = dump.indexOf("Display #0 ")
+    if (display < 0) return null
+    val next = dump.indexOf("Display #", display + 1).let { if (it < 0) dump.length else it }
+    return Regex("""topResumedActivity=ActivityRecord\{\S+ u\d+ ([\w.]+)/""").find(dump.substring(display, next))?.groupValues?.get(1)
+}
+
 internal fun savedRotation(output: String): String? =
     output.trim().lowercase().takeIf { Regex("free|lock [0-3]").matches(it) }

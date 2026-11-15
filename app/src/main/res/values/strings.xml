@@ -339,6 +339,7 @@
     <string name="phone_toggle_enable_subtitle">The phone\'s own screen, for apps AARE can\'t host (Google Maps, Waze). Paused while the phone is locked, and while driving unless a navigation app is guiding. Not offered on the head unit server unless enabled there</string>
     <string name="phone_check_touch_title">Touch on the phone screen</string>
     <string name="phone_check_touch_subtitle">Turn on AARE in Accessibility. Sideloaded apps may first need "Allow restricted settings" in AARE\'s app info</string>
+    <string name="phone_check_touch_not_needed">Not needed: Shizuku or root is active, and replays the touches itself</string>
     <string name="phone_hint_touch_capture">The picture uses the screen-capture permission (Car audio page, choose Entire screen).</string>
     <string name="phone_app_row_subtitle">The phone\'s own screen, for apps AARE can\'t host</string>
 

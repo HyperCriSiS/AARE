@@ -6,6 +6,7 @@ import android.content.Context
 import android.view.MotionEvent
 import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import net.prototux.aare.Settings
 import android.content.Intent
@@ -63,7 +64,17 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
         return
     }
     val guidance by CarNotificationListener.guidance.collectAsState()
-    val foreground by MirrorTouchService.foregroundApp.collectAsState()
+    val serviceFront by MirrorTouchService.foregroundApp.collectAsState()
+    // With Shizuku or root the helper tells the app in front, while driving, so the accessibility service isn't needed.
+    var helperFront by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(helper, driving) {
+        if (!helper || !driving) return@LaunchedEffect
+        while (true) {
+            helperFront = withContext(Dispatchers.IO) { PhoneMirror.topApp(context) }
+            delay(FRONT_POLL_MS)
+        }
+    }
+    val foreground = if (helper) helperFront else serviceFront
     val navApps = KNOWN_NAVIGATION + listOfNotNull(guidance?.packageName) + runtime.navigationPackages()
     // Driving: only when the app in front is known to be a navigation app. An unknown one (no
     // accessibility service) could be anything, a video included, even while a route is guiding.
@@ -275,3 +286,6 @@ internal val KNOWN_NAVIGATION = setOf(
     "com.locnall.KimGiSa", // Kakao Navi
     "com.skt.tmap.ku", // TMAP
 )
+
+/** How often the app in front is asked of the helper while driving. */
+private const val FRONT_POLL_MS = 2_000L

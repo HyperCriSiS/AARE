@@ -261,13 +261,16 @@ class LaunchHostService : ILaunchHost.Stub {
      * keeps it on the phone for a display of this kind. Like scrcpy's --display-ime-policy=local.
      */
     private fun keyboardOn(id: Int) = runCatching {
-        val wm = Class.forName("android.view.WindowManagerGlobal").getMethod("getWindowManagerService").invoke(null) ?: return@runCatching
+        // Straight from the service manager: WindowManagerGlobal fails in this process on Android 17
+        // ("ApplicationSharedMemory not initialized"), as no app was ever set up in it.
+        val binder = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java).invoke(null, "window") ?: return@runCatching
+        val wm = Class.forName("android.view.IWindowManager\$Stub").getMethod("asInterface", android.os.IBinder::class.java).invoke(null, binder) ?: return@runCatching
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             wm.javaClass.getMethod("setDisplayImePolicy", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType).invoke(wm, id, DISPLAY_IME_POLICY_LOCAL)
         } else {
             wm.javaClass.getMethod("setShouldShowIme", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType).invoke(wm, id, true)
         }
-    }.onFailure { Log.w(TAG, "keyboard on display $id: ${it.message}") }
+    }.onFailure { Log.w(TAG, "keyboard on display $id: ${it.cause ?: it}") }
 
     /** Launch [pkg]'s main activity onto [onDisplay]. */
     @SuppressLint("QueryPermissionsNeeded")
@@ -346,7 +349,7 @@ class LaunchHostService : ILaunchHost.Stub {
             HiddenApiBypass.addHiddenApiExemptions(
                 "Landroid/app/ActivityThread;", "Landroid/app/ActivityManager;", "Landroid/app/IActivityManager", "Landroid/app/IApplicationThread;",
                 "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;", "Landroid/hardware/input/InputManagerGlobal;",
-                "Landroid/hardware/display/DisplayManager;", "Landroid/view/WindowManagerGlobal;", "Landroid/view/IWindowManager", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
+                "Landroid/hardware/display/DisplayManager;", "Landroid/view/WindowManagerGlobal;", "Landroid/view/IWindowManager", "Landroid/os/ServiceManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
             )
         }
     }

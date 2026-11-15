@@ -66,6 +66,7 @@ class LaunchHostService : ILaunchHost.Stub {
         val vd = createDisplay(ctx, surface, width, height, dpi) ?: return -1
         display = vd
         displayId = vd.display.displayId
+        keyboardOn(displayId)
         if (keepDisplayAwake) enableKeepAwakeFallback(ctx, displayId)
         if (!launch(ctx, packageName, displayId)) {
             // Left empty the display would only stay black: say it failed instead.
@@ -255,6 +256,19 @@ class LaunchHostService : ILaunchHost.Stub {
         }.onFailure { Log.w(TAG, "openPending on display $id failed: ${it.message}") }.getOrDefault(false)
     }
 
+    /**
+     * The keyboard of an app on [id] shows there, in the car, not on the phone's screen: Android
+     * keeps it on the phone for a display of this kind. Like scrcpy's --display-ime-policy=local.
+     */
+    private fun keyboardOn(id: Int) = runCatching {
+        val wm = Class.forName("android.view.WindowManagerGlobal").getMethod("getWindowManagerService").invoke(null) ?: return@runCatching
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            wm.javaClass.getMethod("setDisplayImePolicy", Int::class.javaPrimitiveType, Int::class.javaPrimitiveType).invoke(wm, id, DISPLAY_IME_POLICY_LOCAL)
+        } else {
+            wm.javaClass.getMethod("setShouldShowIme", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType).invoke(wm, id, true)
+        }
+    }.onFailure { Log.w(TAG, "keyboard on display $id: ${it.message}") }
+
     /** Launch [pkg]'s main activity onto [onDisplay]. */
     @SuppressLint("QueryPermissionsNeeded")
     private fun launch(ctx: Context, pkg: String, onDisplay: Int): Boolean {
@@ -332,7 +346,7 @@ class LaunchHostService : ILaunchHost.Stub {
             HiddenApiBypass.addHiddenApiExemptions(
                 "Landroid/app/ActivityThread;", "Landroid/app/ActivityManager;", "Landroid/app/IActivityManager", "Landroid/app/IApplicationThread;",
                 "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;", "Landroid/hardware/input/InputManagerGlobal;",
-                "Landroid/hardware/display/DisplayManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
+                "Landroid/hardware/display/DisplayManager;", "Landroid/view/WindowManagerGlobal;", "Landroid/view/IWindowManager", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
             )
         }
     }
@@ -355,6 +369,7 @@ class LaunchHostService : ILaunchHost.Stub {
         const val FLAG_OWN_FOCUS = 1 shl 14 // hidden, API 34+: touches here leave the phone's focus alone
         const val FULL_FLAGS = FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY or FLAG_TRUSTED or FLAG_OWN_DISPLAY_GROUP or FLAG_ALWAYS_UNLOCKED
         const val USER_CURRENT = -2
+        const val DISPLAY_IME_POLICY_LOCAL = 0 // WindowManager.DISPLAY_IME_POLICY_LOCAL, hidden
         /** The lowest density a display gets, on creation and on resize alike. */
         const val MIN_DPI = 120
     }

@@ -66,6 +66,10 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         }
     }
     DisposableEffect(launcher) { onDispose { launcher.release() } }
+    // Turned to landscape while it plays here: players (WizeStream, NewPipe) size their full screen by the
+    // phone's own orientation, and upright they offered "toggle orientation" instead of the video.
+    // Put back when the helper stops (release() below).
+    LaunchedEffect(started) { if (started == true) withContext(Dispatchers.IO) { launcher.phoneScreen(active = true, panelOff = false) } }
     // Back from the car (or the car screen preview) leaves the video for the cover.
     val cover by rememberUpdatedState(onCover)
     DisposableEffect(appId) {

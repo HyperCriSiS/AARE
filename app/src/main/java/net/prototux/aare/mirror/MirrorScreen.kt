@@ -74,8 +74,11 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     val consent = ProjectionService.state.collectAsState().value.audioCapture
 
     DisposableEffect(Unit) {
-        // With a helper the key itself, as touches go; without, the accessibility service's Back.
-        val back: () -> Boolean = { if (helper) PhoneMirror.key(context, android.view.KeyEvent.KEYCODE_BACK) else MirrorTouchService.instance?.back() == true }
+        // With a helper the key itself, as touches go; without, the accessibility service's Back. Not in the
+        // on-phone preview: the phone's screen is the preview, and its Back would come straight back here.
+        val back: () -> Boolean = {
+            if (helper && runtime.primary) PhoneMirror.key(context, android.view.KeyEvent.KEYCODE_BACK) else MirrorTouchService.instance?.back() == true
+        }
         runtime.setScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
         // The next screen installs its own handler before this one fades out: leave that one alone.
         onDispose {

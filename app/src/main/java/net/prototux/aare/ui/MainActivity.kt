@@ -685,6 +685,21 @@ private fun MessageSettings(settings: Settings, refresh: Int) {
         Toggle(stringResource(R.string.msg_toggle_banners_title), stringResource(R.string.msg_toggle_banners_subtitle), banners) { banners = it; settings.messageBanners = it }
         Toggle(stringResource(R.string.msg_toggle_group_title), stringResource(R.string.msg_toggle_group_subtitle), groups) { groups = it; settings.groupMessages = it }
         Toggle(stringResource(R.string.msg_toggle_read_aloud_title), stringResource(R.string.msg_toggle_read_aloud_subtitle), aloud) { aloud = it; settings.readMessagesAloud = it }
+        // Which apps' messages show in the car: all of them until one is switched off.
+        val apps by produceState(emptyList<net.prototux.aare.host.PhoneApp>()) {
+            value = withContext(Dispatchers.IO) { net.prototux.aare.host.AndroidAutoApps.messagingApps(ctx) }
+        }
+        var muted by remember { mutableStateOf(settings.mutedMessageApps) }
+        if (apps.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.msg_apps_title), style = MaterialTheme.typography.titleSmall)
+            apps.forEach { app ->
+                Toggle(app.label, stringResource(R.string.msg_apps_subtitle), app.packageName !in muted) { on ->
+                    muted = if (on) muted - app.packageName else muted + app.packageName
+                    settings.mutedMessageApps = muted
+                }
+            }
+        }
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.msg_hint_apps),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -725,6 +740,7 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
     var layoutId by remember { mutableStateOf(settings.carLayoutId) }
     var accent by remember { mutableStateOf(settings.carAccent) }
     var rail by remember { mutableStateOf(settings.railPosition) }
+    var spacing by remember { mutableStateOf(settings.railSpacing.toString()) }
     var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
     var darkBar by remember { mutableStateOf(settings.darkBar) }
     var cards by remember { mutableStateOf(DashCard.parse(settings.dashboardCards)) }
@@ -762,6 +778,10 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
             Spacer(Modifier.height(12.dp))
             Choices(stringResource(R.string.setup_choice_bar), listOf(Settings.RAIL_AUTO to stringResource(R.string.setup_choice_bar_auto), Settings.RAIL_LEFT to stringResource(R.string.setup_choice_left), Settings.RAIL_RIGHT to stringResource(R.string.setup_choice_right), Settings.RAIL_BOTTOM to stringResource(R.string.setup_choice_bottom)), rail) {
                 rail = it; settings.railPosition = it
+            }
+            Spacer(Modifier.height(12.dp))
+            Choices(stringResource(R.string.setup_choice_bar_spacing), listOf("0" to stringResource(R.string.setup_spacing_normal), "8" to stringResource(R.string.setup_spacing_wide), "16" to stringResource(R.string.setup_spacing_wider)), spacing) {
+                spacing = it; settings.railSpacing = it.toInt()
             }
             Toggle(stringResource(R.string.setup_toggle_dark_bar_title), stringResource(R.string.setup_toggle_dark_bar_subtitle), darkBar) { darkBar = it; settings.darkBar = it }
         }

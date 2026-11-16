@@ -483,6 +483,7 @@ class CarRuntime(
         ui.shortcutAppIds = ids(settings.shortcutApps)
         ui.launcherHidesPinned = settings.launcherHidesPinned
         ui.paneSwipe = settings.paneSwipe
+        ui.railSpacing = settings.railSpacing
         ui.paneMenu = settings.paneMenu
         // An app gone from a pane would leave it blank.
         ui.screen = ui.screen.withoutApps { id -> entries.none { it.id == id } }
@@ -626,15 +627,19 @@ class CarRuntime(
     /** Notice keys (LazyColumn keys): two notices in the same millisecond must not collide. */
     private var noticeSeq = 0L
 
+    /** Opens [packageName]'s app on the car screen, as a tap on its notification does; null if the car screen has none. */
+    fun opener(packageName: String): (() -> Unit)? =
+        ui.apps.firstOrNull { it.packageName == packageName }?.let { app -> { actions.openApp(app) } }
+
     /** Keeps a notification (a message) for the notification centre. */
-    fun remember(title: String, text: String, icon: Bitmap?, actions: List<Pair<String, () -> Unit>>) {
-        ui.history.add(0, CarNotice("h${++noticeSeq}", title, text, icon, actions))
+    fun remember(title: String, text: String, icon: Bitmap?, actions: List<Pair<String, () -> Unit>>, open: (() -> Unit)? = null) {
+        ui.history.add(0, CarNotice("h${++noticeSeq}", title, text, icon, actions, open = open))
         while (ui.history.size > 30) ui.history.removeAt(ui.history.lastIndex)
         if (!ui.screen.shows(NOTIFICATIONS_ID)) ui.unseen++
     }
 
-    fun notice(title: String, text: String, icon: Bitmap? = null, durationMs: Long = 4_000, actions: List<Pair<String, () -> Unit>> = emptyList(), message: Boolean = false) {
-        val n = CarNotice("n${++noticeSeq}", title, text, icon, actions, message = message)
+    fun notice(title: String, text: String, icon: Bitmap? = null, durationMs: Long = 4_000, actions: List<Pair<String, () -> Unit>> = emptyList(), message: Boolean = false, open: (() -> Unit)? = null) {
+        val n = CarNotice("n${++noticeSeq}", title, text, icon, actions, message = message, open = open)
         ui.notices.add(n)
         main.postDelayed({ ui.notices.remove(n) }, durationMs)
     }

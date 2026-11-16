@@ -389,7 +389,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) { apps(if (tightBar) 0 else 2, !tighterBar) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy((12 + state.railSpacing).dp)) { apps(if (tightBar) 0 else 2, !tighterBar) }
             }
             if (state.driverOnRight) driverEnd() else status()
         }
@@ -414,7 +414,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             Box(Modifier.weight(1f).padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
                 Column(
                     Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy((4 + state.railSpacing).dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) { apps(fit.recentSlots, fit.settings) }
             }
@@ -907,7 +907,8 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
     }
     Row(
         modifier.padding(16.dp).fillMaxWidth(0.6f).clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest).padding(16.dp),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .let { m -> notice.open?.let { open -> m.clickable { open(); actions.dismissNotice(notice) } } ?: m }.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (notice.icon != null) {

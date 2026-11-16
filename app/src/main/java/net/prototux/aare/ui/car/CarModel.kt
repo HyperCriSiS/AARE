@@ -116,6 +116,8 @@ class CarNotice(
     val timeMs: Long = System.currentTimeMillis(),
     /** A message from a contact: its text is hidden while driving, like in the messaging screens. */
     val message: Boolean = false,
+    /** A tap on it: its app on the car screen, if there is one. */
+    val open: (() -> Unit)? = null,
 )
 
 /** Head-unit geometry: the drawable area inside the video margins, and the rail side. */
@@ -190,6 +192,8 @@ class CarUiState {
     var shortcutAppIds by mutableStateOf<List<String>>(emptyList())
     /** The launcher leaves out the apps in [railAppIds] and [shortcutAppIds]. */
     var launcherHidesPinned by mutableStateOf(false)
+    /** Extra space between the rail's icons, in dp. */
+    var railSpacing by mutableStateOf(0)
     /** A sideways swipe on an app in the rail or launcher opens it in that side's pane. */
     var paneSwipe by mutableStateOf(true)
     /** A long press on an app in the rail or launcher offers the panes. */

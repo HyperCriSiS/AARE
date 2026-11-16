@@ -371,6 +371,16 @@ class Settings(context: Context) {
         get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
 
+    /** Extra space between the icons in the car's rail, in dp: 0, 8 or 16. */
+    var railSpacing: Int
+        get() = prefs.getInt("rail_spacing", 0)
+        set(v) = prefs.edit { putInt("rail_spacing", v) }
+
+    /** Messaging apps whose messages don't show in the car (no banner, not in the notification centre). */
+    var mutedMessageApps: Set<String>
+        get() = prefs.getStringSet("muted_message_apps", null).orEmpty()
+        set(v) = prefs.edit { putStringSet("muted_message_apps", v) }
+
     /** A sideways swipe on an app in the car's rail or launcher opens it in the pane on that side. */
     var paneSwipe: Boolean
         get() = prefs.getBoolean("pane_swipe", true)

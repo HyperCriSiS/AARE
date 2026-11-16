@@ -240,7 +240,12 @@ class CarAppConnection(
         surfaceOwner = null
         surface = null
         val cb = surfaceCallback ?: return
-        if (container != null) call("onSurfaceDestroyed") { cb.onSurfaceDestroyed(Bundleable.create(container), it) }
+        if (container == null) return
+        // The surface goes once this returns: wait for the app to have let go of it. An app still
+        // drawing on it then (Blitzer.de, its render thread) aborts with "no surface".
+        val answered = java.util.concurrent.CountDownLatch(1)
+        call("onSurfaceDestroyed", answered = answered) { cb.onSurfaceDestroyed(Bundleable.create(container), it) }
+        answered.await(SURFACE_RELEASE_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
     }
 
     fun setVisibleArea(r: Rect) {
@@ -433,16 +438,18 @@ class CarAppConnection(
      * and delivered on the main thread; failures are logged and, during the handshake, end the
      * connection with an explanation.
      */
-    private fun call(name: String, onSuccess: ((Any?) -> Unit)? = null, block: (IOnDoneCallback) -> Unit) {
+    private fun call(name: String, onSuccess: ((Any?) -> Unit)? = null, answered: java.util.concurrent.CountDownLatch? = null, block: (IOnDoneCallback) -> Unit) {
         val cb = object : IOnDoneCallback.Stub() {
         override fun getInterfaceVersion(): Int = IOnDoneCallback.VERSION
 
             override fun onSuccess(response: Bundleable?) {
+                answered?.countDown()
                 val value = runCatching { response?.get() }.getOrElse { e -> main.post { onFailure(name, e.toString()) }; return }
                 main.post { onSuccess?.invoke(value) }
             }
 
             override fun onFailure(response: Bundleable) {
+                answered?.countDown()
                 val msg = runCatching { (response.get() as FailureResponse).stackTrace }.getOrDefault("unknown error")
                 main.post { onFailure(name, msg) }
             }
@@ -450,6 +457,7 @@ class CarAppConnection(
         try {
             block(cb)
         } catch (e: Exception) {
+            answered?.countDown()
             onFailure(name, e.toString())
         }
     }
@@ -709,6 +717,8 @@ class CarAppConnection(
         private const val TAG = "AareCarApp"
         /** How long an app may take from bind to its first answers before it counts as not starting. */
         private const val CONNECT_TIMEOUT_MS = 10_000L
+        /** How long a map surface waits for its app to let go of it before it goes anyway. */
+        private const val SURFACE_RELEASE_WAIT_MS = 500L
         /** Microphone chunks queued for an app that reads slowly: about a second of 20 ms chunks. */
         private const val MIC_QUEUE_CHUNKS = 50
 

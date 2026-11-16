@@ -55,15 +55,17 @@ A change counts as checked only when:
   - `app/src/main/java/net/prototux/aare/Settings.kt`, `SettingsBackup.kt`, `UpdateChecker.kt`
 - Agent run: `update-agent.yml`, daily at 07:17 UTC; a first job checks whether anything waits,
   and only then the agent starts. It merges upstream changes that touch no protected path and
-  pass CI, and due dependency updates; it holds the rest with the label `:hand: hold`.
+  pass CI, and due dependency updates, major versions included after reviewing their release
+  notes and fixing what breaks; it holds the rest with the label `:hand: hold`. It decides on its
+  own and publishes no deliberation (no issues, comments or reasons in PR bodies); when it cannot
+  finish, the run ends red with "Needs the owner." and the owner is asked privately.
   `.github/upstream-reviewed` records the last upstream commit it looked at.
 - The agent never builds or runs upstream code itself: its job holds a write token. It starts
   CI on the branch instead, and `main` requires the CI check `Build and test`. Code owner reviews
   are off on purpose: the owner is the only maintainer and could not approve his own pull
   requests, so the protected paths are held by the agent's rules, not by GitHub.
 - Recovery: run `update-agent` by hand (workflow_dispatch) once the cause is fixed.
-- Pause: repository variable `UPDATE_AGENT=false`, or the open issue "Update needs a manual fix"
-  that the automation opens.
+- Pause: repository variable `UPDATE_AGENT=false`.
 - Releases are always made by hand after the owner's approval; the automation never tags.
 
 ## Branches and releases

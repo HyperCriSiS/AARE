@@ -11,9 +11,12 @@ import net.prototux.aare.launch.AppLauncher
  * through it. Needs Shizuku or root; without them it does nothing.
  */
 class PhoneLocationSwitch(private val context: Context) {
-    fun start() = switch(true)
+    private var started = false
 
-    fun stop() = switch(false)
+    fun start() { started = true; switch(true) }
+
+    /** Only after [start]: a session that ended before it ran (a failed connect) leaves the location as it is. */
+    fun stop() { if (started) switch(false) }
 
     private fun switch(on: Boolean) {
         val lm = context.getSystemService(LocationManager::class.java) ?: return

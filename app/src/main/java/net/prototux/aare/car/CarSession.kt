@@ -361,10 +361,17 @@ class CarSession(
     private val recordingPause = MicTakeover()
     private val recordingDone = Runnable {
         if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE) {
-            // A recording over Bluetooth (an assistant listening) is a call to the car: it takes the
-            // media focus and doesn't give it back. With a video on screen the stream never stops,
-            // so nothing would ask again, and its sound stays muted.
-            if (mediaPlaying && !mediaFocus) mediaFocusRequests.request(true)
+            // A recording over Bluetooth (an assistant listening) is a call to the car: it switches to
+            // the phone call and doesn't come back, whether it told us it took the focus or not. With
+            // a video on screen the stream never stops, so nothing would ask again, and its sound
+            // stays muted. Releasing first makes the car switch back, as a retry does.
+            if (mediaPlaying) synchronized(focusLock) {
+                DiagLog.add("audio focus: asking again after a recording (had it: $mediaFocus)")
+                mediaFocusRetry.onRequested(SystemClock.uptimeMillis())
+                scheduleFocusCheck()
+                aap.requestAudioFocus(AudioFocusRequestType.AUDIO_FOCUS_RELEASE, Priority.AUDIO)
+                aap.requestAudioFocus(AudioFocusRequestType.AUDIO_FOCUS_GAIN, Priority.AUDIO)
+            }
             if (pausedForRecording) {
                 pausedForRecording = false
                 if (runtime.ui.nowPlaying?.playing != true) media.playPause()

@@ -689,7 +689,8 @@ private fun MessageSettings(settings: Settings, refresh: Int) {
         Toggle(stringResource(R.string.msg_toggle_read_aloud_title), stringResource(R.string.msg_toggle_read_aloud_subtitle), aloud) { aloud = it; settings.readMessagesAloud = it }
         // Which apps' messages show in the car: all of them until one is switched off.
         val apps by produceState(emptyList<net.prototux.aare.host.PhoneApp>()) {
-            value = withContext(Dispatchers.IO) { net.prototux.aare.host.AndroidAutoApps.messagingApps(ctx) }
+            // Only those switched on for the car on the apps page: a hidden one shows nothing there anyway.
+            value = withContext(Dispatchers.IO) { net.prototux.aare.host.AndroidAutoApps.messagingApps(ctx).filter { it.packageName !in settings.hiddenApps } }
         }
         var muted by remember { mutableStateOf(settings.mutedMessageApps) }
         if (apps.isNotEmpty()) {

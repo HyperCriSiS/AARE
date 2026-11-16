@@ -231,9 +231,12 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("standalone_apps", false)
         set(v) = prefs.edit { putBoolean("standalone_apps", v) }
 
-    /** Keep standalone apps active when Android links their display to the phone display. */
+    /**
+     * Keep standalone apps active when Android links their display to the phone display. On by
+     * default from Android 17 (API 37), which switches their display off with the phone's screen.
+     */
     var standaloneKeepScreenAwake: Boolean
-        get() = prefs.getBoolean("standalone_keep_screen_awake", false)
+        get() = prefs.getBoolean("standalone_keep_screen_awake", android.os.Build.VERSION.SDK_INT >= 37)
         set(v) = prefs.edit { putBoolean("standalone_keep_screen_awake", v) }
 
     /** The packages the user allows onto the car screen (see [standaloneApps]). */

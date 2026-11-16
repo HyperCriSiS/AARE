@@ -785,15 +785,16 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
             // In the car screen's pixels, one at a time from the standard space. The row keeps its layout
             // whatever the value: the buttons stay where they were, for the next tap.
             val standard = railGapPx(bottom = rail == Settings.RAIL_BOTTOM, dpi = settings.carDpi)
-            val px = spacing.takeIf { it >= 0 } ?: standard
+            // Below 0 too: the icons' own margins can be drawn closer together.
+            val px = spacing ?: standard
             Text(stringResource(R.string.setup_choice_bar_spacing), style = MaterialTheme.typography.bodyLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { spacing = (px - 1).coerceAtLeast(0); settings.railSpacing = spacing }, enabled = px > 0) { Text("−") }
+                OutlinedButton(onClick = { spacing = px - 1; settings.railSpacing = spacing }, enabled = px > -40) { Text("−") }
                 Text(stringResource(R.string.setup_spacing_px, px), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center,
                     modifier = Modifier.width(72.dp))
                 OutlinedButton(onClick = { spacing = px + 1; settings.railSpacing = spacing }, enabled = px < 60) { Text("+") }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { spacing = -1; settings.railSpacing = -1 }, enabled = spacing >= 0) { Text(stringResource(R.string.setup_spacing_reset)) }
+                TextButton(onClick = { spacing = null; settings.railSpacing = null }, enabled = spacing != null) { Text(stringResource(R.string.setup_spacing_reset)) }
             }
             Toggle(stringResource(R.string.setup_toggle_dark_bar_title), stringResource(R.string.setup_toggle_dark_bar_subtitle), darkBar) { darkBar = it; settings.darkBar = it }
         }

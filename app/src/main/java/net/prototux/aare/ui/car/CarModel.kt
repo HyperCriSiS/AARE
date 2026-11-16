@@ -198,8 +198,8 @@ class CarUiState {
     var shortcutAppIds by mutableStateOf<List<String>>(emptyList())
     /** The launcher leaves out the apps in [railAppIds] and [shortcutAppIds]. */
     var launcherHidesPinned by mutableStateOf(false)
-    /** The space between the rail's icons in the car screen's pixels; -1 for the standard space. */
-    var railSpacing by mutableStateOf(-1)
+    /** The space between the rail's icons in the car screen's pixels, negative drawing them closer; null for the standard space. */
+    var railSpacing by mutableStateOf<Int?>(null)
     /** A sideways swipe on an app in the rail or launcher opens it in that side's pane. */
     var paneSwipe by mutableStateOf(true)
     /** A long press on an app in the rail or launcher offers the panes. */

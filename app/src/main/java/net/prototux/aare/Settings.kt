@@ -371,10 +371,10 @@ class Settings(context: Context) {
         get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
 
-    /** The space between the icons in the car's rail, in the car screen's pixels; -1 for the standard space. */
-    var railSpacing: Int
-        get() = prefs.getInt("rail_spacing_px", -1)
-        set(v) = prefs.edit { putInt("rail_spacing_px", v) }
+    /** The space between the icons in the car's rail, in the car screen's pixels, below 0 drawing them closer; null for the standard space. */
+    var railSpacing: Int?
+        get() = if (prefs.contains("rail_spacing_px")) prefs.getInt("rail_spacing_px", 0) else null
+        set(v) = prefs.edit { if (v == null) remove("rail_spacing_px") else putInt("rail_spacing_px", v) }
 
     /** The car screen's density at the last connection, to show the rail's standard space in its pixels. */
     var carDpi: Int

@@ -336,7 +336,7 @@ internal fun sideRailFit(height: Dp) = SideRailFit(
 /** The space between the rail's icons: the one set on the phone, in the car screen's pixels, or the standard one. */
 @Composable
 private fun railGap(state: CarUiState, bottom: Boolean) =
-    if (state.railSpacing >= 0) with(LocalDensity.current) { state.railSpacing.toDp() } else railGapDp(bottom).dp
+    state.railSpacing?.let { with(LocalDensity.current) { it.toDp() } } ?: railGapDp(bottom).dp
 
 @Composable
 private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Boolean, area: DpSize) {

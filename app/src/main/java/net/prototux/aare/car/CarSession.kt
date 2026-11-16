@@ -360,9 +360,15 @@ class CarSession(
     /** When a phone app records and when it is done, a moment's break (a recording moving to the car's mic) not counted. */
     private val recordingPause = MicTakeover()
     private val recordingDone = Runnable {
-        if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE && pausedForRecording) {
-            pausedForRecording = false
-            if (runtime.ui.nowPlaying?.playing != true) media.playPause()
+        if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE) {
+            // A recording over Bluetooth (an assistant listening) is a call to the car: it takes the
+            // media focus and doesn't give it back. With a video on screen the stream never stops,
+            // so nothing would ask again, and its sound stays muted.
+            if (mediaPlaying && !mediaFocus) mediaFocusRequests.request(true)
+            if (pausedForRecording) {
+                pausedForRecording = false
+                if (runtime.ui.nowPlaying?.playing != true) media.playPause()
+            }
         }
         scheduleRecordingDone()
     }

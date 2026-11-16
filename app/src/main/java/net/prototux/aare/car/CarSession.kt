@@ -348,6 +348,7 @@ class CarSession(
             phoneBridge = PhoneStatusBridge(context, aap, phoneStatus).also { it.start() }
             if (settings.callsOnPhoneSpeaker) callSpeaker = CallSpeaker(context).also { it.start() }
             context.getSystemService(AudioManager::class.java)?.registerAudioRecordingCallback(recordings, main)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) context.getSystemService(AudioManager::class.java)?.addOnModeChangedListener(context.mainExecutor, modeChanged)
             if (settings.carMicForPhoneApps) mic?.let { m ->
                 val cfg = m.config
                 phoneAppsMic = CarMicForApps(context, micRouter, cfg?.samplingRate ?: 16_000, cfg?.numberOfChannels ?: 1).also { it.start() }
@@ -361,17 +362,6 @@ class CarSession(
     private val recordingPause = MicTakeover()
     private val recordingDone = Runnable {
         if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE) {
-            // A recording over Bluetooth (an assistant listening) is a call to the car: it switches to
-            // the phone call and doesn't come back, whether it told us it took the focus or not. With
-            // a video on screen the stream never stops, so nothing would ask again, and its sound
-            // stays muted. Releasing first makes the car switch back, as a retry does.
-            if (mediaPlaying) synchronized(focusLock) {
-                DiagLog.add("audio focus: asking again after a recording (had it: $mediaFocus)")
-                mediaFocusRetry.onRequested(SystemClock.uptimeMillis())
-                scheduleFocusCheck()
-                aap.requestAudioFocus(AudioFocusRequestType.AUDIO_FOCUS_RELEASE, Priority.AUDIO)
-                aap.requestAudioFocus(AudioFocusRequestType.AUDIO_FOCUS_GAIN, Priority.AUDIO)
-            }
             if (pausedForRecording) {
                 pausedForRecording = false
                 if (runtime.ui.nowPlaying?.playing != true) media.playPause()
@@ -425,15 +415,22 @@ class CarSession(
             // The car took the audio (radio, a call...): pause the phone's media like Android Auto
             // does, and play again when a transient loss ends.
             notification.unsolicited && (state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS || state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT) -> main.post {
-                pausedByCar = state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT && media.playback.value?.playing == true
+                val playing = media.playback.value?.playing == true
+                pausedByCar = state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT && playing
+                // A call on the phone, or an assistant listening over Bluetooth, which the car takes
+                // for one: it plays on once that ends (see modeChanged).
+                pausedForCall = playing && phoneInCall()
                 media.pause()
             }
             // Only the car handing focus back resumes: a gain answering our own request means
-            // something else is playing now, and the old music must stay paused.
+            // something else is playing now, and the old music must stay paused. Unless it answers
+            // the request made when the phone's call ended.
             state == AudioFocusStateType.AUDIO_FOCUS_STATE_GAIN || state == AudioFocusStateType.AUDIO_FOCUS_STATE_GAIN_MEDIA_ONLY -> main.post {
-                if (pausedByCar) {
+                if (pausedByCar || pausedForCall) {
+                    val resume = notification.unsolicited || pausedForCall
                     pausedByCar = false
-                    if (notification.unsolicited && media.playback.value?.playing != true) media.playPause()
+                    pausedForCall = false
+                    if (resume && media.playback.value?.playing != true) media.playPause()
                 }
             }
         }
@@ -441,6 +438,29 @@ class CarSession(
 
     /** Media paused by an unsolicited transient focus loss, to resume on the next gain (main thread). */
     private var pausedByCar = false
+    /** Media paused by a focus loss during a call on the phone, to resume once it ends (main thread). */
+    private var pausedForCall = false
+
+    private fun phoneInCall() = context.getSystemService(AudioManager::class.java)?.mode.let { it != null && it != AudioManager.MODE_NORMAL }
+
+    /**
+     * The phone's call ended (an assistant listening over Bluetooth counts as one): the car took
+     * the media focus for it and doesn't hand it back by itself, so it is asked again. Releasing
+     * first makes it switch back from the call, as a retry does.
+     */
+    // Lazy: the listener type is Android 12+, and it is only used there.
+    private val modeChanged by lazy { AudioManager.OnModeChangedListener { mode ->
+        if (mode != AudioManager.MODE_NORMAL || mediaFocus || !(mediaPlaying || pausedForCall || pausedByCar)) return@OnModeChangedListener
+        // The call may have begun just after the car's loss: what it paused plays on with the answer.
+        pausedForCall = pausedForCall || pausedByCar
+        synchronized(focusLock) {
+            DiagLog.add("audio focus: asking again after the phone's call")
+            mediaFocusRetry.onRequested(SystemClock.uptimeMillis())
+            scheduleFocusCheck()
+            aap.requestAudioFocus(AudioFocusRequestType.AUDIO_FOCUS_RELEASE, Priority.AUDIO)
+            aap.requestAudioFocus(AudioFocusRequestType.AUDIO_FOCUS_GAIN, Priority.AUDIO)
+        }
+    } }
 
     override fun onClosed(session: AapSession, reason: String, error: Throwable?) {
         val rejected = session.certificateRefusal
@@ -1048,6 +1068,7 @@ class CarSession(
         cluster?.stop()
         phoneAppsMic?.stop(); phoneAppsMic = null
         context.getSystemService(AudioManager::class.java)?.unregisterAudioRecordingCallback(recordings)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) context.getSystemService(AudioManager::class.java)?.removeOnModeChangedListener(modeChanged)
         main.removeCallbacks(recordingDone)
         micRouter.shutdown()
         teardownVideo()

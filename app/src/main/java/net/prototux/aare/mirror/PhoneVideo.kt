@@ -138,7 +138,7 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
 }
 
 /**
- * A video with [buttons] stacked in its bottom right corner, fading out after a few seconds
+ * A video with [buttons] stacked at its right edge, halfway down, fading out after a few seconds
  * untouched. A touch anywhere brings them back and still reaches the app below.
  */
 @Composable
@@ -155,7 +155,7 @@ private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, vi
         },
     ) {
         video()
-        AnimatedVisibility(shown, Modifier.align(Alignment.BottomEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
+        AnimatedVisibility(shown, Modifier.align(Alignment.CenterEnd).padding(12.dp), enter = fadeIn(), exit = fadeOut()) {
             Column(
                 Modifier.clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)).padding(vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),

@@ -333,6 +333,11 @@ internal fun sideRailFit(height: Dp) = SideRailFit(
     settings = height >= 480.dp,
 )
 
+/** The space between the rail's icons: the one set on the phone, in the car screen's pixels, or the standard one. */
+@Composable
+private fun railGap(state: CarUiState, bottom: Boolean) =
+    if (state.railSpacing >= 0) with(LocalDensity.current) { state.railSpacing.toDp() } else railGapDp(bottom).dp
+
 @Composable
 private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Boolean, area: DpSize) {
     val d = LocalCarDimens.current
@@ -389,7 +394,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy((12 + state.railSpacing).dp)) { apps(if (tightBar) 0 else 2, !tighterBar) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(railGap(state, bottom = true))) { apps(if (tightBar) 0 else 2, !tighterBar) }
             }
             if (state.driverOnRight) driverEnd() else status()
         }
@@ -414,7 +419,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             Box(Modifier.weight(1f).padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
                 Column(
                     Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy((4 + state.railSpacing).dp),
+                    verticalArrangement = Arrangement.spacedBy(railGap(state, bottom = false)),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) { apps(fit.recentSlots, fit.settings) }
             }

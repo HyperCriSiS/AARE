@@ -371,10 +371,15 @@ class Settings(context: Context) {
         get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
 
-    /** Extra space between the icons in the car's rail, in dp: 0, 8 or 16. */
+    /** The space between the icons in the car's rail, in the car screen's pixels; -1 for the standard space. */
     var railSpacing: Int
-        get() = prefs.getInt("rail_spacing", 0)
-        set(v) = prefs.edit { putInt("rail_spacing", v) }
+        get() = prefs.getInt("rail_spacing_px", -1)
+        set(v) = prefs.edit { putInt("rail_spacing_px", v) }
+
+    /** The car screen's density at the last connection, to show the rail's standard space in its pixels. */
+    var carDpi: Int
+        get() = prefs.getInt("car_dpi", 240)
+        set(v) = prefs.edit { putInt("car_dpi", v) }
 
     /** Messaging apps whose messages don't show in the car (no banner, not in the notification centre). */
     var mutedMessageApps: Set<String>

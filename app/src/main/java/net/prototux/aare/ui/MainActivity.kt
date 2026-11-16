@@ -176,6 +176,7 @@ import net.prototux.aare.ui.car.DashCard
 import net.prototux.aare.ui.car.DashboardCardsEditor
 import net.prototux.aare.ui.car.StyleChoices
 import net.prototux.aare.ui.car.WALLPAPER_NAMES
+import net.prototux.aare.ui.car.railGapPx
 import net.prototux.aare.ui.theme.PhoneTheme
 import rikka.shizuku.Shizuku
 import java.text.DateFormat
@@ -740,7 +741,7 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
     var layoutId by remember { mutableStateOf(settings.carLayoutId) }
     var accent by remember { mutableStateOf(settings.carAccent) }
     var rail by remember { mutableStateOf(settings.railPosition) }
-    var spacing by remember { mutableStateOf(settings.railSpacing.toString()) }
+    var spacing by remember { mutableStateOf(settings.railSpacing) }
     var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
     var darkBar by remember { mutableStateOf(settings.darkBar) }
     var cards by remember { mutableStateOf(DashCard.parse(settings.dashboardCards)) }
@@ -780,8 +781,16 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                 rail = it; settings.railPosition = it
             }
             Spacer(Modifier.height(12.dp))
-            Choices(stringResource(R.string.setup_choice_bar_spacing), listOf("0" to stringResource(R.string.setup_spacing_normal), "8" to stringResource(R.string.setup_spacing_wide), "16" to stringResource(R.string.setup_spacing_wider)), spacing) {
-                spacing = it; settings.railSpacing = it.toInt()
+            // In the car screen's pixels, 5 at a time from the standard space.
+            val standard = railGapPx(bottom = rail == Settings.RAIL_BOTTOM, dpi = settings.carDpi)
+            val px = spacing.takeIf { it >= 0 } ?: standard
+            Text(stringResource(R.string.setup_choice_bar_spacing), style = MaterialTheme.typography.bodyLarge)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { spacing = (px - 5).coerceAtLeast(0); settings.railSpacing = spacing }, enabled = px > 0) { Text("−5") }
+                Text(stringResource(R.string.setup_spacing_px, px) + if (spacing < 0) " " + stringResource(R.string.setup_spacing_standard) else "",
+                    style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 16.dp))
+                OutlinedButton(onClick = { spacing = px + 5; settings.railSpacing = spacing }, enabled = px < 60) { Text("+5") }
+                if (spacing >= 0) TextButton(onClick = { spacing = -1; settings.railSpacing = -1 }) { Text(stringResource(R.string.setup_spacing_reset)) }
             }
             Toggle(stringResource(R.string.setup_toggle_dark_bar_title), stringResource(R.string.setup_toggle_dark_bar_subtitle), darkBar) { darkBar = it; settings.darkBar = it }
         }

@@ -618,6 +618,7 @@ class CarSession(
         encoder = enc
 
         runtime.densityDpi = dpi
+        settings.carDpi = dpi
         runtime.screenWidthDp = layout.contentWidth * 160 / dpi
         runtime.screenHeightDp = layout.contentHeight * 160 / dpi
         runtime.rightHandDrive = rightHandDrive

@@ -28,6 +28,12 @@ class CarAppEntry(
     val kind: CarAppKind,
 )
 
+/** The rail's standard space between its icons, in dp: a bottom bar has more room sideways. */
+fun railGapDp(bottom: Boolean) = if (bottom) 12 else 4
+
+/** That standard space in the pixels of a car screen of [dpi]. */
+fun railGapPx(bottom: Boolean, dpi: Int) = railGapDp(bottom) * dpi / 160
+
 @Stable
 class NowPlaying(
     val appId: String,
@@ -192,8 +198,8 @@ class CarUiState {
     var shortcutAppIds by mutableStateOf<List<String>>(emptyList())
     /** The launcher leaves out the apps in [railAppIds] and [shortcutAppIds]. */
     var launcherHidesPinned by mutableStateOf(false)
-    /** Extra space between the rail's icons, in dp. */
-    var railSpacing by mutableStateOf(0)
+    /** The space between the rail's icons in the car screen's pixels; -1 for the standard space. */
+    var railSpacing by mutableStateOf(-1)
     /** A sideways swipe on an app in the rail or launcher opens it in that side's pane. */
     var paneSwipe by mutableStateOf(true)
     /** A long press on an app in the rail or launcher offers the panes. */

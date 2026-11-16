@@ -5,10 +5,10 @@ import android.os.Bundle
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
+import android.os.Handler
+import android.os.HandlerThread
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
 import android.os.Build
@@ -41,8 +41,11 @@ class LaunchHostService : ILaunchHost.Stub {
     @Volatile private var displayId: Int = -1
     @Volatile private var mirrorDisplay: VirtualDisplay? = null
     @Volatile private var displayWakeLock: PowerManager.WakeLock? = null
-    private var screenOffReceiver: BroadcastReceiver? = null
-    private var receiverContext: Context? = null
+    private var unwatchScreen: (() -> Unit)? = null
+    /** Where the phone's display changes arrive: a thread of its own, this helper has no main loop running. */
+    private val screenHandler by lazy { Handler(HandlerThread("aare-screen").apply { start() }.looper) }
+    /** A wake is under way: the phone's display changes it brings are not the power key. */
+    @Volatile private var waking = false
 
     constructor() : this(null)
 
@@ -104,11 +107,8 @@ class LaunchHostService : ILaunchHost.Stub {
 
     override fun stop() {
         phoneScreen(false, false, false)
-        screenOffReceiver?.let { receiver ->
-            receiverContext?.let { context -> runCatching { context.unregisterReceiver(receiver) } }
-        }
-        screenOffReceiver = null
-        receiverContext = null
+        unwatchScreen?.let { runCatching { it() } }
+        unwatchScreen = null
         displayWakeLock?.let { lock -> runCatching { if (lock.isHeld) lock.release() } }
         displayWakeLock = null
         display?.let { runCatching { it.release() } }
@@ -228,19 +228,24 @@ class LaunchHostService : ILaunchHost.Stub {
             Log.i(TAG, "holding display wake lock for display $id")
         }.onFailure { Log.w(TAG, "display wake lock failed for display $id", it) }
 
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                // The power key: with the panel lit, the driver locks the phone, so it wakes with the
-                // panel dark; with the panel dark, the driver wants the phone, so it wakes lit.
-                if (intent?.action == Intent.ACTION_SCREEN_OFF) wakePhysicalDisplay(id, dark = !panelOff)
-            }
-        }
+        // The phone's own display says when it goes to sleep: a screen-off broadcast receiver never
+        // got registered in this helper process.
         runCatching {
-            val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
-            if (Build.VERSION.SDK_INT >= 33) ctx.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            else @Suppress("UnspecifiedRegisterReceiverFlag") ctx.registerReceiver(receiver, filter)
-            screenOffReceiver = receiver
-            receiverContext = ctx
+            val pm = ctx.getSystemService(PowerManager::class.java)
+            val dm = ctx.getSystemService(DisplayManager::class.java)
+            val listener = object : DisplayManager.DisplayListener {
+                override fun onDisplayAdded(changed: Int) = Unit
+                override fun onDisplayRemoved(changed: Int) = Unit
+                override fun onDisplayChanged(changed: Int) {
+                    if (changed != android.view.Display.DEFAULT_DISPLAY || waking || pm.isInteractive) return
+                    // The power key: with the panel lit, the driver locks the phone, so it wakes with the
+                    // panel dark; with the panel dark, the driver wants the phone, so it wakes lit.
+                    wakePhysicalDisplay(id, dark = !panelOff)
+                }
+            }
+            dm.registerDisplayListener(listener, screenHandler)
+            unwatchScreen = { dm.unregisterDisplayListener(listener) }
+            Log.i(TAG, "watching the phone screen for display $id")
         }.onFailure { Log.w(TAG, "could not watch physical screen state", it) }
 
         val phoneIsAwake = runCatching {
@@ -256,8 +261,9 @@ class LaunchHostService : ILaunchHost.Stub {
      */
     private fun wakePhysicalDisplay(virtualDisplayId: Int, dark: Boolean) {
         if (!dark) panelOff = false
+        waking = true
         Thread {
-            runCatching {
+            try { runCatching {
                 Thread.sleep(500)
                 val process = ProcessBuilder("/system/bin/cmd", "power", "wakeup")
                     .redirectErrorStream(true)
@@ -271,7 +277,7 @@ class LaunchHostService : ILaunchHost.Stub {
                     Thread.sleep(500)
                     if (displayId == virtualDisplayId && setPanel(false)) panelOff = true
                 }
-            }.onFailure { Log.w(TAG, "phone wake failed for display $virtualDisplayId", it) }
+            }.onFailure { Log.w(TAG, "phone wake failed for display $virtualDisplayId", it) } } finally { waking = false }
         }.apply { name = "AARE-display-wakeup"; isDaemon = true }.start()
     }
 

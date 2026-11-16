@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioPlaybackCaptureConfiguration
@@ -181,6 +182,7 @@ internal object AudioPolicyCapture {
 
         val status = AudioManager::class.java.getMethod("registerAudioPolicy", p.javaClass).invoke(audioManager, p) as Int
         if (status != 0) throw IllegalStateException("registerAudioPolicy: $status")
+        fullVolume(audioManager)
         val record = try {
             val sink = if (recordContext != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 // The Builder overload (newer Android) keeps our attribution and a buffer of ~160 ms
@@ -198,6 +200,27 @@ internal object AudioPolicyCapture {
         }
         return Handle(audioManager, p, record)
     }
+
+    /**
+     * The phone puts its own media volume on the loop back, as on any output: at its default index
+     * (8 of 25 on a Pixel) some 30 dB below full, so the car played it faintly at a normal volume.
+     * Android Auto sends at full volume and the car sets the level, so the loop back's output gets
+     * full volume. Android keeps this setting; other recorders of that output get full volume too.
+     */
+    private fun fullVolume(audioManager: AudioManager) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        runCatching {
+            HiddenApiBypass.addHiddenApiExemptions("Landroid/media/AudioDeviceAttributes;")
+            val attrs = Class.forName("android.media.AudioDeviceAttributes")
+                .getConstructor(Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, String::class.java)
+                .newInstance(ROLE_OUTPUT, AudioDeviceInfo.TYPE_REMOTE_SUBMIX, "")
+            AudioManager::class.java.getMethod("setDeviceVolumeBehavior", attrs.javaClass, Int::class.javaPrimitiveType)
+                .invoke(audioManager, attrs, DEVICE_VOLUME_BEHAVIOR_FULL)
+        }.onFailure { Log.w(TAG, "loop back at full volume", it) }
+    }
+
+    private const val ROLE_OUTPUT = 2
+    private const val DEVICE_VOLUME_BEHAVIOR_FULL = 1
 }
 
 /** [AudioPolicyCapture] in AARE itself: needs AARE installed in /system/priv-app (tools/magisk). */

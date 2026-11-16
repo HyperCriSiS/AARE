@@ -92,7 +92,6 @@
     <string name="setup_choice_bar">Leiste</string>
     <string name="setup_choice_bar_spacing">Abstand der Symbole in der Leiste</string>
     <string name="setup_spacing_px">%1$d px</string>
-    <string name="setup_spacing_standard">(Standard)</string>
     <string name="setup_spacing_reset">Standard</string>
     <string name="setup_choice_bar_auto">Fahrerseite</string>
     <string name="setup_choice_left">Links</string>

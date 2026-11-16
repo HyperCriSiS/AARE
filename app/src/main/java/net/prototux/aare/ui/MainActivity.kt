@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -781,16 +782,18 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                 rail = it; settings.railPosition = it
             }
             Spacer(Modifier.height(12.dp))
-            // In the car screen's pixels, 5 at a time from the standard space.
+            // In the car screen's pixels, one at a time from the standard space. The row keeps its layout
+            // whatever the value: the buttons stay where they were, for the next tap.
             val standard = railGapPx(bottom = rail == Settings.RAIL_BOTTOM, dpi = settings.carDpi)
             val px = spacing.takeIf { it >= 0 } ?: standard
             Text(stringResource(R.string.setup_choice_bar_spacing), style = MaterialTheme.typography.bodyLarge)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = { spacing = (px - 5).coerceAtLeast(0); settings.railSpacing = spacing }, enabled = px > 0) { Text("−5") }
-                Text(stringResource(R.string.setup_spacing_px, px) + if (spacing < 0) " " + stringResource(R.string.setup_spacing_standard) else "",
-                    style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 16.dp))
-                OutlinedButton(onClick = { spacing = px + 5; settings.railSpacing = spacing }, enabled = px < 60) { Text("+5") }
-                if (spacing >= 0) TextButton(onClick = { spacing = -1; settings.railSpacing = -1 }) { Text(stringResource(R.string.setup_spacing_reset)) }
+                OutlinedButton(onClick = { spacing = (px - 1).coerceAtLeast(0); settings.railSpacing = spacing }, enabled = px > 0) { Text("−") }
+                Text(stringResource(R.string.setup_spacing_px, px), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center,
+                    modifier = Modifier.width(72.dp))
+                OutlinedButton(onClick = { spacing = px + 1; settings.railSpacing = spacing }, enabled = px < 60) { Text("+") }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { spacing = -1; settings.railSpacing = -1 }, enabled = spacing >= 0) { Text(stringResource(R.string.setup_spacing_reset)) }
             }
             Toggle(stringResource(R.string.setup_toggle_dark_bar_title), stringResource(R.string.setup_toggle_dark_bar_subtitle), darkBar) { darkBar = it; settings.darkBar = it }
         }

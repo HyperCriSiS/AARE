@@ -1068,7 +1068,8 @@ class CarSession(
         cluster?.stop()
         phoneAppsMic?.stop(); phoneAppsMic = null
         context.getSystemService(AudioManager::class.java)?.unregisterAudioRecordingCallback(recordings)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) context.getSystemService(AudioManager::class.java)?.removeOnModeChangedListener(modeChanged)
+        // Throws when never added: a session that closed before it got that far.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) runCatching { context.getSystemService(AudioManager::class.java)?.removeOnModeChangedListener(modeChanged) }
         main.removeCallbacks(recordingDone)
         micRouter.shutdown()
         teardownVideo()

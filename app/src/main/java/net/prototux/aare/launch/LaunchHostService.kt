@@ -135,7 +135,7 @@ class LaunchHostService : ILaunchHost.Stub {
 
     /** The rotation setting before [phoneScreen] turned the phone, to put back ("free" or "lock N"); null when untouched. */
     private var savedRotation: String? = null
-    private var panelOff = false
+    @Volatile private var panelOff = false
     private var phoneAwake: PowerManager.WakeLock? = null
 
     @SuppressLint("WakelockTimeout")
@@ -230,7 +230,9 @@ class LaunchHostService : ILaunchHost.Stub {
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                if (intent?.action == Intent.ACTION_SCREEN_OFF) wakePhysicalDisplay(id)
+                // The power key: with the panel lit, the driver locks the phone, so it wakes with the
+                // panel dark; with the panel dark, the driver wants the phone, so it wakes lit.
+                if (intent?.action == Intent.ACTION_SCREEN_OFF) wakePhysicalDisplay(id, dark = !panelOff)
             }
         }
         runCatching {
@@ -244,10 +246,16 @@ class LaunchHostService : ILaunchHost.Stub {
         val phoneIsAwake = runCatching {
             ctx.getSystemService(PowerManager::class.java).isInteractive
         }.getOrDefault(true)
-        if (!phoneIsAwake) wakePhysicalDisplay(id)
+        if (!phoneIsAwake) wakePhysicalDisplay(id, dark = true)
     }
 
-    private fun wakePhysicalDisplay(virtualDisplayId: Int) {
+    /**
+     * Wakes the phone, which keeps the hosted display on: Android 17 puts it in the phone's display
+     * group whatever its flags, and switches it off with the phone. [dark]: the panel then goes off
+     * again, so the phone stays dark and locked while the car shows the app.
+     */
+    private fun wakePhysicalDisplay(virtualDisplayId: Int, dark: Boolean) {
+        if (!dark) panelOff = false
         Thread {
             runCatching {
                 Thread.sleep(500)
@@ -258,6 +266,11 @@ class LaunchHostService : ILaunchHost.Stub {
                 val exit = process.waitFor()
                 if (exit == 0) Log.i(TAG, "woke phone to keep display $virtualDisplayId active")
                 else Log.w(TAG, "phone wake failed for display $virtualDisplayId (exit=$exit): $output")
+                if (dark && exit == 0) {
+                    // After the wake has lit the panel: switched off before, the wake would light it again.
+                    Thread.sleep(500)
+                    if (displayId == virtualDisplayId && setPanel(false)) panelOff = true
+                }
             }.onFailure { Log.w(TAG, "phone wake failed for display $virtualDisplayId", it) }
         }.apply { name = "AARE-display-wakeup"; isDaemon = true }.start()
     }

@@ -336,7 +336,7 @@ class CarRuntime(
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu",
-            "standalone_apps", "standalone_app_packages", "browser", "full_apps" -> main.post { refreshApps() }
+            "standalone_apps", "standalone_app_pkgs", "browser", "full_apps" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
             "video_apps" -> main.post { videoApps = settings.videoApps }
             // Cards switched on or off: also fetch what they show now (the weather, the agenda).

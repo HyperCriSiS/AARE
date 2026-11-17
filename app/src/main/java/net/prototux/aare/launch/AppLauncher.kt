@@ -96,8 +96,6 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     /** The app in front on the phone's own screen, or null if unknown. */
     fun topApp(): String? = runCatching { host?.topApp() }.onFailure { Log.w(TAG, "topApp", it) }.getOrNull()
 
-            ?.split(',')?.mapNotNull(String::toIntOrNull)?.takeIf { it.size == 4 }
-
     /** Turn the phone's location on or off through the helper; false if it can't. */
     fun setLocationEnabled(on: Boolean): Boolean =
         runCatching { host?.setLocationEnabled(on) ?: false }.onFailure { Log.w(TAG, "setLocationEnabled", it) }.getOrDefault(false)

@@ -72,6 +72,8 @@ interface ILaunchHost {
 
     /** Whether an app still shows on the display [start] made: Back on its first screen closes it. */
     boolean hasApp() = 19;
+    /** Turns the phone's location on or off, as the shell may. False if it can't. */
+    boolean setLocationEnabled(boolean on) = 15;
 
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;

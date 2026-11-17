@@ -223,6 +223,19 @@ class Settings(context: Context) {
         set(v) = prefs.edit { if (v == null) remove("assistant_pkg") else putString("assistant_pkg", v) }
 
     /**
+     * A link the assistant hosted on the car screen opens before it listens (a Claude project, say),
+     * so the voice button starts it there; empty = its own voice mode, in a new chat.
+     */
+    var assistantLink: String
+        get() = prefs.getString("assistant_link", "") ?: ""
+        set(v) = prefs.edit { putString("assistant_link", v) }
+
+    /** The name of the assistant's project with the car link instructions, as the setup steps call it. */
+    var assistantProject: String
+        get() = prefs.getString("assistant_project", "Car001") ?: "Car001"
+        set(v) = prefs.edit { putString("assistant_project", v) }
+
+    /**
      * With Shizuku or root, what "Phone screen" shows parked: [PHONE_SCREEN_MIRROR] the phone's own
      * screen turned to landscape, or [PHONE_SCREEN_DESKTOP] a desktop of its own at the car screen's size.
      */
@@ -234,6 +247,11 @@ class Settings(context: Context) {
     var phoneScreenOff: Boolean
         get() = prefs.getBoolean("phone_screen_off", true)
         set(v) = prefs.edit { putBoolean("phone_screen_off", v) }
+
+    /** The app car links and voice requests navigate in (its package); null = the car navigation app used last. */
+    var navigationApp: String?
+        get() = prefs.getString("navigation_app", null)
+        set(v) = prefs.edit { if (v == null) remove("navigation_app") else putString("navigation_app", v) }
 
     /** Offer "Phone screen" in the car: the phone's own screen, for apps AARE can't host (Google Maps, Waze). */
     var phoneScreen: Boolean

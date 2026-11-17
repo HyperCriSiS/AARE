@@ -104,8 +104,28 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     fun openPending(intent: PendingIntent): Boolean =
         runCatching { host?.openPending(intent) ?: false }.onFailure { Log.w(TAG, "openPending", it) }.getOrDefault(false)
 
+    /** Start [pkg]'s shortcut whose id contains [keyword] on the display [start] made; false if it can't. */
+    fun openShortcut(pkg: String, keyword: String): Boolean =
+        runCatching { host?.openShortcut(pkg, keyword) ?: false }.onFailure { Log.w(TAG, "openShortcut", it) }.getOrDefault(false)
+
+    /** Open [url] in [pkg] on the display [start] made, started by the helper; false if it can't. */
+    fun openLink(url: String, pkg: String, warm: Boolean = false): Boolean =
+        runCatching { host?.openLink(url, pkg, warm) ?: false }.onFailure { Log.w(TAG, "openLink", it) }.getOrDefault(false)
+
+    /** Tap the button whose label matches [pattern] on that display, waiting up to [timeoutMs]; false if none showed. */
+    fun tapLabel(pattern: String, timeoutMs: Long): Boolean =
+        runCatching { host?.tapLabel(pattern, timeoutMs) ?: false }.onFailure { Log.w(TAG, "tapLabel", it) }.getOrDefault(false)
+
     /** The phone's own screen while the car shows it or one of its apps: landscape, awake, panel off; all false, all back. */
     fun phoneScreen(landscape: Boolean, awake: Boolean, panelOff: Boolean) { runCatching { host?.phoneScreen(landscape, awake, panelOff) } }
+
+    /** What looks like a car link on that display (see ILaunchHost.carLinks); empty if nothing, null if it couldn't look. */
+    fun carLinks(linkHost: String, tapPattern: String): List<String>? =
+        runCatching { host?.carLinks(linkHost, tapPattern) }.onFailure { Log.w(TAG, "carLinks", it) }.getOrNull()
+            ?.lines()?.filter { it.isNotBlank() }
+
+    /** A finger's tap at [x], [y] on that display. */
+    fun tapAt(x: Float, y: Float) { runCatching { host?.tapAt(x, y) }.onFailure { Log.w(TAG, "tapAt", it) } }
 
     /** Create the display into [surface] and launch [pkg] on it. Returns the display id, or -1. */
     fun start(surface: Surface, width: Int, height: Int, dpi: Int, pkg: String, keepDisplayAwake: Boolean): Int =
@@ -115,6 +135,10 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     fun resize(surface: Surface, width: Int, height: Int, dpi: Int) { runCatching { host?.resize(surface, width, height, dpi) } }
     fun touch(downTime: Long, eventTime: Long, action: Int, x: Float, y: Float, pointerId: Int) {
         runCatching { host?.touch(downTime, eventTime, action, x, y, pointerId) }
+    }
+    fun touches(downTime: Long, eventTime: Long, touch: net.prototux.aare.ui.car.Touch) {
+        val xy = FloatArray(touch.fingers.size * 2).also { a -> touch.fingers.forEachIndexed { i, f -> a[2 * i] = f.x; a[2 * i + 1] = f.y } }
+        runCatching { host?.touches(downTime, eventTime, touch.action, xy, IntArray(touch.fingers.size) { touch.fingers[it].id }) }
     }
     fun key(eventTime: Long, action: Int, keyCode: Int) { runCatching { host?.key(eventTime, action, keyCode) } }
 

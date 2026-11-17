@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AARE</string>
+    <string name="phone_mode_title">Mit Shizuku oder Root</string>
+    <string name="phone_mode_mirror">Handy, quer</string>
+    <string name="phone_mode_desktop">Eigener Bildschirm</string>
+    <string name="phone_mode_mirror_hint">Der Bildschirm des Telefons selbst, ins Querformat gedreht, solange er im Auto angezeigt wird, live bedienbar. Apps, die nur hochkant laufen, bleiben ein Streifen in der Mitte.</string>
+    <string name="phone_mode_desktop_hint">Beim Parken ein eigener Bildschirm in der Größe des Autobildschirms, mit Androids Desktop und Taskleiste: Apps laufen dort quer, und das Telefon zeigt weiter, was es zeigte.</string>
+    <string name="phone_toggle_off_title">Handy-Display aus</string>
+    <string name="phone_toggle_off_subtitle">Das Panel bleibt dunkel, solange das Auto den Bildschirm zeigt (ab Android 15). Die Ein-Taste schaltet es wieder ein.</string>
     <string name="mirror_touch_description">Ermöglicht die Nutzung des Telefonbildschirms vom Auto aus: AARE gibt die auf dem Autobildschirm gemachten Berührungen an das Telefon weiter und prüft, welche App im Vordergrund ist, damit der Telefonbildschirm während der Fahrt pausiert bleibt, außer wenn eine Navigations-App angezeigt wird. AARE liest sonst nichts.</string>
     <string name="mirror_locked_placeholder">Der Telefonbildschirm ist pausiert, solange das Telefon gesperrt ist. Entsperren Sie das Telefon, um ihn anzuzeigen.</string>
     <string name="mirror_driving_no_accessibility">Der Telefonbildschirm ist während der Fahrt pausiert. Um Navigations-Apps während der Fahrt anzuzeigen, aktivieren Sie AARE in den Bedienungshilfen des Telefons: So erfährt AARE, welche App geöffnet ist.</string>
@@ -220,6 +227,7 @@
     <string name="phone_toggle_enable_subtitle">Der eigene Bildschirm des Telefons, für Apps, die AARE nicht hosten kann (Google Maps, Waze). Pausiert, solange das Telefon gesperrt ist, und während der Fahrt, außer eine Navigations-App gibt Anweisungen. Wird auf dem Head-Unit-Server nicht angeboten, außer dort aktiviert</string>
     <string name="phone_check_touch_title">Berührung auf dem Telefonbildschirm</string>
     <string name="phone_check_touch_subtitle">Aktivieren Sie AARE in den Bedienungshilfen. Sideloaded Apps benötigen möglicherweise zuerst „Eingeschränkte Einstellungen zulassen" in den App-Infos von AARE</string>
+    <string name="phone_check_touch_not_needed">Nicht nötig: Shizuku oder Root ist aktiv und gibt die Berührungen selbst weiter</string>
     <string name="phone_hint_touch_capture">Das Bild nutzt die Bildschirmaufnahme-Berechtigung (Seite Autoaudio, Gesamten Bildschirm wählen).</string>
     <string name="phone_app_row_subtitle">Der eigene Bildschirm des Telefons, für Apps, die AARE nicht hosten kann</string>
 

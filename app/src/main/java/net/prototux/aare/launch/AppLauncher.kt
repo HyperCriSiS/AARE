@@ -90,9 +90,15 @@ class AppLauncher(private val context: Context, key: String = "launch") {
 
     val connected: Boolean get() = host != null
 
+    /** The app in front on the phone's own screen, or null if unknown. */
+    fun topApp(): String? = runCatching { host?.topApp() }.onFailure { Log.w(TAG, "topApp", it) }.getOrNull()
+
     /** Start [intent] on the display [start] made, in place of the app's start screen; false if it can't. */
     fun openPending(intent: PendingIntent): Boolean =
         runCatching { host?.openPending(intent) ?: false }.onFailure { Log.w(TAG, "openPending", it) }.getOrDefault(false)
+
+    /** The phone's own screen while the car shows it or one of its apps: landscape, awake, panel off; all false, all back. */
+    fun phoneScreen(landscape: Boolean, awake: Boolean, panelOff: Boolean) { runCatching { host?.phoneScreen(landscape, awake, panelOff) } }
 
     /** Create the display into [surface] and launch [pkg] on it. Returns the display id, or -1. */
     fun start(surface: Surface, width: Int, height: Int, dpi: Int, pkg: String, keepDisplayAwake: Boolean): Int =
@@ -125,6 +131,9 @@ class AppLauncher(private val context: Context, key: String = "launch") {
 
     companion object {
         private const val TAG = "AareAppLauncher"
+
+        /** In place of a package for [start]: the phone's own desktop, its home screen and any app, at the car screen's size. */
+        const val PHONE_DESKTOP = ":desktop"
 
         /** A process name suffix for the helper of [key]: letters, digits and underscores only. */
         internal fun helperName(key: String) = key.map { if (it.isLetterOrDigit()) it else '_' }.joinToString("")

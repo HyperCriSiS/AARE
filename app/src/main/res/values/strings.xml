@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AARE</string>
+    <string name="phone_mode_title">With Shizuku or root</string>
+    <string name="phone_mode_mirror">Phone, landscape</string>
+    <string name="phone_mode_desktop">Own screen</string>
+    <string name="phone_mode_mirror_hint">The phone\'s own screen, turned to landscape while it shows in the car, touched live. Apps that only run upright stay a strip in the middle.</string>
+    <string name="phone_mode_desktop_hint">Parked, a screen of its own at the car screen\'s size, with Android\'s desktop and taskbar: apps run there in landscape, and the phone keeps showing what it showed.</string>
+    <string name="phone_toggle_off_title">Phone display off</string>
+    <string name="phone_toggle_off_subtitle">Its panel stays dark while the car shows it (Android 15 or newer). The power key turns it back on.</string>
     <string name="mirror_touch_description">Lets you use the phone screen from the car: AARE replays the touches made on the car screen on the phone, and checks which app is in front so the phone screen stays paused while driving unless it shows a navigation app. AARE reads nothing else.</string>
     <string name="mirror_locked_placeholder">The phone screen is paused while the phone is locked. Unlock the phone to show it.</string>
     <string name="mirror_driving_no_accessibility">The phone screen is paused while driving. To show navigation apps while driving, turn on AARE in the phone\'s accessibility settings: it tells AARE which app is open.</string>
@@ -332,6 +339,7 @@
     <string name="phone_toggle_enable_subtitle">The phone\'s own screen, for apps AARE can\'t host (Google Maps, Waze). Paused while the phone is locked, and while driving unless a navigation app is guiding. Not offered on the head unit server unless enabled there</string>
     <string name="phone_check_touch_title">Touch on the phone screen</string>
     <string name="phone_check_touch_subtitle">Turn on AARE in Accessibility. Sideloaded apps may first need "Allow restricted settings" in AARE\'s app info</string>
+    <string name="phone_check_touch_not_needed">Not needed: Shizuku or root is active, and replays the touches itself</string>
     <string name="phone_hint_touch_capture">The picture uses the screen-capture permission (Car audio page, choose Entire screen).</string>
     <string name="phone_app_row_subtitle">The phone\'s own screen, for apps AARE can\'t host</string>
 

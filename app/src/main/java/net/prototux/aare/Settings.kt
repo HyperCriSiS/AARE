@@ -217,6 +217,19 @@ class Settings(context: Context) {
         get() = prefs.getString("assistant_pkg", null)
         set(v) = prefs.edit { if (v == null) remove("assistant_pkg") else putString("assistant_pkg", v) }
 
+    /**
+     * With Shizuku or root, what "Phone screen" shows parked: [PHONE_SCREEN_MIRROR] the phone's own
+     * screen turned to landscape, or [PHONE_SCREEN_DESKTOP] a desktop of its own at the car screen's size.
+     */
+    var phoneScreenMode: String
+        get() = prefs.getString("phone_screen_mode", PHONE_SCREEN_MIRROR) ?: PHONE_SCREEN_MIRROR
+        set(v) = prefs.edit { putString("phone_screen_mode", v) }
+
+    /** While the phone's screen is mirrored with Shizuku or root, its panel is off (the power key turns it back on). */
+    var phoneScreenOff: Boolean
+        get() = prefs.getBoolean("phone_screen_off", true)
+        set(v) = prefs.edit { putBoolean("phone_screen_off", v) }
+
     /** Offer "Phone screen" in the car: the phone's own screen, for apps AARE can't host (Google Maps, Waze). */
     var phoneScreen: Boolean
         get() = prefs.getBoolean("phone_screen", false)
@@ -231,9 +244,12 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("standalone_apps", false)
         set(v) = prefs.edit { putBoolean("standalone_apps", v) }
 
-    /** Keep standalone apps active when Android links their display to the phone display. */
+    /**
+     * Keep standalone apps active when Android links their display to the phone display. On by
+     * default from Android 17 (API 37), which switches their display off with the phone's screen.
+     */
     var standaloneKeepScreenAwake: Boolean
-        get() = prefs.getBoolean("standalone_keep_screen_awake", false)
+        get() = prefs.getBoolean("standalone_keep_screen_awake", android.os.Build.VERSION.SDK_INT >= 37)
         set(v) = prefs.edit { putBoolean("standalone_keep_screen_awake", v) }
 
     /** The packages the user allows onto the car screen (see [standaloneApps]). */
@@ -397,6 +413,8 @@ class Settings(context: Context) {
 
     companion object {
         const val BROWSER_DEFAULT_URL = "https://duckduckgo.com/"
+        const val PHONE_SCREEN_MIRROR = "mirror"
+        const val PHONE_SCREEN_DESKTOP = "desktop"
         const val RAIL_AUTO = "auto"
         const val RAIL_LEFT = "left"
         const val RAIL_RIGHT = "right"

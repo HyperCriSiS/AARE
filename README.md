@@ -50,12 +50,13 @@ merged there and released.
 | Car keys in the connection log | ✅ [#301](https://github.com/prototux/AARE/pull/301) |  |
 | Messaging apps with a media browser of their own are no media apps | ✅ [#302](https://github.com/prototux/AARE/pull/302) |  |
 | Car volume buttons work before playback starts | ✅ [#303](https://github.com/prototux/AARE/pull/303) |  |
-| Phone apps on the car screen under Android 17: touches, keys and the keyboard reach them, and they keep running when the phone is locked (Shizuku or root) |  |  |
-| The phone screen in the car through Shizuku or root, without an accessibility service: a desktop of its own, or the phone itself in landscape |  |  |
-| Car audio: music comes back after a call or an assistant, pauses while a phone app records, and reaches the car at full volume |  |  |
-| The rail's icon spacing, notifications that open their app, a filter per messaging app |  |  |
-| Google Maps in the dashboard's map card, a new destination replacing the running route, pinch to zoom (Shizuku or root) |  |  |
+| Phone apps on the car screen under Android 17: touches, keys and the keyboard reach them, and they keep running when the phone is locked (Shizuku or root) | ✅ [#310](https://github.com/prototux/AARE/pull/310) |  |
+| The phone screen in the car through Shizuku or root, without an accessibility service: a desktop of its own, or the phone itself in landscape | ✅ [#310](https://github.com/prototux/AARE/pull/310) |  |
+| Car audio: music comes back after a call or an assistant, pauses while a phone app records, and reaches the car at full volume | ✅ [#311](https://github.com/prototux/AARE/pull/311) |  |
+| The rail's icon spacing, notifications that open their app, a filter per messaging app | ✅ [#309](https://github.com/prototux/AARE/pull/309) |  |
+| Google Maps in the dashboard's map card, a new destination replacing the running route, pinch to zoom (Shizuku or root) | ✅ [#312](https://github.com/prototux/AARE/pull/312) |  |
 | The voice assistant (Claude) on the car screen in a project, its car links run without MacroDroid, a command to end the route (Shizuku or root) |  |  |
+| Screen-capture consent given again is kept | ✅ [#308](https://github.com/prototux/AARE/pull/308) |  |
 | A cleaner media card, the next calendar events on the dashboard, switches in the car's Settings app for weather, calendar and the phone screen |  |  |
 
 ## 📦 Installation

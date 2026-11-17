@@ -3,6 +3,7 @@ package net.prototux.aare.car
 import android.content.Context
 import android.location.LocationManager
 import android.util.Log
+import java.util.concurrent.Executors
 import net.prototux.aare.launch.AppLauncher
 
 /**
@@ -13,15 +14,19 @@ import net.prototux.aare.launch.AppLauncher
 class PhoneLocationSwitch(private val context: Context) {
     private var started = false
 
-    fun start() { started = true; switch(true) }
+    /** The session runs; [on]: turn the location on. */
+    fun start(on: Boolean) { started = true; if (on) switch(true) }
 
     /** Only after [start]: a session that ended before it ran (a failed connect) leaves the location as it is. */
     fun stop() { if (started) switch(false) }
 
+    /** One after the other, each checking when it runs: an off, then an on right after (a quick reconnect) ends on. */
     private fun switch(on: Boolean) {
-        val lm = context.getSystemService(LocationManager::class.java) ?: return
-        if (lm.isLocationEnabled == on || !AppLauncher.available(context)) return
-        Thread { set(on) }.start()
+        if (!AppLauncher.available(context)) return
+        worker.execute {
+            val lm = context.getSystemService(LocationManager::class.java) ?: return@execute
+            if (lm.isLocationEnabled != on) set(on)
+        }
     }
 
     private fun set(on: Boolean): Boolean {
@@ -35,5 +40,8 @@ class PhoneLocationSwitch(private val context: Context) {
 
     private companion object {
         const val TAG = "AareLocation"
+
+        /** Shared by every session's switch, so the last session's off and the next one's on keep their order. */
+        val worker = Executors.newSingleThreadExecutor()
     }
 }

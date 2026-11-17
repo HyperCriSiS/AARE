@@ -330,7 +330,7 @@ class CarSession(
             // A route that started before the session was running still gets the focus.
             requestNavFocus()
             drivingMode.start()
-            if (settings.locationOnInCar) locationSwitch.start()
+            locationSwitch.start(settings.locationOnInCar)
             net.prototux.aare.notify.CarNotificationListener.sink = { m ->
                 drivingMode.onMessage(m.key, m.group)
                 if (!m.group || settings.groupMessages) {

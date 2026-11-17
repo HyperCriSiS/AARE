@@ -284,7 +284,8 @@ internal fun ContentArea(
             is CarScreen.App -> {
                 val app = state.app(screen.appId)
                 when {
-                    app != null -> appScreen(app, Modifier.fillMaxSize())
+                    // Keyed by the app: in the same slot, one app's movable screen otherwise took another's place.
+                    app != null -> key(app.id) { appScreen(app, Modifier.fillMaxSize()) }
                     launcherHome -> Launcher(state, actions, Modifier.fillMaxSize())
                     else -> Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
                 }

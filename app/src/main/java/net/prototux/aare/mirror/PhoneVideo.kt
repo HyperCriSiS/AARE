@@ -2,6 +2,7 @@ package net.prototux.aare.mirror
 
 import android.app.PendingIntent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
 import android.view.KeyEvent
@@ -41,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -98,14 +100,20 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
     LaunchedEffect(started) {
         if (started == true && Settings(context).videoLandscape) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = true, awake = false, panelOff = false) }
     }
-    // Back from the car (or the car screen preview) goes to the app; without it, to the cover.
+    // Back from the car (or the car screen preview) goes to the app; without it, to the cover. Back on
+    // the player's first screen closes it: with no app left, the cover again, not an empty picture.
     val cover by rememberUpdatedState(onCover)
+    val scope = rememberCoroutineScope()
     DisposableEffect(appId) {
         val back: () -> Boolean = {
             if (launcher.connected) {
                 val t = android.os.SystemClock.uptimeMillis()
                 launcher.key(t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK)
                 launcher.key(t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)
+                scope.launch {
+                    delay(BACK_SETTLE_MS)
+                    if (!withContext(Dispatchers.IO) { launcher.hasApp() }) cover()
+                }
             } else cover()
             true
         }
@@ -191,3 +199,6 @@ internal fun MirrorSurface(runtime: CarRuntime, modifier: Modifier, onMirroring:
         },
     )
 }
+
+/** How long an app takes to close after Back, before the video mode looks whether one is left. */
+private const val BACK_SETTLE_MS = 700L

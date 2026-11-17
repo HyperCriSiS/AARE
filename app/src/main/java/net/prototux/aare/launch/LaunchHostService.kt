@@ -319,6 +319,10 @@ class LaunchHostService : ILaunchHost.Stub {
             .onFailure { Log.w(TAG, "mirror display failed: ${it.message}") }.getOrNull()
     }
 
+    override fun hasApp(): Boolean = displayId.let { id ->
+        id >= 0 && displayHasActivity(shell("dumpsys", "activity", "activities"), id)
+    }
+
     override fun topApp(): String? = runCatching {
         topResumedPackage(shell("dumpsys", "activity", "activities"))
     }.onFailure { Log.w(TAG, "top app unknown: ${it.message}") }.getOrNull()
@@ -466,6 +470,14 @@ class LaunchHostService : ILaunchHost.Stub {
  * The package of the activity resumed on top of the phone's own screen (display 0), from
  * `dumpsys activity activities`; null when the dump names none.
  */
+/** Whether `dumpsys activity activities` lists an activity on the display [id]. */
+internal fun displayHasActivity(dump: String, id: Int): Boolean {
+    val start = dump.indexOf("Display #$id ")
+    if (start < 0) return false
+    val next = dump.indexOf("Display #", start + 1).let { if (it < 0) dump.length else it }
+    return "ActivityRecord{" in dump.substring(start, next)
+}
+
 internal fun topResumedPackage(dump: String): String? {
     val display = dump.indexOf("Display #0 ")
     if (display < 0) return null

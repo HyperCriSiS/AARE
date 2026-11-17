@@ -131,7 +131,7 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
             locked -> Placeholder(stringResource(R.string.mirror_locked_placeholder),
                 loading = false, icon = Icons.Rounded.Lock)
             !allowed -> Placeholder(
-                if (MirrorTouchService.instance == null) stringResource(R.string.mirror_driving_no_accessibility)
+                if (asksForAccessibility(helper, MirrorTouchService.instance != null)) stringResource(R.string.mirror_driving_no_accessibility)
                 else stringResource(R.string.mirror_driving_nav_only),
                 loading = false, icon = Icons.Rounded.PauseCircle)
             !mirroring -> Placeholder(stringResource(if (consent) R.string.mirror_capture_failed else R.string.mirror_need_screen_capture),
@@ -289,3 +289,6 @@ internal val KNOWN_NAVIGATION = setOf(
 
 /** How often the app in front is asked of the helper while driving. */
 private const val FRONT_POLL_MS = 2_000L
+
+/** Whether the paused phone screen asks for the accessibility service: not with a [helper], which tells the app in front itself. */
+internal fun asksForAccessibility(helper: Boolean, service: Boolean) = !helper && !service

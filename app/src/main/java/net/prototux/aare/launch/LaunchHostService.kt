@@ -105,6 +105,7 @@ class LaunchHostService : ILaunchHost.Stub {
         inject(ev)
     }
 
+    @Synchronized
     override fun stop() {
         phoneScreen(false, false, false)
         unwatchScreen?.let { runCatching { it() } }
@@ -127,8 +128,9 @@ class LaunchHostService : ILaunchHost.Stub {
         return mirrorDisplay != null
     }
 
+    // Not the phone's landscape, wake lock and panel: the car screen that set them puts them back
+    // (phoneScreen), and stop() when the helper ends. A surface gone for a moment would drop them for good.
     override fun stopMirror() {
-        phoneScreen(false, false, false)
         mirrorDisplay?.let { runCatching { it.release() } }
         mirrorDisplay = null
     }
@@ -160,7 +162,7 @@ class LaunchHostService : ILaunchHost.Stub {
             phoneAwake?.let { runCatching { if (it.isHeld) it.release() } }
             phoneAwake = null
         }
-        if (panelOff != this.panelOff && setPanel(!panelOff)) this.panelOff = panelOff
+        if (switchesPanel(panelOff, this.panelOff) && setPanel(!panelOff)) this.panelOff = panelOff
     }
 
     /**
@@ -229,8 +231,9 @@ class LaunchHostService : ILaunchHost.Stub {
         }.onFailure { Log.w(TAG, "display wake lock failed for display $id", it) }
 
         // The phone's own display says when it goes to sleep: a screen-off broadcast receiver never
-        // got registered in this helper process.
-        runCatching {
+        // got registered in this helper process. Only from Android 17, where this display goes dark with
+        // the phone's: before, it has a group of its own, and a screen timeout isn't the power key.
+        if (Build.VERSION.SDK_INT >= 37) runCatching {
             val pm = ctx.getSystemService(PowerManager::class.java)
             val dm = ctx.getSystemService(DisplayManager::class.java)
             val listener = object : DisplayManager.DisplayListener {
@@ -275,7 +278,8 @@ class LaunchHostService : ILaunchHost.Stub {
                 if (dark && exit == 0) {
                     // After the wake has lit the panel: switched off before, the wake would light it again.
                     Thread.sleep(500)
-                    if (displayId == virtualDisplayId && setPanel(false)) panelOff = true
+                    // Not once stop() ran: it lit the panel and would leave it dark after the session.
+                    synchronized(this) { if (displayId == virtualDisplayId && setPanel(false)) panelOff = true }
                 }
             }.onFailure { Log.w(TAG, "phone wake failed for display $virtualDisplayId", it) } } finally { waking = false }
         }.apply { name = "AARE-display-wakeup"; isDaemon = true }.start()
@@ -458,7 +462,6 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 }
 
-/** What `cmd window user-rotation` printed, as the arguments that put it back ("free" or "lock N"); null for anything else. */
 /**
  * The package of the activity resumed on top of the phone's own screen (display 0), from
  * `dumpsys activity activities`; null when the dump names none.
@@ -469,6 +472,13 @@ internal fun topResumedPackage(dump: String): String? {
     val next = dump.indexOf("Display #", display + 1).let { if (it < 0) dump.length else it }
     return Regex("""topResumedActivity=ActivityRecord\{\S+ u\d+ ([\w.]+)/""").find(dump.substring(display, next))?.groupValues?.get(1)
 }
+
+/** What `cmd window user-rotation` printed, as the arguments that put it back ("free" or "lock N"); null for anything else. */
+/**
+ * Whether the panel is switched for [off] asked while it was set [wasOff]: on a change, and a dark
+ * panel asked again too, as the power key may have lit it since.
+ */
+internal fun switchesPanel(off: Boolean, wasOff: Boolean) = off || off != wasOff
 
 internal fun savedRotation(output: String): String? =
     output.trim().lowercase().takeIf { Regex("free|lock [0-3]").matches(it) }

@@ -90,10 +90,10 @@ class AppLauncher(private val context: Context, key: String = "launch") {
 
     val connected: Boolean get() = host != null
 
-    /** Start [intent] on the display [start] made, in place of the app's start screen; false if it can't. */
     /** The app in front on the phone's own screen, or null if unknown. */
     fun topApp(): String? = runCatching { host?.topApp() }.onFailure { Log.w(TAG, "topApp", it) }.getOrNull()
 
+    /** Start [intent] on the display [start] made, in place of the app's start screen; false if it can't. */
     fun openPending(intent: PendingIntent): Boolean =
         runCatching { host?.openPending(intent) ?: false }.onFailure { Log.w(TAG, "openPending", it) }.getOrDefault(false)
 

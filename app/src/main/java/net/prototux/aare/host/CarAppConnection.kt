@@ -212,6 +212,8 @@ class CarAppConnection(
         cleanup()
         unbind()
         status = Status.IDLE
+        // A next start counts its crashes afresh, not from this run's time up.
+        readyAt = 0L
     }
 
     /** Pushes a new screen configuration (night mode or size changed). */
@@ -385,7 +387,8 @@ class CarAppConnection(
     }
 
     private fun onAppDied() {
-        if (status == Status.IDLE) return
+        // FAILED: this death was handled already (the death recipient and the disconnect both report one crash).
+        if (status == Status.IDLE || status == Status.FAILED) return
         Log.w(TAG, "${info.packageName} died or unbound")
         // It won't send navigationEnded any more: don't leave its trip on the dashboard and cluster.
         if (navigating) { navigating = false; trip = null; env.navigationEnded(this) }

@@ -361,13 +361,19 @@ class CarSession(
     /** When a phone app records and when it is done, a moment's break (a recording moving to the car's mic) not counted. */
     private val recordingPause = MicTakeover()
     private val recordingDone = Runnable {
-        if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE) {
-            if (pausedForRecording) {
-                pausedForRecording = false
-                if (runtime.ui.nowPlaying?.playing != true) media.playPause()
-            }
-        }
+        if (closed) return@Runnable
+        if (recordingPause.onTick(SystemClock.uptimeMillis()) == MicTakeover.Action.CLOSE) main.post(resumeAfterRecording)
         scheduleRecordingDone()
+    }
+
+    /** Plays on what a recording paused, once no call or assistant answer runs on the phone. */
+    private val resumeAfterRecording: Runnable = Runnable {
+        if (closed || !pausedForRecording) return@Runnable
+        // An assistant's spoken answer or a call still going: music now would talk over it.
+        if (phoneInCall()) { main.postDelayed(resumeAfterRecording, CALL_CHECK_MS); return@Runnable }
+        pausedForRecording = false
+        // What the car's focus loss paused comes back with its focus answer: one resume, not two toggles.
+        if (!pausedForCall && media.playback.value?.playing != true) media.playPause()
     }
 
     /**
@@ -377,12 +383,14 @@ class CarSession(
      */
     private val recordings = object : AudioManager.AudioRecordingCallback() {
         override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>) {
+            if (closed) return
             val recording = PhoneAppsMic.anyTakesOver(
                 configs.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
                 emptySet(),
             )
             if (recordingPause.onRecording(recording, SystemClock.uptimeMillis()) == MicTakeover.Action.OPEN) {
-                pausedForRecording = runtime.ui.nowPlaying?.playing == true
+                main.removeCallbacks(resumeAfterRecording)
+                pausedForRecording = pausedForRecording || media.playback.value?.playing == true
                 if (pausedForRecording) media.pause()
             }
             scheduleRecordingDone()
@@ -450,7 +458,8 @@ class CarSession(
      */
     // Lazy: the listener type is Android 12+, and it is only used there.
     private val modeChanged by lazy { AudioManager.OnModeChangedListener { mode ->
-        if (mode != AudioManager.MODE_NORMAL || mediaFocus || !(mediaPlaying || pausedForCall || pausedByCar)) return@OnModeChangedListener
+        // Only what the car's loss paused: music merely playing on may have lost the car to its radio.
+        if (closed || mode != AudioManager.MODE_NORMAL || mediaFocus || !(pausedForCall || pausedByCar)) return@OnModeChangedListener
         // The call may have begun just after the car's loss: what it paused plays on with the answer.
         pausedForCall = pausedForCall || pausedByCar
         synchronized(focusLock) {
@@ -1071,6 +1080,7 @@ class CarSession(
         // Throws when never added: a session that closed before it got that far.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) runCatching { context.getSystemService(AudioManager::class.java)?.removeOnModeChangedListener(modeChanged) }
         main.removeCallbacks(recordingDone)
+        main.removeCallbacks(resumeAfterRecording)
         micRouter.shutdown()
         teardownVideo()
         runtime.stop()
@@ -1136,6 +1146,8 @@ class CarSession(
         /** A projected screen with no new frame for this long gets redrawn (see stallCheck). */
         private const val STALL_MS = 1_000L
         private const val STALL_CHECK_MS = 500L
+        /** How often a paused resume looks again whether the phone's call or assistant answer ended. */
+        private const val CALL_CHECK_MS = 1_000L
         /** Encoder restarts allowed in [RESTART_WINDOW_MS], for this display and the cluster's. */
         internal const val MAX_RESTARTS = 3
         internal const val RESTART_WINDOW_MS = 10_000L

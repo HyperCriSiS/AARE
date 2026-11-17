@@ -1246,7 +1246,7 @@ private fun LazyListScope.appsPage(p: AppsPage) {
         Toggle(stringResource(R.string.setup_toggle_pane_menu_title), stringResource(R.string.setup_toggle_pane_menu_subtitle), p.paneMenu) {
             p.paneMenu = it; p.settings.paneMenu = it
         }
-        if (p.allowed.isNotEmpty()) {
+        if (p.launcherAvailable && p.allowed.isNotEmpty()) {
             Toggle(stringResource(R.string.standalone_keep_awake_title), stringResource(R.string.standalone_keep_awake_subtitle), p.keepAwake) {
                 p.keepAwake = it; p.settings.standaloneKeepScreenAwake = it
             }
@@ -1494,6 +1494,8 @@ private fun AssistantCard(settings: Settings) {
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.assistant_hint),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // The car links need the assistant on the car screen, so Shizuku or root.
+        if (!remember { AppLauncher.available(ctx) }) return@Section
         // The car links: a project with AARE's instructions, opened through the start link below.
         var project by remember { mutableStateOf(settings.assistantProject) }
         OutlinedTextField(project, { project = it; settings.assistantProject = it.trim() }, Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -1523,7 +1525,8 @@ private fun NavigationAppCard(settings: Settings) {
     val choices = remember {
         val car = CarAppCatalog.query(ctx).filter { it.isNavigation }.map { Triple(it.packageName, it.label, true) }
         val pm = ctx.packageManager
-        val phone = KNOWN_NAVIGATION.filter { pkg -> car.none { it.first == pkg } }.mapNotNull { pkg ->
+        // A phone navigation app shows on the car screen only with Shizuku or root.
+        val phone = if (!AppLauncher.available(ctx)) emptyList() else KNOWN_NAVIGATION.filter { pkg -> car.none { it.first == pkg } }.mapNotNull { pkg ->
             runCatching { Triple(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString(), false) }.getOrNull()
         }
         car + phone.sortedBy { it.second.lowercase() }

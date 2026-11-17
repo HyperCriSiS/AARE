@@ -172,7 +172,11 @@ class CarAppConnection(
         if (visible == v) return
         visible = v
         if (status == Status.READY) applyVisibility()
-        else if (v && (status == Status.IDLE || status == Status.FAILED)) connect()
+        else if (v && (status == Status.IDLE || status == Status.FAILED)) {
+            // Opened again: a fresh set of reconnects, not what was left from the last time it gave up.
+            retries = 0
+            connect()
+        }
     }
 
     fun newIntent(intent: Intent) {

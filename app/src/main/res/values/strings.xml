@@ -8,6 +8,10 @@
     <string name="phone_mode_desktop_hint">Parked, a screen of its own at the car screen\'s size, with Android\'s desktop and taskbar: apps run there in landscape, and the phone keeps showing what it showed.</string>
     <string name="phone_toggle_off_title">Phone display off</string>
     <string name="phone_toggle_off_subtitle">Its panel stays dark while the car shows it (Android 15 or newer). The power key turns it back on.</string>
+    <string name="video_toggle_landscape_title">Videos in full screen right away</string>
+    <string name="video_toggle_landscape_subtitle">While a media app shows its video in the car, the phone turns to landscape, so players fill the picture as soon as a video plays. Off, the app shows its own player screen, with its own full screen button.</string>
+    <string name="video_full_screen">Full screen</string>
+    <string name="video_exit_full_screen">Leave full screen</string>
     <string name="mirror_touch_description">Lets you use the phone screen from the car: AARE replays the touches made on the car screen on the phone, and checks which app is in front so the phone screen stays paused while driving unless it shows a navigation app. AARE reads nothing else.</string>
     <string name="mirror_locked_placeholder">The phone screen is paused while the phone is locked. Unlock the phone to show it.</string>
     <string name="mirror_driving_no_accessibility">The phone screen is paused while driving. To show navigation apps while driving, turn on AARE in the phone\'s accessibility settings: it tells AARE which app is open.</string>
@@ -575,8 +579,6 @@
     <string name="common_remove">Remove</string>
     <string name="common_done">Done</string>
     <string name="common_add_apps">Add apps</string>
-    <string name="video_full_screen">Full screen</string>
-    <string name="video_exit_full_screen">Leave full screen</string>
     <string name="standalone_failed">Couldn\'t start the app on the car screen.</string>
     <string name="backup_title">Back up settings</string>
     <string name="backup_hint">Saves AARE\'s settings, the trusted cars and the vehicle rules to a file, and loads them back, here or on another phone. Certificates stay out: download or import them again there.</string>

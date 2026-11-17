@@ -46,6 +46,9 @@ interface ILaunchHost {
     /** The package of the app in front on the phone's own screen, or null. */
     String topApp() = 16;
 
+    /** Whether an app still shows on the display [start] made: Back on its first screen closes it. */
+    boolean hasApp() = 19;
+
     /** Shizuku's user-service teardown call. */
     void destroy() = 16777114;
 }

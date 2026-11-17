@@ -90,6 +90,9 @@ class AppLauncher(private val context: Context, key: String = "launch") {
 
     val connected: Boolean get() = host != null
 
+    /** Whether an app still shows on the display [start] made; true when it can't tell. */
+    fun hasApp(): Boolean = runCatching { host?.hasApp() }.onFailure { Log.w(TAG, "hasApp", it) }.getOrNull() ?: true
+
     /** The app in front on the phone's own screen, or null if unknown. */
     fun topApp(): String? = runCatching { host?.topApp() }.onFailure { Log.w(TAG, "topApp", it) }.getOrNull()
 

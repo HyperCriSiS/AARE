@@ -166,23 +166,25 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     /**
-     * Moves the phone's focus back to its own screen if [id] (this helper's display) holds it, as a
-     * touch on the phone would. A display removed while focused leaves Android 17's launcher on it,
-     * and Recents does nothing until a reboot; in the car no touch on the phone moves it back first.
+     * Before display [id] goes, hands the phone's focus to the display next in line, as a touch
+     * there would: another app hosted in the car, else the phone's own screen. A display removed
+     * while focused leaves Android 17's launcher on it, and Recents does nothing until a reboot; in
+     * the car no touch moves the focus first. Nothing happens when another display already leads.
      */
     private fun focusPhone(id: Int) = runCatching {
         val atm = Class.forName("android.app.ActivityTaskManager").getMethod("getService").invoke(null)
-        val focused = atm.javaClass.getMethod("getFocusedRootTaskInfo").invoke(atm) ?: return@runCatching
-        if (focused.javaClass.getField("displayId").getInt(focused) != id) return@runCatching
-        val phone = android.view.Display.DEFAULT_DISPLAY
+        // Root tasks from top to bottom, across displays.
+        val tasks = atm.javaClass.getMethod("getAllRootTaskInfos").invoke(atm) as List<*>
+        val next = nextFocus(tasks.mapNotNull { t -> t?.let { it.javaClass.getField("displayId").getInt(it) } }, id)
         // The task manager's call where it has one, else the window manager's (gone in Android 17).
-        runCatching { atm.javaClass.getMethod("focusTopTask", Int::class.javaPrimitiveType).invoke(atm, phone) }.getOrElse {
+        runCatching { atm.javaClass.getMethod("focusTopTask", Int::class.javaPrimitiveType).invoke(atm, next) }.getOrElse { first ->
+            Log.i(TAG, "focusTopTask: ${(first.cause ?: first).message}")
             val binder = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java).invoke(null, "window") as IBinder
             val wm = Class.forName("android.view.IWindowManager\$Stub").getMethod("asInterface", IBinder::class.java).invoke(null, binder)
-            wm.javaClass.getMethod("moveDisplayToTopIfAllowed", Int::class.javaPrimitiveType).invoke(wm, phone)
+            wm.javaClass.getMethod("moveDisplayToTopIfAllowed", Int::class.javaPrimitiveType).invoke(wm, next)
         }
-        Log.i(TAG, "focus back on the phone's screen before display $id goes")
-    }.onFailure { Log.w(TAG, "focus back on the phone failed: ${it.message}") }
+        Log.i(TAG, "focus on display $next before display $id goes")
+    }.onFailure { Log.w(TAG, "focus hand-back failed: ${(it.cause ?: it).message}") }
 
     /**
      * The phone's panel on or off while Android keeps drawing its screen, like scrcpy's
@@ -511,6 +513,9 @@ internal fun topResumedPackage(dump: String): String? {
  * panel asked again too, as the power key may have lit it since.
  */
 internal fun switchesPanel(off: Boolean, wasOff: Boolean) = off || off != wasOff
+
+/** The display to focus before display [gone] goes: the top one of [displays] (top to bottom, repeats allowed) other than it, else the phone's. */
+internal fun nextFocus(displays: List<Int>, gone: Int): Int = displays.firstOrNull { it != gone } ?: android.view.Display.DEFAULT_DISPLAY
 
 internal fun savedRotation(output: String): String? =
     output.trim().lowercase().takeIf { Regex("free|lock [0-3]").matches(it) }

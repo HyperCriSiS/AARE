@@ -112,7 +112,7 @@ class LaunchHostService : ILaunchHost.Stub {
         unwatchScreen = null
         displayWakeLock?.let { lock -> runCatching { if (lock.isHeld) lock.release() } }
         displayWakeLock = null
-        display?.let { runCatching { it.release() } }
+        display?.let { focusPhone(displayId); runCatching { it.release() } }
         display = null
         displayId = -1
     }
@@ -164,6 +164,21 @@ class LaunchHostService : ILaunchHost.Stub {
         }
         if (switchesPanel(panelOff, this.panelOff) && setPanel(!panelOff)) this.panelOff = panelOff
     }
+
+    /**
+     * Moves the phone's focus back to its own screen if [id] (this helper's display) holds it, as a
+     * touch on the phone would. A display removed while focused leaves Android 17's launcher on it,
+     * and Recents does nothing until a reboot; in the car no touch on the phone moves it back first.
+     */
+    private fun focusPhone(id: Int) = runCatching {
+        val atm = Class.forName("android.app.ActivityTaskManager").getMethod("getService").invoke(null)
+        val focused = atm.javaClass.getMethod("getFocusedRootTaskInfo").invoke(atm) ?: return@runCatching
+        if (focused.javaClass.getField("displayId").getInt(focused) != id) return@runCatching
+        val binder = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java).invoke(null, "window") as IBinder
+        val wm = Class.forName("android.view.IWindowManager\$Stub").getMethod("asInterface", IBinder::class.java).invoke(null, binder)
+        wm.javaClass.getMethod("moveDisplayToTopIfAllowed", Int::class.javaPrimitiveType).invoke(wm, android.view.Display.DEFAULT_DISPLAY)
+        Log.i(TAG, "focus back on the phone's screen before display $id goes")
+    }.onFailure { Log.w(TAG, "focus back on the phone failed: ${it.message}") }
 
     /**
      * The phone's panel on or off while Android keeps drawing its screen, like scrcpy's
@@ -436,7 +451,8 @@ class LaunchHostService : ILaunchHost.Stub {
                 "Landroid/app/ProfilerInfo;", "Landroid/hardware/input/InputManager;", "Landroid/hardware/input/InputManagerGlobal;",
                 "Landroid/hardware/display/DisplayManager;", "Landroid/view/WindowManagerGlobal;", "Landroid/view/IWindowManager",
                 "Landroid/os/ServiceManager;", "Landroid/os/PowerManager;", "Landroid/view/MotionEvent;", "Landroid/view/KeyEvent;",
-                "Landroid/hardware/display/IDisplayManager",
+                "Landroid/hardware/display/IDisplayManager", "Landroid/app/ActivityTaskManager", "Landroid/app/IActivityTaskManager",
+                "Landroid/app/TaskInfo;",
             )
         }
     }

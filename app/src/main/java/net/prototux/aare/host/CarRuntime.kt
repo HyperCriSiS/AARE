@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.telecom.TelecomManager
 import android.graphics.Bitmap
 import android.location.Location
 import android.media.projection.MediaProjection
@@ -23,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -41,9 +43,11 @@ import net.prototux.aare.mirror.LocalPhoneVideo
 import net.prototux.aare.mirror.MirrorScreen
 import net.prototux.aare.mirror.PhoneVideo
 import net.prototux.aare.mirror.PhoneVideoSlot
+import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import net.prototux.aare.notify.CarNotificationListener
 import net.prototux.aare.notify.MessagingScreen
 import net.prototux.aare.launch.AppLauncher
+import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.car.BrowserScreen
 import net.prototux.aare.ui.car.CarActions
@@ -331,7 +335,8 @@ class CarRuntime(
             "car_theme", "rail_position", "style_theme", "style_layout", "style_accent", "dark_bar", "ignore_driving" -> main.post { applyScreenSettings() }
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
             // Apps shown or hidden from the phone: update the car's app list now.
-            "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu" -> main.post { refreshApps() }
+            "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu",
+            "standalone_apps", "standalone_app_packages", "browser", "full_apps" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
             "video_apps" -> main.post { videoApps = settings.videoApps }
             // Cards switched on or off: also fetch what they show now (the weather, the agenda).
@@ -433,9 +438,10 @@ class CarRuntime(
             entries += CarAppEntry(mediaId(m.packageName), m.packageName, m.label, m.icon, CarAppKind.MEDIA)
         }
         // Built in, like Android Auto's: calls and the car-side settings.
-        entries += CarAppEntry(PHONE_ID, context.packageName, context.getString(R.string.setup_app_entry_phone), builtinIcon(R.drawable.ic_car_phone), CarAppKind.PHONE)
-        entries += CarAppEntry(SETTINGS_ID, context.packageName, context.getString(R.string.setup_app_entry_settings), builtinIcon(R.drawable.ic_car_settings), CarAppKind.SETTINGS)
-        entries += CarAppEntry(NOTIFICATIONS_ID, context.packageName, context.getString(R.string.setup_app_entry_notifications), builtinIcon(R.drawable.ic_car_notifications), CarAppKind.NOTIFICATIONS)
+        // Each unless set "not in the car" on the phone's apps page.
+        if (PHONE_ID !in hidden) entries += CarAppEntry(PHONE_ID, context.packageName, context.getString(R.string.setup_app_entry_phone), builtinIcon(R.drawable.ic_car_phone), CarAppKind.PHONE)
+        if (SETTINGS_ID !in hidden) entries += CarAppEntry(SETTINGS_ID, context.packageName, context.getString(R.string.setup_app_entry_settings), builtinIcon(R.drawable.ic_car_settings), CarAppKind.SETTINGS)
+        if (NOTIFICATIONS_ID !in hidden) entries += CarAppEntry(NOTIFICATIONS_ID, context.packageName, context.getString(R.string.setup_app_entry_notifications), builtinIcon(R.drawable.ic_car_notifications), CarAppKind.NOTIFICATIONS)
         if (settings.phoneScreen && phoneScreenAllowed) {
             entries += CarAppEntry(PHONE_SCREEN_ID, context.packageName, context.getString(R.string.phone_section_title), builtinIcon(R.drawable.ic_phone_screen), CarAppKind.PHONE_SCREEN)
         }
@@ -443,7 +449,8 @@ class CarRuntime(
         // and the assistant picked in AARE when it has no car app, so the voice button opens it there.
         if (AppLauncher.available(context)) {
             val taken = entries.mapTo(HashSet()) { it.packageName }
-            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken)) {
+            // Navigation apps with no car app AARE can host (Google Maps) are there as phone apps without being picked.
+            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken, KNOWN_NAVIGATION)) {
                 if (pkg in hidden) continue
                 val info = runCatching { context.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: continue
                 val label = context.packageManager.getApplicationLabel(info).toString()
@@ -573,6 +580,9 @@ class CarRuntime(
     }
 
     /** The connection the car screen draws: like [connection], but doesn't start an app that finished itself again. */
+    /** [showsFullApp] for the car screen now. */
+    private fun fullApp(chosen: Boolean) = showsFullApp(chosen, ui.drivingRestricted, AppLauncher.available(context))
+
     private fun shownConnection(id: String): CarAppConnection? = if (id in finished) connections[id] else connection(id)
 
     private fun navConnection(): CarAppConnection? {
@@ -792,12 +802,18 @@ class CarRuntime(
                                 } else null
                                 if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }
                             }
-                            CarAppKind.MESSAGING -> MessagingScreen(app, ui.drivingRestricted, this, mod)
+                            // Parked, with the user's choice and a helper: the phone app itself instead of AARE's view of it.
+                            CarAppKind.MESSAGING -> if (fullApp(app.packageName in settings.fullApps)) StandaloneAppScreen(this, false, app.packageName, mod, backId = app.id)
+                                else MessagingScreen(app, ui.drivingRestricted, this, mod)
                             CarAppKind.PHONE_SCREEN -> MirrorScreen(this, ui.drivingRestricted, mod)
-                            CarAppKind.STANDALONE -> StandaloneAppScreen(this, ui.drivingRestricted, app.packageName, mod)
+                            // A navigation app (Google Maps, Waze) keeps running while driving, as on the phone screen.
+                            CarAppKind.STANDALONE -> StandaloneAppScreen(this, ui.drivingRestricted && !runsWhileDriving(app.packageName), app.packageName, mod)
                             CarAppKind.BROWSER -> BrowserScreen(this, ui.drivingRestricted, settings.browserUrl, mod)
                             CarAppKind.CAR_DATA -> CarDataScreen(mod)
-                            CarAppKind.PHONE -> PhoneScreen(this, mod)
+                            CarAppKind.PHONE -> {
+                                val dialer = remember { context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage }
+                                if (dialer != null && fullApp(app.id in settings.fullApps)) StandaloneAppScreen(this, false, dialer, mod, backId = app.id) else PhoneScreen(this, mod)
+                            }
                             CarAppKind.SETTINGS -> CarSettingsScreen(settings, phoneScreenAllowed, mod)
                             CarAppKind.NOTIFICATIONS -> NotificationsScreen(ui, mod)
                             else -> shownConnection(app.id)?.let { CarAppScreen(it, this, mod) }
@@ -845,11 +861,20 @@ class CarRuntime(
     }
 }
 
+/** Whether a messaging app or the phone app shows as the phone's own app: [chosen] in AARE, parked, and with a [helper] (Shizuku or root). */
+internal fun showsFullApp(chosen: Boolean, driving: Boolean, helper: Boolean) = chosen && !driving && helper
+
+/** Whether a phone app hosted on the car screen keeps running while driving: only known navigation apps. */
+internal fun runsWhileDriving(packageName: String) = packageName in KNOWN_NAVIGATION
+
 /**
  * The phone apps hosted on the car screen: those allowed on the phone when [enabled], and the
  * [assistant] picked in AARE unless another entry already shows its package ([taken]: its car app).
  */
-internal fun standalonePackages(enabled: Boolean, allowed: Collection<String>, assistant: String?, taken: Set<String>): List<String> = buildList {
+internal fun standalonePackages(
+    enabled: Boolean, allowed: Collection<String>, assistant: String?, taken: Set<String>, navigation: Collection<String> = emptyList(),
+): List<String> = buildList {
     if (enabled) addAll(allowed)
     if (assistant != null && assistant !in taken && assistant !in this) add(assistant)
+    navigation.filterTo(this) { it !in taken && it !in this }
 }

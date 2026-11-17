@@ -68,6 +68,8 @@ internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modif
     // With Shizuku or root the helper tells the app in front, while driving, so the accessibility service isn't needed.
     var helperFront by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(helper, driving) {
+        // Unknown until asked anew: the app in front at the last drive may have changed while parked.
+        helperFront = null
         if (!helper || !driving) return@LaunchedEffect
         while (true) {
             helperFront = withContext(Dispatchers.IO) { PhoneMirror.topApp(context) }

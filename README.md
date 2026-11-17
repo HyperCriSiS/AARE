@@ -11,10 +11,9 @@
 This is a fork of [prototux/AARE](https://github.com/prototux/AARE), the open-source phone side of
 Android Auto, tuned for Mercedes-Benz MBUX head units. It is used daily with an A-Class (A 250 e,
 2024, MBUX by Harman) over USB, on a Pixel 10 Pro. Everything AARE does is here too; the fork adds
-a car screen built for a wide, short display and fixes found on the way. Upstream changes are
-taken in regularly, and fixes that help every car are offered back upstream.
-
-# Every feature of the fork will be pushed to the upstream as soon as it is finished.
+a car screen built for a wide, short display and fixes found on the way. It isn't a separate
+project: upstream changes come in regularly, and each feature goes back to upstream as a pull
+request once it works in the car. The fork's own releases just get them into cars sooner.
 
 > [!IMPORTANT]
 > MBUX only accepts a Google-issued phone certificate: download it in the app under
@@ -25,19 +24,39 @@ taken in regularly, and fixes that help every car are offered back upstream.
 
 ## ✨ Features
 
-What the fork adds to AARE:
+What the fork adds to AARE, and where each piece stands upstream. *Sent upstream* links the pull
+request at [prototux/AARE](https://github.com/prototux/AARE); *In upstream* is checked once it is
+merged there and released.
 
-- **Real video in the car:** YouTube, NewPipe and other players show their actual video on the car
-  screen instead of the cover art, in half the screen or full screen. While driving, it plays in
-  passenger mode.
-- Split screen: two apps side by side, with a divider to drag; let go near an edge to close a pane.
-- Swipe an app icon left or right to open it in that pane; hold it to choose; tap for full screen.
-- A rail of your own: pick its apps and their order in the phone app; it scrolls when they don't fit.
-- Shortcuts: hold the app list button for a small grid of picked apps.
-- An app list that can leave out what is already in the rail or the shortcuts.
-- A compact rail, a cleaner media card, the next calendar events on the dashboard.
-- Switches in the car's Settings app for weather, calendar and the phone screen.
-- Settings export and import, for a backup or a new phone.
+| Feature | Sent upstream | In upstream |
+|---|:---:|:---:|
+| **Real video in the car:** YouTube, NewPipe and other players show their actual video on the car screen instead of the cover art, in half the screen or full screen; while driving, in passenger mode | ✅ [#280](https://github.com/prototux/AARE/pull/280) |  |
+| Split screen: two apps side by side, with a divider to drag; let go near an edge to close a pane | ✅ [#281](https://github.com/prototux/AARE/pull/281) |  |
+| Swipe an app icon left or right to open it in that pane; hold it to choose; tap for full screen | ✅ [#285](https://github.com/prototux/AARE/pull/285) |  |
+| A rail of your own, picked and ordered in the phone app; shortcuts on a hold of the app list button; an app list without what is already there; a compact rail | ✅ [#284](https://github.com/prototux/AARE/pull/284) |  |
+| Car links: an assistant's reply runs car tools (navigate, media, messages) through `https://aare.internal` links | ✅ [#279](https://github.com/prototux/AARE/pull/279) (draft) |  |
+| Settings export and import, trusted head units and vehicle rules included | ✅ [#278](https://github.com/prototux/AARE/pull/278) |  |
+| USB: a head unit's fresh link replaces a retry it already gave up | ✅ [#276](https://github.com/prototux/AARE/pull/276) |  |
+| Shizuku car audio: the capture read with audio priority and a bigger buffer, lost sound in the log | ✅ [#277](https://github.com/prototux/AARE/pull/277) |  |
+| Google's phone certificate kept when the head unit only hung up | ✅ ported upstream | ✅ 1.5.0 |
+| Car apps hosted reliably (activity starts, bindings) | ✅ ported upstream | ✅ 1.5.0 |
+| Touch on map templates, and room for the map's buttons | ✅ ported upstream | ✅ 1.5.0 |
+| White car app icons visible on light themes | ✅ ported upstream | ✅ 1.5.0 |
+| Video mode: the app gets every touch, its buttons halfway down the right edge, the car's Back goes to the app | ✅ [#280](https://github.com/prototux/AARE/pull/280) |  |
+| A new apps page: every app in one place, set to the rail, the shortcuts, the app overview or not in the car | ✅ [#304](https://github.com/prototux/AARE/pull/304) |  |
+| Android Auto apps that crash right after starting are given up after three tries; a navigation app no longer crashes when its map leaves the screen | ✅ [#305](https://github.com/prototux/AARE/pull/305) |  |
+| Recents keeps working after a phone app on the car screen | ✅ [#306](https://github.com/prototux/AARE/pull/306) |  |
+| The phone's location on when a car connects and off when it goes (Shizuku or root) | ✅ [#307](https://github.com/prototux/AARE/pull/307) |  |
+| Car keys in the connection log | ✅ [#301](https://github.com/prototux/AARE/pull/301) |  |
+| Messaging apps with a media browser of their own are no media apps | ✅ [#302](https://github.com/prototux/AARE/pull/302) |  |
+| Car volume buttons work before playback starts | ✅ [#303](https://github.com/prototux/AARE/pull/303) |  |
+| Phone apps on the car screen under Android 17: touches, keys and the keyboard reach them, and they keep running when the phone is locked (Shizuku or root) |  |  |
+| The phone screen in the car through Shizuku or root, without an accessibility service: a desktop of its own, or the phone itself in landscape |  |  |
+| Car audio: music comes back after a call or an assistant, pauses while a phone app records, and reaches the car at full volume |  |  |
+| The rail's icon spacing, notifications that open their app, a filter per messaging app |  |  |
+| Google Maps in the dashboard's map card, a new destination replacing the running route, pinch to zoom (Shizuku or root) |  |  |
+| The voice assistant (Claude) on the car screen in a project, its car links run without MacroDroid, a command to end the route (Shizuku or root) |  |  |
+| A cleaner media card, the next calendar events on the dashboard, switches in the car's Settings app for weather, calendar and the phone screen |  |  |
 
 ## 📦 Installation
 

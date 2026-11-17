@@ -16,6 +16,20 @@ private val COMMA_BETWEEN_NUMBERS = Regex("""(\d)\s*,\s*(\d)""")
  * That comma becomes a space, which no map app's address search needs; a real coordinate pair is
  * left as it is.
  */
+/**
+ * The address that starts navigation to [place] in the phone app [packageName] shown on the car
+ * screen: Google Maps and Waze have their own, which start the route; any other gets the geo: search.
+ */
+fun phoneNavigationUri(packageName: String, place: String): String {
+    // Plain JVM encoding, so the unit tests run it: spaces as %20, as in a URI.
+    val q = java.net.URLEncoder.encode(navigationQuery(place), "UTF-8").replace("+", "%20")
+    return when (packageName) {
+        "com.google.android.apps.maps" -> "google.navigation:q=$q"
+        "com.waze" -> "https://waze.com/ul?q=$q&navigate=yes"
+        else -> "geo:0,0?q=$q"
+    }
+}
+
 fun navigationQuery(place: String): String {
     val text = place.trim()
     if (COORDINATES.matches(text)) return text

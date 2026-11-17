@@ -448,6 +448,8 @@ class LaunchHostService : ILaunchHost.Stub {
         try {
             if (ui == null) return false
             while (true) {
+                // The tree as it is now: a cached node is the button just tapped, before the app redrew.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) ui.clearCache()
                 val node = ui.windowsOnAllDisplays.get(id).orEmpty().firstNotNullOfOrNull { w -> w.root?.let { findLabel(it, regex) } }
                 if (node != null) {
                     // A finger's tap on its middle: some apps (web pages) ignore an accessibility click.
@@ -645,7 +647,8 @@ class LaunchHostService : ILaunchHost.Stub {
     /** Inject one event into the launched app's display via InputManager's hidden injectInputEvent. */
     // Looked up once: a pinch injects an event per finger movement.
     private var injectMethod: java.lang.reflect.Method? = null
-    private var displayIdMethods = HashMap<Class<*>, java.lang.reflect.Method>()
+    // Filled from several binder threads at once (touches, taps).
+    private val displayIdMethods = java.util.concurrent.ConcurrentHashMap<Class<*>, java.lang.reflect.Method>()
 
     private fun inject(event: InputEvent) {
         runCatching {

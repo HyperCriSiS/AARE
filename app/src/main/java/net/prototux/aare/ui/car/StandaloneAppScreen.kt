@@ -14,6 +14,7 @@ import androidx.compose.material.icons.rounded.PauseCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,6 +63,8 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
     // one of its own, laid out as on a tablet so the map keeps most of the small card.
     val launcher = remember(packageName) { AppLauncher(context, (if (card) "card-" else "launch-") + packageName) }
     var started by remember(packageName) { mutableStateOf(false) }
+    // Voice sessions started here: each opens a fresh chat, so the car links' memory starts afresh.
+    var voiceStarts by remember(packageName) { mutableIntStateOf(0) }
 
     DisposableEffect(packageName) {
         // Hardware / head-unit Back goes to the launched app.
@@ -76,6 +79,9 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             runtime.clearScreenBack(backId, back)
             // A voice request it never got to (left before the app was up) isn't kept for the next time it opens.
             if (runtime.ui.assistantVoice == packageName) runtime.ui.assistantVoice = null
+            // Nor a navigation: opened later by hand, the app would start that old route over the driver's own.
+            // Not by the map card: leaving it is how the request reaches the app full screen.
+            if (!card && runtime.ui.navigationRequest?.first == packageName) runtime.ui.navigationRequest = null
             launcher.release()
         }
     }
@@ -86,6 +92,7 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             // The voice button: the assistant opens straight into its voice mode, where it has one.
             LaunchedEffect(started, runtime.ui.assistantVoice) {
                 if (started && runtime.ui.assistantVoice == packageName) try {
+                    voiceStarts++
                     val link = Settings(context).assistantLink
                     withContext(Dispatchers.IO) {
                         startVoice(link, { launcher.openLink(it, packageName, warm = true) }, launcher::tapLabel) { launcher.openShortcut(packageName, VOICE_SHORTCUT) }
@@ -105,7 +112,7 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             }
             // The assistant's car links, read off the car screen and run here: MacroDroid and the phone's own
             // tools only see the phone's display, not this one. Links already in the chat when it shows stay put.
-            LaunchedEffect(started) {
+            LaunchedEffect(started, voiceStarts) {
                 if (!started || packageName != Settings(context).assistantPackage) return@LaunchedEffect
                 var seen: Map<String, Int> = emptyMap()
                 // The chat may still be drawing at first: what shows in that time is the chat's, not a new reply's.

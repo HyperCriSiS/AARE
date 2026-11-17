@@ -24,9 +24,44 @@ request once it works in the car. The fork's own releases just get them into car
 
 ## ✨ Features
 
-What the fork adds to AARE, and where each piece stands upstream. *Sent upstream* links the pull
-request at [prototux/AARE](https://github.com/prototux/AARE); *In upstream* is checked once it is
-merged there and released.
+**A car screen built for a wide, short display**
+- A dashboard with the map, the music and the next calendar events or the latest notification; its cards sorted by dragging on the phone.
+- A rail of your own: its apps and their order picked on the phone, the space between its icons set in pixels. It scrolls when they don't fit.
+- Shortcuts: hold the app list button for a small grid of picked apps.
+- Split screen: two apps side by side, with a divider to drag. Swipe an app icon sideways to open it in that half, or hold it to choose.
+- Notifications: the bell only shows when there are some; a tap opens the app; messages can be muted per app.
+
+**Phone apps on the car screen** (Shizuku or root)
+- Any phone app runs on a display of its own in the car and takes the car's touches, two fingers included, so maps zoom with a pinch. Its keyboard opens in the car.
+- Works on Android 17, and keeps running when the phone is locked.
+- Google Maps fills the dashboard's map card and opens full screen from there. A new destination replaces the route it is guiding. Navigation apps keep running while driving.
+- Messaging apps and the phone app can show as their own app when parked.
+- The phone screen in the car without an accessibility service: a desktop of its own at the car screen's size, or the phone itself in landscape with its panel dark.
+
+**Real video in the car** (Shizuku or root)
+- YouTube, NewPipe and other players show their actual video instead of the cover art, in half the screen or full screen; while driving only in passenger mode.
+- Every touch goes to the player; the car's Back goes to the app. Optionally, the phone turns to landscape so videos fill the picture at once.
+
+**Voice assistant** (Shizuku or root)
+- The voice button opens Claude in the right half, next to the map, straight in voice mode in a project you name.
+- Its replies run car commands without MacroDroid: navigate, end the route, music, messages. AARE hangs up the voice conversation after a command.
+- The steering wheel's voice button acts on the press.
+
+**Car audio**
+- Music comes back after a call or an assistant that listened over Bluetooth.
+- Music and videos pause while a phone app records, and play on afterwards.
+- With Shizuku or root, the sound reaches the car at full volume and the car sets the level.
+
+**Phone and settings**
+- An apps page with every app in one list: in the rail, the shortcuts, the app overview, or not in the car.
+- The phone's location on when a car connects and off when it goes (Shizuku or root).
+- Android Auto apps that crash right after starting are given up after three tries instead of restarting forever.
+- Settings export and import, for a backup or a new phone.
+
+## 🔄 Upstream status
+
+Every feature goes to [prototux/AARE](https://github.com/prototux/AARE) as a pull request once it
+works in the car. *Sent upstream* links it; *In upstream* is checked once it is merged and released.
 
 | Feature | Sent upstream | In upstream |
 |---|:---:|:---:|
@@ -73,18 +108,27 @@ first. More in [Installing](#installing) below.
 
 ## 🖼️ Screenshots
 
-Real video from a media app (WizeStream here): from the cover to the video in the pane, then full
-screen; the buttons fade out and come back on a touch.
+All taken on an MBUX-sized display (1748x717 at 240 dpi).
 
-![A media app's video in the pane and full screen](docs/screenshots/fork/video-modes.gif)
-
-| Swipe an app into a pane | Drag the divider | Hold for the pane chooser |
-|---|---|---|
-| ![](docs/screenshots/fork/swipe-to-pane.gif) | ![](docs/screenshots/fork/resize-panes.gif) | ![](docs/screenshots/fork/pane-chooser.gif) |
-
-| Shortcuts | Split screen |
+| The dashboard, Google Maps in its map card | The app overview, phone apps marked |
 |---|---|
-| ![](docs/screenshots/fork/shortcuts-swipe.gif) | ![](docs/screenshots/fork/split.png) |
+| ![The dashboard with Google Maps, the music and the rail](docs/screenshots/fork/dashboard.png) | ![The app overview](docs/screenshots/fork/launcher.png) |
+
+| Split screen | Shortcuts |
+|---|---|
+| ![Two apps side by side](docs/screenshots/fork/split.png) | ![The shortcuts grid](docs/screenshots/fork/shortcuts.png) |
+
+| A video with its buttons at the right edge | A tight rail |
+|---|---|
+| ![A media app's video in the car](docs/screenshots/fork/video-buttons.png) | ![The rail with less space between its icons](docs/screenshots/fork/rail-tight.png) |
+
+On the phone:
+
+| The apps page | An app's place |
+|---|---|
+| ![The apps page](docs/screenshots/fork/apps-page.png) | ![Where an app goes](docs/screenshots/fork/apps-place.png) |
+
+![The voice assistant's project and start link](docs/screenshots/fork/assistant-project.png)
 
 ## 💬 Support
 

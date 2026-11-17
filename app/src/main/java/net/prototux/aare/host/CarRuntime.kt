@@ -334,8 +334,10 @@ class CarRuntime(
         when (key) {
             "car_theme", "rail_position", "style_theme", "style_layout", "style_accent", "dark_bar", "ignore_driving" -> main.post { applyScreenSettings() }
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
+            // Each tap on the phone: the rail's spacing at once, not with a reload of the app list.
+            "rail_spacing_px" -> main.post { ui.railSpacing = settings.railSpacing }
             // Apps shown or hidden from the phone: update the car's app list now.
-            "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu", "rail_spacing_px",
+            "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu",
             "standalone_apps", "standalone_app_pkgs", "browser", "full_apps" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
             "video_apps" -> main.post { videoApps = settings.videoApps }

@@ -11,4 +11,10 @@ class RailGapTest {
         assertEquals(18, railGapPx(bottom = true, dpi = 240))
         assertEquals(4, railGapPx(bottom = false, dpi = 160))
     }
+
+    @Test
+    fun roundedAsTheCarDrawsIt() {
+        // 12 dp at 213 dpi are 15.98 px: the car draws 16.
+        assertEquals(16, railGapPx(bottom = true, dpi = 213))
+    }
 }

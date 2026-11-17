@@ -527,15 +527,18 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
                 // Once the finger has moved sideways, it is a swipe, however slow: its moves are
                 // consumed so the click handler drops both the tap and the long press.
                 var swiping = false
+                // Moved up or down first: the rail's scroll had the finger, its lift is no swipe.
+                var scrolled = false
                 while (true) {
                     val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
                     val d = change.position - down.position
                     if (!swiping && abs(d.x) > viewConfiguration.touchSlop && abs(d.x) > abs(d.y)) swiping = true
+                    if (!swiping && abs(d.y) > viewConfiguration.touchSlop) scrolled = true
                     if (change.pressed) {
                         if (swiping) change.consume()
                         continue
                     }
-                    swipeSide(d.x, d.y, min)?.let { left -> change.consume(); current?.open?.invoke(left) }
+                    if (!scrolled) swipeSide(d.x, d.y, min)?.let { left -> change.consume(); current?.open?.invoke(left) }
                     break
                 }
             }

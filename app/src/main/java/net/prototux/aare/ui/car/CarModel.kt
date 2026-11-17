@@ -31,8 +31,8 @@ class CarAppEntry(
 /** The rail's standard space between its icons, in dp: a bottom bar has more room sideways. */
 fun railGapDp(bottom: Boolean) = if (bottom) 12 else 4
 
-/** That standard space in the pixels of a car screen of [dpi]. */
-fun railGapPx(bottom: Boolean, dpi: Int) = railGapDp(bottom) * dpi / 160
+/** That standard space in the pixels of a car screen of [dpi], rounded as Compose draws it. */
+fun railGapPx(bottom: Boolean, dpi: Int) = (railGapDp(bottom) * dpi + 80) / 160
 
 @Stable
 class NowPlaying(

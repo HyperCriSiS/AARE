@@ -55,7 +55,7 @@ merged there and released.
 | Car audio: music comes back after a call or an assistant, pauses while a phone app records, and reaches the car at full volume | ✅ [#311](https://github.com/prototux/AARE/pull/311) |  |
 | The rail's icon spacing, notifications that open their app, a filter per messaging app | ✅ [#309](https://github.com/prototux/AARE/pull/309) |  |
 | Google Maps in the dashboard's map card, a new destination replacing the running route, pinch to zoom (Shizuku or root) | ✅ [#312](https://github.com/prototux/AARE/pull/312) |  |
-| The voice assistant (Claude) on the car screen in a project, its car links run without MacroDroid, a command to end the route (Shizuku or root) |  |  |
+| The voice assistant (Claude) on the car screen in a project, its car links run without MacroDroid, a command to end the route (Shizuku or root) | ✅ [#313](https://github.com/prototux/AARE/pull/313) |  |
 | Screen-capture consent given again is kept | ✅ [#308](https://github.com/prototux/AARE/pull/308) |  |
 | A cleaner media card, the next calendar events on the dashboard, switches in the car's Settings app for weather, calendar and the phone screen |  |  |
 

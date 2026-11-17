@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import net.prototux.aare.car.NextEvent
 import net.prototux.aare.car.Weather
+import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.AareTheme
 
@@ -33,6 +34,10 @@ fun railGapDp(bottom: Boolean) = if (bottom) 12 else 4
 
 /** That standard space in the pixels of a car screen of [dpi], rounded as Compose draws it. */
 fun railGapPx(bottom: Boolean, dpi: Int) = (railGapDp(bottom) * dpi + 80) / 160
+
+/** Whether [this] can fill the map card: a car navigation app, or a phone navigation app (Google Maps) hosted on its own display. */
+val CarAppEntry.isNavigation: Boolean
+    get() = kind == CarAppKind.NAVIGATION || (kind == CarAppKind.STANDALONE && packageName in KNOWN_NAVIGATION)
 
 @Stable
 class NowPlaying(
@@ -174,6 +179,10 @@ class CarUiState {
     val recentAppIds = mutableStateListOf<String>()
     /** The voice assistant showing as a bar over the screen (an app entry id), or null. */
     var assistantAppId by mutableStateOf<String?>(null)
+    /** A phone app on the car screen (its package) that the voice button asked to listen, until it does. */
+    var assistantVoice by mutableStateOf<String?>(null)
+    /** A navigation for a phone app on the car screen: its package and the address to open there, until it does. */
+    var navigationRequest by mutableStateOf<Pair<String, String>?>(null)
     /** Turn-by-turn from a navigation app running on the phone (Google Maps, Waze…). */
     var phoneGuidance by mutableStateOf<PhoneGuidance?>(null)
     /** Right-hand drive: the rail goes to the right, next to the driver. */

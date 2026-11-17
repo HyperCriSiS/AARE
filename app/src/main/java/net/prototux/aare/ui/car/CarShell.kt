@@ -152,11 +152,11 @@ fun CarShell(
     // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
     BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
     LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
-    val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
     // A longer hold than the phone's before a long press counts: car touch screens report the lift late,
     // and a plain tap on the rail opened the pane menu.
     val base = LocalViewConfiguration.current
     val viewConfiguration = remember(base) { object : ViewConfiguration by base { override val longPressTimeoutMillis = CAR_LONG_PRESS_MS } }
+    val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
     CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus, LocalViewConfiguration provides viewConfiguration) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
@@ -679,12 +679,13 @@ private fun NavCard(state: CarUiState, actions: CarActions, navMap: @Composable 
     val nav = state.app(state.activeNavAppId)
     val guidance = state.phoneGuidance
     Card(modifier) {
-        if (guidance != null) {
+        // Google Maps in the card shows its own guidance: the card stays, its helper display too.
+        if (guidance != null && guidance.packageName != nav?.packageName) {
             GuidanceCard(guidance)
         } else if (nav != null) {
             navMap(nav, Modifier.fillMaxSize())
         } else {
-            val navApps = state.apps.filter { it.kind == CarAppKind.NAVIGATION }
+            val navApps = state.apps.filter { it.isNavigation }
             Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
                 Icon(Icons.Rounded.Map, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
                 Spacer(Modifier.height(16.dp))

@@ -164,6 +164,7 @@ import net.prototux.aare.host.AssistantApp
 import net.prototux.aare.host.Assistants
 import net.prototux.aare.host.CarAppCatalog
 import net.prototux.aare.host.CarAppInfo
+import net.prototux.aare.host.CarLinks
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.host.PhoneApp
 import net.prototux.aare.host.UnsupportedCarApp
@@ -276,7 +277,7 @@ private fun Home() {
                     when (p) {
                         Page.CAR_SCREEN -> item { CarScreenSettings(settings, refresh) }
                         Page.APPS -> appsPage(appsPage!!)
-                        Page.ASSISTANT -> item { AssistantCard(settings) }
+                        Page.ASSISTANT -> { item { AssistantCard(settings) }; item { NavigationAppCard(settings) } }
                         Page.MESSAGES -> item { MessageSettings(settings, refresh) }
                         Page.AUDIO -> item { AudioSettings(settings, state, refresh) { refresh++ } }
                         Page.CONNECTION -> item { ConnectionSettings(settings, refresh) }
@@ -1265,7 +1266,7 @@ private fun LazyListScope.appsPage(p: AppsPage) {
         p.save(p.places().copy(shortcuts = p.shortcuts.sortedAs(keys)))
     }
     placeSection(p, "overview", R.string.setup_section_overview, R.string.setup_overview_hint, ordered(places.order, AppPlace.OVERVIEW)) { keys ->
-        p.save(p.places().copy(order = keys + p.order.filter { it !in keys }))
+        p.save(p.places().copy(order = p.order.sortedAs(keys)))
     }
     moreApps(p, at[AppPlace.OFF].orEmpty())
     if (p.unsupported.isNotEmpty()) card("unsupported", R.string.setup_section_unsupported_apps, rows = p.unsupported.map { app -> row(app.packageName) { UnsupportedRow(app) } })
@@ -1493,6 +1494,51 @@ private fun AssistantCard(settings: Settings) {
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.assistant_hint),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // The car links: a project with AARE's instructions, opened through the start link below.
+        var project by remember { mutableStateOf(settings.assistantProject) }
+        OutlinedTextField(project, { project = it; settings.assistantProject = it.trim() }, Modifier.fillMaxWidth().padding(top = 8.dp),
+            label = { Text(stringResource(R.string.assistant_project_label)) }, singleLine = true,
+            isError = !CarLinks.goodProjectName(project),
+            supportingText = { Text(stringResource(R.string.assistant_project_hint)) })
+        Text(stringResource(R.string.assistant_project_steps, project.trim()),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = {
+            ctx.getSystemService(ClipboardManager::class.java)
+                ?.setPrimaryClip(ClipData.newPlainText(project.trim(), CarLinks.INSTRUCTIONS))
+        }) { Text(stringResource(R.string.assistant_copy_instructions)) }
+        var link by remember { mutableStateOf(settings.assistantLink) }
+        OutlinedTextField(link, { link = it; settings.assistantLink = it.trim() }, Modifier.fillMaxWidth().padding(top = 8.dp),
+            label = { Text(stringResource(R.string.assistant_link_label)) }, singleLine = true,
+            supportingText = { Text(stringResource(R.string.assistant_link_hint)) })
+    }
+}
+
+/**
+ * The app car links and voice requests navigate in: the car navigation app used last, a car
+ * navigation app, or a navigation app on the phone (Google Maps), which then opens on the car screen.
+ */
+@Composable
+private fun NavigationAppCard(settings: Settings) {
+    val ctx = LocalContext.current
+    val choices = remember {
+        val car = CarAppCatalog.query(ctx).filter { it.isNavigation }.map { Triple(it.packageName, it.label, true) }
+        val pm = ctx.packageManager
+        val phone = KNOWN_NAVIGATION.filter { pkg -> car.none { it.first == pkg } }.mapNotNull { pkg ->
+            runCatching { Triple(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString(), false) }.getOrNull()
+        }
+        car + phone.sortedBy { it.second.lowercase() }
+    }
+    var chosen by remember { mutableStateOf(settings.navigationApp) }
+    fun choose(pkg: String?) { chosen = pkg; settings.navigationApp = pkg }
+    Section(stringResource(R.string.navigation_app_title)) {
+        Text(stringResource(R.string.navigation_app_hint),
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AssistantRow(stringResource(R.string.navigation_app_last), stringResource(R.string.navigation_app_last_subtitle), null, chosen == null) { choose(null) }
+        val carSubtitle = stringResource(R.string.navigation_app_car)
+        val phoneSubtitle = stringResource(R.string.navigation_app_phone)
+        choices.forEach { (pkg, label, isCar) ->
+            AssistantRow(label, if (isCar) carSubtitle else phoneSubtitle, null, chosen == pkg) { choose(pkg) }
+        }
     }
 }
 

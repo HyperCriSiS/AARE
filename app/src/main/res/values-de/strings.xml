@@ -251,7 +251,19 @@
     <string name="assistant_no_default">Kein Standardassistent auf dem Telefon festgelegt</string>
     <string name="assistant_has_car_app_subtitle">Auf dem Autobildschirm, mit dem Mikrofon des Autos</string>
     <string name="assistant_opens_on_phone">Öffnet auf dem Telefon</string>
-    <string name="assistant_hint">Die Sprachtaste am Lenkrad und das Mikrofon der Leiste öffnen diesen Assistenten. Assistenten mit einer Auto-App, wie Lapin, funktionieren am besten.</string>
+    <string name="assistant_project_label">Projektname</string>
+    <string name="assistant_project_hint">Empfohlen: ein Wort ohne Leerzeichen, etwa Car001.</string>
+    <string name="assistant_project_steps">Auto-Links: 1. In Claude ein Projekt namens %1$s anlegen. 2. Die Anweisungen kopieren und in seine Anweisungen einfügen. 3. Den Link des Projekts kopieren und unten als Start-Link einfügen.</string>
+    <string name="assistant_copy_instructions">Anweisungen kopieren</string>
+    <string name="assistant_link_label">Start-Link</string>
+    <string name="assistant_link_hint">Der Link des Projekts (https://claude.ai/project/…): das Projekt auf claude.ai öffnen und die Adresse kopieren. Der Assistent öffnet ihn, bevor er zuhört.</string>
+    <string name="navigation_app_title">Navigation für Auto-Links</string>
+    <string name="navigation_app_hint">Wo die Auto-Links des Assistenten und „Navigieren zu“ im Auto die Route starten.</string>
+    <string name="navigation_app_last">Zuletzt genutzte Navi-App im Auto</string>
+    <string name="navigation_app_last_subtitle">Die App, die zuletzt im Auto navigiert hat</string>
+    <string name="navigation_app_car">Android-Auto-App</string>
+    <string name="navigation_app_phone">Handy-App auf dem Autobildschirm: zusätzlich unter Apps hinzufügen, mit Shizuku oder Root</string>
+    <string name="assistant_hint">Die Sprachtaste am Lenkrad und das Mikrofon der Leiste öffnen diesen Assistenten. Assistenten mit einer Auto-App, wie Lapin, funktionieren am besten. Einer ohne Auto-App, wie Claude, erscheint nur mit Shizuku oder Root auf dem Autobildschirm, sonst öffnet er auf dem Telefon.</string>
 
     <!-- notif: notifications and in-car notices -->
     <string name="notif_channel_connection">Autoverbindung</string>

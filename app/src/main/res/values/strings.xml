@@ -400,7 +400,19 @@
     <string name="assistant_no_default">No default assistant set on the phone</string>
     <string name="assistant_has_car_app_subtitle">On the car screen, with the car\'s microphone</string>
     <string name="assistant_opens_on_phone">Opens on the phone</string>
-    <string name="assistant_hint">The steering-wheel voice button and the rail\'s microphone open this assistant. Assistants with a car app, such as Lapin, work best.</string>
+    <string name="assistant_project_label">Project name</string>
+    <string name="assistant_project_hint">Recommended: one word without spaces, such as Car001.</string>
+    <string name="assistant_project_steps">Car links: 1. In Claude, create a project named %1$s. 2. Copy the instructions and paste them into its instructions. 3. Copy the project\'s link and paste it below as start link.</string>
+    <string name="assistant_copy_instructions">Copy instructions</string>
+    <string name="assistant_link_label">Start link</string>
+    <string name="assistant_link_hint">The project\'s link (https://claude.ai/project/…): open the project at claude.ai and copy the address. The assistant opens it before it listens.</string>
+    <string name="navigation_app_title">Navigation for car links</string>
+    <string name="navigation_app_hint">Where the assistant\'s car links and the car\'s \"navigate to\" start the route.</string>
+    <string name="navigation_app_last">Car navigation app used last</string>
+    <string name="navigation_app_last_subtitle">The app that navigated last in the car</string>
+    <string name="navigation_app_car">Android Auto app</string>
+    <string name="navigation_app_phone">Phone app on the car screen: also add it under Apps, with Shizuku or root</string>
+    <string name="assistant_hint">The steering-wheel voice button and the rail\'s microphone open this assistant. Assistants with a car app, such as Lapin, work best. One without a car app, such as Claude, shows on the car screen only with Shizuku or root; otherwise it opens on the phone.</string>
 
     <!-- notif: notifications and in-car notices -->
     <string name="notif_channel_connection">Car connection</string>

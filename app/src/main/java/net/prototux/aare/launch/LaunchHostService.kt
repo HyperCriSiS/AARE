@@ -174,7 +174,13 @@ class LaunchHostService : ILaunchHost.Stub {
         val atm = Class.forName("android.app.ActivityTaskManager").getMethod("getService").invoke(null)
         val focused = atm.javaClass.getMethod("getFocusedRootTaskInfo").invoke(atm) ?: return@runCatching
         if (focused.javaClass.getField("displayId").getInt(focused) != id) return@runCatching
-        atm.javaClass.getMethod("focusTopTask", Int::class.javaPrimitiveType).invoke(atm, android.view.Display.DEFAULT_DISPLAY)
+        val phone = android.view.Display.DEFAULT_DISPLAY
+        // The task manager's call where it has one, else the window manager's (gone in Android 17).
+        runCatching { atm.javaClass.getMethod("focusTopTask", Int::class.javaPrimitiveType).invoke(atm, phone) }.getOrElse {
+            val binder = Class.forName("android.os.ServiceManager").getMethod("getService", String::class.java).invoke(null, "window") as IBinder
+            val wm = Class.forName("android.view.IWindowManager\$Stub").getMethod("asInterface", IBinder::class.java).invoke(null, binder)
+            wm.javaClass.getMethod("moveDisplayToTopIfAllowed", Int::class.javaPrimitiveType).invoke(wm, phone)
+        }
         Log.i(TAG, "focus back on the phone's screen before display $id goes")
     }.onFailure { Log.w(TAG, "focus back on the phone failed: ${it.message}") }
 

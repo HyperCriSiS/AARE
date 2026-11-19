@@ -440,11 +440,12 @@ class CarSession(
             // does, and play again when a transient loss ends.
             notification.unsolicited && (state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS || state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT) -> main.post {
                 val playing = media.playback.value?.playing == true
-                // A repeated loss finds the music already paused: it keeps what the first one decided.
-                pausedByCar = pausedByCar || (state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT && playing)
+                // A repeated transient loss finds the music already paused: it keeps what the first one
+                // decided. A lasting loss never resumes.
+                pausedByCar = state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT && (playing || pausedByCar)
                 // A call on the phone, or an assistant listening over Bluetooth, which the car takes
-                // for one: it plays on once that ends (see modeChanged).
-                pausedForCall = pausedForCall || (playing && phoneInCall())
+                // for one: it plays on once that ends (see modeChanged). Only while there is one.
+                pausedForCall = (playing || pausedForCall) && phoneInCall()
                 media.pause()
             }
             // Only the car handing focus back resumes: a gain answering our own request means

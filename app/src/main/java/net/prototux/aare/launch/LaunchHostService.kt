@@ -666,8 +666,20 @@ class LaunchHostService : ILaunchHost.Stub {
         )
         val result = start.invoke(am, null, ctx.packageName, intent, null, null, null, 0, 0, null, opts, USER_CURRENT) as Int
         if (result < 0) Log.w(TAG, "startActivity($pkg) on display $onDisplay: result $result")
+        // Already running on the phone (task to front, delivered to top): Android brings it forward there and
+        // leaves this display black, so move its task over. A paused video keeps its place this way.
+        if (result == START_TASK_TO_FRONT || result == START_DELIVERED_TO_TOP) moveTaskHere(ctx, pkg, onDisplay)
         result >= 0
     }.onFailure { Log.w(TAG, "startActivityAsUser($pkg) unavailable: ${it.message}") }.getOrNull()
+
+    /** Moves [pkg]'s task onto display [id], where an earlier start left it on another. */
+    @Suppress("DEPRECATION") // getRunningTasks: the shell (and root) still see every task.
+    private fun moveTaskHere(ctx: Context, pkg: String, id: Int) {
+        val task = ctx.getSystemService(android.app.ActivityManager::class.java).getRunningTasks(MAX_TASKS)
+            .firstOrNull { it.baseActivity?.packageName == pkg } ?: return
+        Log.i(TAG, "moving task ${task.taskId} of $pkg to display $id")
+        shell("am", "display", "move-stack", task.taskId.toString(), id.toString())
+    }
 
     /** Inject one event into the launched app's display via InputManager's hidden injectInputEvent. */
     // Looked up once: a pinch injects an event per finger movement.
@@ -755,6 +767,9 @@ class LaunchHostService : ILaunchHost.Stub {
         const val FLAG_OWN_FOCUS = 1 shl 14 // hidden, API 34+: touches here leave the phone's focus alone
         const val FULL_FLAGS = FLAG_PUBLIC or FLAG_PRESENTATION or FLAG_OWN_CONTENT_ONLY or FLAG_TRUSTED or FLAG_OWN_DISPLAY_GROUP or FLAG_ALWAYS_UNLOCKED
         const val USER_CURRENT = -2
+        const val START_TASK_TO_FRONT = 2 // ActivityManager.START_TASK_TO_FRONT, hidden
+        const val START_DELIVERED_TO_TOP = 3 // ActivityManager.START_DELIVERED_TO_TOP, hidden
+        const val MAX_TASKS = 50
         /** How long a screen reader connection stays open after its last use. */
         const val UI_IDLE_MS = 15_000L
         const val DISPLAY_IME_POLICY_LOCAL = 0 // WindowManager.DISPLAY_IME_POLICY_LOCAL, hidden

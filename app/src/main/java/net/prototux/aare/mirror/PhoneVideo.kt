@@ -94,7 +94,7 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         }
     }
     // Gone (driving, another screen): so are its full-screen copy and its display.
-    DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
+    DisposableEffect(launcher) { onDispose { full?.value = null; launcher.releaseAside() } }
     // Players (WizeStream, NewPipe) go full screen by the phone's own orientation; upright they
     // offer "toggle orientation" for it. Put back when the helper stops (release() above).
     LaunchedEffect(started) {

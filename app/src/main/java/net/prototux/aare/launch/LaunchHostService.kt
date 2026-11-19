@@ -65,6 +65,26 @@ class LaunchHostService : ILaunchHost.Stub {
         exemptHiddenApis()
     }
 
+    /** The app's process this helper works for, watched from its first call on. */
+    @Volatile private var callerPid = 0
+    /** Whether the app has called this helper yet, so it is watched. */
+    internal val watched: Boolean get() = callerPid != 0
+
+    /**
+     * Ends this helper, display, wake locks, rotation and panel put back, once the app's process is gone
+     * (a crash, a kill, an update): nothing else would, and a root helper runs on until a reboot.
+     */
+    private fun watchCaller() {
+        val pid = Binder.getCallingPid()
+        if (callerPid != 0 || pid == android.os.Process.myPid()) return
+        callerPid = pid
+        Thread {
+            while (java.io.File("/proc/$pid").exists()) Thread.sleep(CALLER_CHECK_MS)
+            Log.i(TAG, "app process $pid gone: helper ends")
+            destroy()
+        }.apply { isDaemon = true; name = "aare-caller" }.start()
+    }
+
     override fun start(
         surface: Surface,
         width: Int,
@@ -73,6 +93,7 @@ class LaunchHostService : ILaunchHost.Stub {
         packageName: String,
         keepDisplayAwake: Boolean,
     ): Int {
+        watchCaller()
         stop()
         approveCarLinks()
         val ctx = callerContext() ?: return -1
@@ -142,6 +163,7 @@ class LaunchHostService : ILaunchHost.Stub {
     }
 
     override fun mirror(surface: Surface, width: Int, height: Int, dpi: Int): Boolean {
+        watchCaller()
         mirrorDisplay?.let { vd ->
             runCatching { vd.resize(width, height, dpi.coerceAtLeast(MIN_DPI)) }
             runCatching { vd.surface = surface }
@@ -168,6 +190,7 @@ class LaunchHostService : ILaunchHost.Stub {
     @Suppress("DEPRECATION")
     @Synchronized
     override fun phoneScreen(landscape: Boolean, awake: Boolean, panelOff: Boolean) {
+        watchCaller()
         if (landscape && savedRotation == null) {
             // Unreadable, it is left alone: there would be nothing right to put back.
             savedRotation = savedRotation(shell("cmd", "window", "user-rotation"))
@@ -226,7 +249,9 @@ class LaunchHostService : ILaunchHost.Stub {
     /** Runs a shell command as this helper and returns its output. */
     private fun shell(vararg command: String): String = runCatching {
         val p = ProcessBuilder(*command).redirectErrorStream(true).start()
-        p.inputStream.bufferedReader().use { it.readText() }.also { p.waitFor() }
+        // Waited for before reading: read first, a command that hangs would hold this thread for good.
+        if (!p.waitFor(SHELL_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)) { p.destroyForcibly(); error("timed out") }
+        p.inputStream.bufferedReader().use { it.readText() }
     }.onFailure { Log.w(TAG, "${command.joinToString(" ")} failed: ${it.message}") }.getOrDefault("")
 
     override fun destroy() {
@@ -716,6 +741,9 @@ class LaunchHostService : ILaunchHost.Stub {
         // VirtualDisplay flags (public + hidden bits). Hidden ones let a foreign app run and take focus.
         /** How long `cmd location` may take before the switch gives up. */
         const val LOCATION_TIMEOUT_S = 10L
+        const val CALLER_CHECK_MS = 2_000L
+        /** A shell command's output is short; one that hangs is given up after this. */
+        const val SHELL_TIMEOUT_S = 10L
         const val FLAG_PUBLIC = 1 shl 0
         const val FLAG_PRESENTATION = 1 shl 1
         const val FLAG_AUTO_MIRROR = 1 shl 4

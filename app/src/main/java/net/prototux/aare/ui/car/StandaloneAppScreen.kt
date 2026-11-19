@@ -84,7 +84,7 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             // Nor a navigation: opened later by hand, the app would start that old route over the driver's own.
             // Not by the map card: leaving it is how the request reaches the app full screen.
             if (!card && runtime.ui.navigationRequest?.first == packageName) runtime.ui.navigationRequest = null
-            launcher.release()
+            launcher.releaseAside()
         }
     }
 

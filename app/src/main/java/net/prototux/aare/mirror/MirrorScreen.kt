@@ -165,7 +165,7 @@ private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
         runtime.setScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
         onDispose {
             runtime.clearScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
-            launcher.release()
+            launcher.releaseAside()
         }
     }
     Box(modifier.background(Color.Black)) {

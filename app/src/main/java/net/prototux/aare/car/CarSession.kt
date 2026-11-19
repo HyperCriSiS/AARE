@@ -400,7 +400,8 @@ class CarSession(
         override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>) {
             if (closed) return
             val recording = PhoneAppsMic.anyTakesOver(
-                configs.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
+                // AARE's own phone-mic fallback for a car app's assistant is not a phone app recording.
+                configs.filter { it.clientAudioSessionId != micRouter.phoneMicSession || micRouter.phoneMicSession == 0 }.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
                 emptySet(),
             )
             if (recordingPause.onRecording(recording, SystemClock.uptimeMillis()) == MicTakeover.Action.OPEN) {

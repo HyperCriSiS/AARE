@@ -6,6 +6,8 @@
     <string name="phone_mode_desktop">Own screen</string>
     <string name="phone_mode_mirror_hint">The phone\'s own screen, turned to landscape while it shows in the car, touched live. Apps that only run upright stay a strip in the middle.</string>
     <string name="phone_mode_desktop_hint">Parked, a screen of its own at the car screen\'s size, with Android\'s desktop and taskbar: apps run there in landscape, and the phone keeps showing what it showed.</string>
+    <string name="phone_toggle_locked_title">Usable while locked</string>
+    <string name="phone_toggle_locked_subtitle">The car shows and controls the phone even while it is locked. Anyone in the car can then use your phone.</string>
     <string name="phone_toggle_off_title">Phone display off</string>
     <string name="phone_toggle_off_subtitle">Its panel stays dark while the car shows it (Android 15 or newer). The power key turns it back on.</string>
     <string name="video_toggle_landscape_title">Videos in full screen right away</string>

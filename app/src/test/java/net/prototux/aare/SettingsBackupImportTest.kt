@@ -7,7 +7,7 @@ import org.junit.Test
 class SettingsBackupImportTest {
     @Test
     fun aFileCannotOpenTheHeadUnitServerToTheNetwork() {
-        listOf("hu_server", "hu_server_lan", "hu_server_lan_once", "head_unit_server_mirror").forEach { assertFalse(it, SettingsBackup.imports(it)) }
+        listOf("hu_server", "hu_server_lan", "hu_server_lan_once", "head_unit_server_mirror", "phone_screen_when_locked").forEach { assertFalse(it, SettingsBackup.imports(it)) }
     }
 
     @Test

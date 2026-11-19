@@ -6,6 +6,8 @@
     <string name="phone_mode_desktop">Eigener Bildschirm</string>
     <string name="phone_mode_mirror_hint">Der Bildschirm des Telefons selbst, ins Querformat gedreht, solange er im Auto angezeigt wird, live bedienbar. Apps, die nur hochkant laufen, bleiben ein Streifen in der Mitte.</string>
     <string name="phone_mode_desktop_hint">Beim Parken ein eigener Bildschirm in der Größe des Autobildschirms, mit Androids Desktop und Taskleiste: Apps laufen dort quer, und das Telefon zeigt weiter, was es zeigte.</string>
+    <string name="phone_toggle_locked_title">Auch gesperrt bedienbar</string>
+    <string name="phone_toggle_locked_subtitle">Das Auto zeigt und bedient das Handy auch, wenn es gesperrt ist. Dann kann jeder im Auto dein Handy benutzen.</string>
     <string name="phone_toggle_off_title">Handy-Display aus</string>
     <string name="phone_toggle_off_subtitle">Das Panel bleibt dunkel, solange das Auto den Bildschirm zeigt (ab Android 15). Die Ein-Taste schaltet es wieder ein.</string>
     <string name="video_toggle_landscape_title">Videos sofort im Vollbild</string>

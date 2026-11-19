@@ -848,6 +848,12 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                     }
                 }
             }
+            if (phoneScreen) {
+                var whenLocked by remember { mutableStateOf(settings.phoneScreenWhenLocked) }
+                Toggle(stringResource(R.string.phone_toggle_locked_title), stringResource(R.string.phone_toggle_locked_subtitle), whenLocked) {
+                    whenLocked = it; settings.phoneScreenWhenLocked = it
+                }
+            }
             // Media apps' videos run through the helper whether or not the phone screen is offered.
             if (remember { AppLauncher.available(ctx) }) {
                 var landscape by remember { mutableStateOf(settings.videoLandscape) }

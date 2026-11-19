@@ -248,6 +248,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("phone_screen_off", true)
         set(v) = prefs.edit { putBoolean("phone_screen_off", v) }
 
+    /** The phone screen stays usable from the car while the phone is locked: anyone in the car can then use it. */
+    var phoneScreenWhenLocked: Boolean
+        get() = prefs.getBoolean("phone_screen_when_locked", false)
+        set(v) = prefs.edit { putBoolean("phone_screen_when_locked", v) }
+
     /** The app car links and voice requests navigate in (its package); null = the car navigation app used last. */
     var navigationApp: String?
         get() = prefs.getString("navigation_app", null)

@@ -32,7 +32,7 @@ object SettingsBackup {
      * Keys an imported file doesn't set: the head unit server opens the car screen, microphone and phone
      * screen to the network, so a file from someone else mustn't switch it on. Set by hand on the phone.
      */
-    private val NOT_IMPORTED = setOf("hu_server", "hu_server_lan", "hu_server_lan_once", "head_unit_server_mirror")
+    private val NOT_IMPORTED = setOf("hu_server", "hu_server_lan", "hu_server_lan_once", "head_unit_server_mirror", "phone_screen_when_locked")
 
     internal fun imports(key: String) = key !in NOT_IMPORTED
 

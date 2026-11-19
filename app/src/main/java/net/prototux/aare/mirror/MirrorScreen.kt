@@ -52,8 +52,9 @@ import net.prototux.aare.service.ProjectionService
 @Composable
 internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modifier) {
     val context = LocalContext.current
-    val locked = rememberKeyguardLocked()
     val settings = remember { Settings(context) }
+    // Unless chosen otherwise, a locked phone isn't shown or driven from the car.
+    val locked = rememberKeyguardLocked() && !settings.phoneScreenWhenLocked
     // Shizuku or root: touches go to the phone live, and it can turn to landscape or show a desktop of its own.
     val helper = remember { AppLauncher.available(context) }
     // Parked, as chosen: a desktop of the phone's own at the car screen's size, instead of its mirror.

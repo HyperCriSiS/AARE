@@ -554,7 +554,7 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
 }
 
 /** How long a finger rests on the car screen before it is a long press (the phone's is 400 ms). */
-private const val CAR_LONG_PRESS_MS = 600L
+private const val CAR_LONG_PRESS_MS = 500L
 
 /**
  * A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when shorter than [min]

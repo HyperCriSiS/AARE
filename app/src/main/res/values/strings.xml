@@ -378,6 +378,7 @@
     <string name="app_place_overview">App overview</string>
     <string name="app_place_off">Not in the car</string>
     <string name="app_full_title">The whole app</string>
+    <string name="app_video_subtitle">Parked, the app itself on the car screen, its video included, instead of AARE\'s list of it. For apps that list nothing or play the wrong item. The camera button in the car switches too.</string>
     <string name="app_full_subtitle">Parked or in passenger mode, the app\'s own screen, keyboard included, instead of AARE\'s view of it. While driving, AARE\'s view.</string>
     <string name="standalone_search">Search apps</string>
     <string name="standalone_need_root">Needs root or Shizuku. Set one up in Audio settings, then come back.</string>

@@ -1068,6 +1068,7 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
     var standalone by mutableStateOf(settings.standaloneApps)
     var keepAwake by mutableStateOf(settings.standaloneKeepScreenAwake)
     var fullApps by mutableStateOf(settings.fullApps)
+    var videoApps by mutableStateOf(settings.videoApps)
     /** The app whose place is being chosen, or null. */
     var editing by mutableStateOf<AppItem?>(null)
     var allowed by mutableStateOf(settings.standaloneAppPackages)
@@ -1102,7 +1103,7 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
             val kind = if (a.isNavigation) nav else a.categories.firstOrNull()?.substringAfterLast('.')?.lowercase()
                 ?.replaceFirstChar { it.uppercase() } ?: ctx.getString(R.string.setup_app_kind_generic)
             AppItem(a.packageName, a.label, a.icon, kind)
-        } + l.media.map { AppItem(it.packageName, it.label, it.icon, ctx.getString(R.string.setup_app_kind_media)) } +
+        } + l.media.map { AppItem(it.packageName, it.label, it.icon, ctx.getString(R.string.setup_app_kind_media), video = canHost) } +
             l.messaging.map { AppItem(it.packageName, it.label, it.icon, ctx.getString(R.string.setup_app_kind_messaging), full = canHost) } +
             l.navigation.map { AppItem(it.packageName, it.label, it.icon, "$nav, $phoneApp") } +
             builtIns.map { (id, b) ->
@@ -1137,10 +1138,16 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
         fullApps = if (on) fullApps + item.key else fullApps - item.key
         settings.fullApps = fullApps
     }
+
+    /** A media app opened as itself on the car screen (its video), instead of AARE's view of it. */
+    fun setVideo(item: AppItem, on: Boolean) {
+        videoApps = if (on) videoApps + item.key else videoApps - item.key
+        settings.videoApps = videoApps
+    }
 }
 
 /** An app on the Apps page: its key (package, or a built-in app's id), [kind] as a label, and whether it shows only once picked. */
-private class AppItem(val key: String, val label: String, val icon: Bitmap?, val kind: String, val optIn: Boolean = false, val full: Boolean = false)
+private class AppItem(val key: String, val label: String, val icon: Bitmap?, val kind: String, val optIn: Boolean = false, val full: Boolean = false, val video: Boolean = false)
 
 @Composable
 private fun rememberAppsPage(settings: Settings): AppsPage {
@@ -1341,6 +1348,12 @@ private fun PlaceDialog(p: AppsPage, app: AppItem) {
                     Spacer(Modifier.height(8.dp))
                     Toggle(stringResource(R.string.app_full_title), stringResource(R.string.app_full_subtitle), app.key in p.fullApps) {
                         p.setFull(app, it)
+                    }
+                }
+                if (app.video) {
+                    Spacer(Modifier.height(8.dp))
+                    Toggle(stringResource(R.string.app_full_title), stringResource(R.string.app_video_subtitle), app.key in p.videoApps) {
+                        p.setVideo(app, it)
                     }
                 }
             }

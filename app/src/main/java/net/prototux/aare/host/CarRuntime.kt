@@ -791,6 +791,9 @@ class CarRuntime(
      */
     private val screenBacks = HashMap<String, () -> Boolean>()
 
+    /** The media app whose video was put full screen: it goes back to full screen when its video is rebuilt. */
+    var fullScreenVideo by mutableStateOf<String?>(null)
+
     fun setScreenBack(appId: String, back: () -> Boolean) { screenBacks[appId] = back }
 
     /** Drops [back] unless the app's next screen already installed its own. */

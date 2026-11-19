@@ -131,15 +131,19 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = modifier.background(Color.Black))
         return
     }
+    val enterFull = {
+        runtime.fullScreenVideo = appId
+        full?.value = {
+            VideoButtons(Modifier.fillMaxSize(), buttons = {
+                CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { runtime.fullScreenVideo = null; full?.value = null })
+            }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
+        }
+    }
+    // Rebuilt (the car's own screen over it a moment): full screen again, as it was left.
+    LaunchedEffect(Unit) { if (runtime.fullScreenVideo == appId && full != null && full.value == null) enterFull() }
     VideoButtons(modifier, buttons = {
-        CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = onCover)
-        if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = {
-            full.value = {
-                VideoButtons(Modifier.fillMaxSize(), buttons = {
-                    CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { full.value = null })
-                }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
-            }
-        })
+        CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = { runtime.fullScreenVideo = null; onCover() })
+        if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = enterFull)
     }) video@{
         // Full screen, the one display moves onto the copy over everything.
         if (full?.value != null) return@video

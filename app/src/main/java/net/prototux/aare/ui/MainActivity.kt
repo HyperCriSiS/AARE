@@ -1069,6 +1069,7 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
     var keepAwake by mutableStateOf(settings.standaloneKeepScreenAwake)
     var fullApps by mutableStateOf(settings.fullApps)
     var videoApps by mutableStateOf(settings.videoApps)
+    var videoAppsOff by mutableStateOf(settings.videoAppsOff)
     /** The app whose place is being chosen, or null. */
     var editing by mutableStateOf<AppItem?>(null)
     var allowed by mutableStateOf(settings.standaloneAppPackages)
@@ -1139,14 +1140,22 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
         settings.fullApps = fullApps
     }
 
-    /** A media app opened as itself on the car screen (its video), instead of AARE's view of it. */
-    fun setVideo(item: AppItem, on: Boolean) {
-        videoApps = if (on) videoApps + item.key else videoApps - item.key
+    /** How a media app shows, parked: [VIDEO_AUTO], [VIDEO_LIST] (AARE's view) or [VIDEO_APP] (the app itself). */
+    fun videoMode(item: AppItem) = when (item.key) { in videoApps -> VIDEO_APP; in videoAppsOff -> VIDEO_LIST; else -> VIDEO_AUTO }
+
+    fun setVideoMode(item: AppItem, mode: String) {
+        videoApps = if (mode == VIDEO_APP) videoApps + item.key else videoApps - item.key
+        videoAppsOff = if (mode == VIDEO_LIST) videoAppsOff + item.key else videoAppsOff - item.key
         settings.videoApps = videoApps
+        settings.videoAppsOff = videoAppsOff
     }
 }
 
 /** An app on the Apps page: its key (package, or a built-in app's id), [kind] as a label, and whether it shows only once picked. */
+private const val VIDEO_AUTO = "auto"
+private const val VIDEO_LIST = "list"
+private const val VIDEO_APP = "app"
+
 private class AppItem(val key: String, val label: String, val icon: Bitmap?, val kind: String, val optIn: Boolean = false, val full: Boolean = false, val video: Boolean = false)
 
 @Composable
@@ -1352,9 +1361,12 @@ private fun PlaceDialog(p: AppsPage, app: AppItem) {
                 }
                 if (app.video) {
                     Spacer(Modifier.height(8.dp))
-                    Toggle(stringResource(R.string.app_full_title), stringResource(R.string.app_video_subtitle), app.key in p.videoApps) {
-                        p.setVideo(app, it)
-                    }
+                    Choices(stringResource(R.string.app_video_title), listOf(
+                        VIDEO_AUTO to stringResource(R.string.app_video_auto),
+                        VIDEO_LIST to stringResource(R.string.app_video_list),
+                        VIDEO_APP to stringResource(R.string.app_full_title),
+                    ), p.videoMode(app)) { p.setVideoMode(app, it) }
+                    Text(stringResource(R.string.app_video_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         },

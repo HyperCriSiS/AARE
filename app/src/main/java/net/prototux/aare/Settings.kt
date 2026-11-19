@@ -152,6 +152,11 @@ class Settings(context: Context) {
         get() = prefs.getStringSet("video_apps", emptySet()) ?: emptySet()
         set(v) = prefs.edit { putStringSet("video_apps", v) }
 
+    /** The media apps always shown as AARE's list, even when they list nothing: packages. Neither here nor in [videoApps]: automatic. */
+    var videoAppsOff: Set<String>
+        get() = prefs.getStringSet("video_apps_off", emptySet()) ?: emptySet()
+        set(v) = prefs.edit { putStringSet("video_apps_off", v) }
+
     /** While a media app shows its video in the car, the phone turns to landscape: players go full screen at once. */
     var videoLandscape: Boolean
         get() = prefs.getBoolean("video_landscape", false)

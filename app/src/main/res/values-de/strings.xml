@@ -413,7 +413,10 @@
     <string name="app_place_overview">App-Übersicht</string>
     <string name="app_place_off">Nicht im Auto</string>
     <string name="app_full_title">Ganze App</string>
-    <string name="app_video_subtitle">Im Stand die App selbst auf dem Auto-Bildschirm samt Video statt der Liste von AARE. Für Apps, die nichts anzeigen oder das falsche abspielen. Der Kamera-Knopf im Auto schaltet ebenfalls um.</string>
+    <string name="app_video_title">Anzeige</string>
+    <string name="app_video_auto">Automatisch</string>
+    <string name="app_video_list">Liste</string>
+    <string name="app_video_subtitle">Im Stand die Liste von AARE oder die App selbst samt Video auf dem Auto-Bildschirm. Automatisch zeigt die App, wenn sie AARE nichts auflistet. Auch der Kamera-Knopf im Auto legt das fest.</string>
     <string name="app_full_subtitle">Im Stand oder im Beifahrermodus der eigene Bildschirm der App samt Tastatur statt der Ansicht von AARE. Während der Fahrt die Ansicht von AARE.</string>
     <string name="standalone_search">Apps suchen</string>
     <string name="standalone_need_root">Benötigt root oder Shizuku. Richten Sie eins davon auf der Seite Autoaudio ein und kommen Sie dann zurück.</string>

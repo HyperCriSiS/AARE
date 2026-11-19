@@ -60,7 +60,14 @@ import net.prototux.aare.media.Placeholder
  * (its media session's, or null), [shown] says whether it takes the art's place, [toggle] switches
  * between the two.
  */
-class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier, PendingIntent?) -> Unit)
+class PhoneVideoSlot(
+    val shown: Boolean,
+    val toggle: () -> Unit,
+    val content: @Composable (Modifier, PendingIntent?) -> Unit,
+    /** Neither chosen: shown by itself when the app lists nothing, through [showAuto]. */
+    val auto: Boolean = false,
+    val showAuto: () -> Unit = {},
+)
 
 /** The [PhoneVideoSlot] for media apps; null while driving or where the phone screen can't show. */
 val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }

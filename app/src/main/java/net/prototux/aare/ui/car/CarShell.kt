@@ -150,6 +150,11 @@ fun CarShell(
     // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
     BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
     LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
+    // Left alone, they close by themselves: nobody should have to reach for them while driving.
+    LaunchedEffect(paneChoice, shortcutsAt) {
+        if (paneChoice == null && shortcutsAt == null) return@LaunchedEffect
+        delay(MENU_TIMEOUT_MS); paneChoice = null; shortcutsAt = null
+    }
     val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
     CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
@@ -936,3 +941,6 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
         RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_dismiss), filled = false) { actions.dismissNotice(notice) }
     }
 }
+
+/** How long the pane menu and the shortcuts stay open untouched. */
+private const val MENU_TIMEOUT_MS = 8_000L

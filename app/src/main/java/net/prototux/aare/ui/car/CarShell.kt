@@ -268,11 +268,7 @@ internal fun ContentArea(
     // pane to the other) instead of being torn down and built again: the phone screen, a standalone
     // app and the browser would lose their picture, process or page. For the same reason app
     // screens and splits share one content key and don't cross-fade: a fade composes both at once.
-    val currentAppContent by rememberUpdatedState(appContent)
-    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
-    val appScreen: @Composable (CarAppEntry, Modifier) -> Unit = { app, mod ->
-        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
-    }
+    val appScreen = rememberAppScreens(state, appContent)
     AnimatedContent(
         targetState = state.screen,
         transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
@@ -298,6 +294,16 @@ internal fun ContentArea(
             }
             is CarScreen.Split -> SplitPane(screen, state, actions, appScreen, Modifier.fillMaxSize())
         }
+    }
+}
+
+/** Each app's screen as movable content, so it keeps its state between full screen and a pane (see [ContentArea]). */
+@Composable
+internal fun rememberAppScreens(state: CarUiState, appContent: @Composable (CarAppEntry, Modifier) -> Unit): @Composable (CarAppEntry, Modifier) -> Unit {
+    val currentAppContent by rememberUpdatedState(appContent)
+    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
+    return { app, mod ->
+        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
     }
 }
 

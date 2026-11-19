@@ -80,7 +80,9 @@ internal fun MediaAppScreen(hub: DefaultMediaHub, app: MediaApp, driving: Boolea
         return
     }
     if (connection == null) {
-        Placeholder(stringResource(R.string.media_connecting_to, app.label), loading = true, modifier = modifier.background(MaterialTheme.colorScheme.background))
+        // The hub holds one app: with two media apps side by side, a tap here takes it back to this one.
+        Placeholder(stringResource(R.string.media_connecting_to, app.label), loading = true,
+            modifier = modifier.background(MaterialTheme.colorScheme.background).clickable { hub.select(app) })
         return
     }
     val ui = remember(connection) { hub.uiFor(connection) }

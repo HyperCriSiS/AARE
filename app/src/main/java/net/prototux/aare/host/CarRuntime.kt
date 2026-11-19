@@ -341,7 +341,7 @@ class CarRuntime(
             "rail_spacing_px" -> main.post { ui.railSpacing = settings.railSpacing }
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu",
-            "standalone_apps", "standalone_app_pkgs", "browser", "full_apps" -> main.post { refreshApps() }
+            "standalone_apps", "standalone_app_pkgs", "browser", "full_apps", "car_data_app" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
             "video_apps" -> main.post { videoApps = settings.videoApps }
             // Cards switched on or off: also fetch what they show now (the weather, the agenda).
@@ -549,7 +549,8 @@ class CarRuntime(
     fun stopNavigation(): CarAppEntry? {
         navigatingApp?.let { c -> c.stopNavigation(); return idOf(c)?.let(ui::app) }
         val maps = (settings.navigationApp?.let { pkg -> ui.apps.firstOrNull { it.packageName == pkg } } ?: ui.app(ui.activeNavAppId))
-            ?.takeIf { it.kind == CarAppKind.STANDALONE } ?: return null
+            // Only Google Maps ends its route this way; for another phone app it would claim an end that didn't happen.
+            ?.takeIf { it.kind == CarAppKind.STANDALONE && it.packageName == "com.google.android.apps.maps" } ?: return null
         ui.navigationRequest = maps.packageName to "geo:0,0"
         actions.openApp(maps)
         return maps
@@ -836,7 +837,8 @@ class CarRuntime(
                                 val m = mediaApps.firstOrNull { it.packageName == app.packageName }
                                 // Parked: the app itself, its video, can take the art's place (the camera button, per app).
                                 val toggleVideo = { val p = app.packageName; settings.videoApps = if (p in videoApps) videoApps - p else videoApps + p }
-                                val video = if (phoneScreenAllowed && !ui.drivingRestricted) {
+                                // The video is the app on the helper's display: no camera button without Shizuku or root.
+                                val video = if (phoneScreenAllowed && !ui.drivingRestricted && AppLauncher.available(context)) {
                                     PhoneVideoSlot(app.packageName in videoApps, toggleVideo) { v, p -> PhoneVideo(this, app.id, app.packageName, v, onCover = toggleVideo, player = p) }
                                 } else null
                                 if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }

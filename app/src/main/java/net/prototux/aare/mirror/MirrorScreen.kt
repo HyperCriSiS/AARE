@@ -154,6 +154,7 @@ private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
     val context = LocalContext.current
     val launcher = remember { AppLauncher(context, "desktop") }
     var started by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
     DisposableEffect(Unit) {
         val back: () -> Boolean = {
             val t = android.os.SystemClock.uptimeMillis()
@@ -168,10 +169,11 @@ private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
         }
     }
     Box(modifier.background(Color.Black)) {
-        HostedAppSurface(launcher, AppLauncher.PHONE_DESKTOP, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+        HostedAppSurface(launcher, AppLauncher.PHONE_DESKTOP, runtime.densityDpi, Modifier.fillMaxSize()) { started = it; failed = !it }
         // Kept awake: untouched, the phone would lock, and the desktop pause with it. Put back when the helper stops.
         LaunchedEffect(started) { if (started) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = false, awake = true, panelOff = false) } }
-        if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
+        if (failed) Placeholder(stringResource(R.string.standalone_failed), loading = false)
+        else if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
     }
 }
 

@@ -198,7 +198,12 @@ class CarSession(
         listener.onStatus(this, context.getString(R.string.notif_status_connecting_to, transport.name))
     }
 
-    fun stop() = aap.stop()
+    fun stop() {
+        // The service releases the media hub right after this, before the close runs teardown: pause now,
+        // or music fed to the car carries on from the phone's speaker.
+        pauseIfFeedingCar(media, feedingCar = audioOuts.containsKey(AudioStreamType.AUDIO_STREAM_MEDIA))
+        aap.stop()
+    }
 
     /**
      * The session closed before the head unit's version request ever came in: this attempt never
@@ -434,10 +439,11 @@ class CarSession(
             // does, and play again when a transient loss ends.
             notification.unsolicited && (state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS || state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT) -> main.post {
                 val playing = media.playback.value?.playing == true
-                pausedByCar = state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT && playing
+                // A repeated loss finds the music already paused: it keeps what the first one decided.
+                pausedByCar = pausedByCar || (state == AudioFocusStateType.AUDIO_FOCUS_STATE_LOSS_TRANSIENT && playing)
                 // A call on the phone, or an assistant listening over Bluetooth, which the car takes
                 // for one: it plays on once that ends (see modeChanged).
-                pausedForCall = playing && phoneInCall()
+                pausedForCall = pausedForCall || (playing && phoneInCall())
                 media.pause()
             }
             // Only the car handing focus back resumes: a gain answering our own request means
@@ -717,7 +723,8 @@ class CarSession(
                 // "focus previous" (not D-pad up/down, which is 2D spatial and wrong for a knob).
                 for (r in report.relativeEvent.dataList) {
                     val meta = if (r.delta < 0) KeyEvent.META_SHIFT_ON else 0
-                    repeat(kotlin.math.abs(r.delta)) {
+                    // Capped: a knob turns a few detents per report, a huge value from a faulty unit would flood the UI.
+                    repeat(kotlin.math.abs(r.delta).coerceAtMost(MAX_ROTARY_STEPS)) {
                         val t = SystemClock.uptimeMillis()
                         display?.dispatchKey(KeyEvent(t, t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB, 0, meta))
                         display?.dispatchKey(KeyEvent(t, t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_TAB, 0, meta))
@@ -1186,6 +1193,8 @@ class CarSession(
         private const val STALL_CHECK_MS = 500L
         /** How often a paused resume looks again whether the phone's call or assistant answer ended. */
         private const val CALL_CHECK_MS = 1_000L
+        /** Detents taken from one rotary report; a real knob sends a handful. */
+        private const val MAX_ROTARY_STEPS = 64
         /** Encoder restarts allowed in [RESTART_WINDOW_MS], for this display and the cluster's. */
         internal const val MAX_RESTARTS = 3
         internal const val RESTART_WINDOW_MS = 10_000L

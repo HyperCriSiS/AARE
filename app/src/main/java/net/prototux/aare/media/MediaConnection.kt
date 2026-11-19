@@ -324,9 +324,6 @@ internal class MediaConnection(
             legacy.transportControls.playFromMediaId(item.mediaId, null)
             return
         }
-        // Emptied first, as closing the player in the app does: some apps (WizeStream) fail to
-        // replace a queue still playing and carry on with the old item.
-        if (b.mediaItemCount > 0) b.clearMediaItems()
         b.setMediaItem(item)
         // playWhenReady before prepare, so the app starts as soon as it is ready
         b.play()

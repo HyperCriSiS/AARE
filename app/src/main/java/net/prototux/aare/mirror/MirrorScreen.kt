@@ -194,6 +194,11 @@ internal fun rememberKeyguardLocked(): Boolean {
         locked = keyguard.isKeyguardLocked
         onDispose { context.unregisterReceiver(receiver) }
     }
+    // Also looked at while locked: an unlock without a broadcast (a trusted device, the lock screen
+    // dismissed while the screen stayed on) would otherwise leave it locked here for good.
+    LaunchedEffect(locked) {
+        while (locked) { delay(LOCK_POLL_MS); locked = keyguard.isKeyguardLocked }
+    }
     return locked
 }
 
@@ -296,3 +301,6 @@ private const val FRONT_POLL_MS = 2_000L
 
 /** Whether the paused phone screen asks for the accessibility service: not with a [helper], which tells the app in front itself. */
 internal fun asksForAccessibility(helper: Boolean, service: Boolean) = !helper && !service
+
+/** How often a locked phone is looked at again, in case it was unlocked without a broadcast. */
+private const val LOCK_POLL_MS = 1_000L

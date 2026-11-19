@@ -230,7 +230,13 @@ private fun BrowseLevel(hub: DefaultMediaHub, ui: MediaUi, level: Level) {
         when {
             loader.error != null -> ErrorCard(loader.error!!, Modifier.fillMaxWidth().padding(16.dp), onRetry = loader::retry)
             loader.loading || !loader.end -> Placeholder(stringResource(R.string.common_loading), loading = true)
-            else -> Placeholder(stringResource(R.string.media_nothing_here), loading = false, icon = Icons.Rounded.Folder)
+            else -> {
+                // An app that lists nothing for AARE at its top (YouTube serves only Google's own apps):
+                // the app itself on the car screen instead, where there is a helper for it.
+                val video = LocalPhoneVideo.current
+                if (video != null && !ui.canGoBack) LaunchedEffect(Unit) { if (!video.shown) video.toggle() }
+                Placeholder(stringResource(R.string.media_nothing_here), loading = false, icon = Icons.Rounded.Folder)
+            }
         }
         return
     }

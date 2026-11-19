@@ -679,6 +679,8 @@ class LaunchHostService : ILaunchHost.Stub {
             .firstOrNull { it.baseActivity?.packageName == pkg } ?: return
         Log.i(TAG, "moving task ${task.taskId} of $pkg to display $id")
         shell("am", "display", "move-stack", task.taskId.toString(), id.toString())
+        // The move takes the phone's focus along: its own screen (a navigation bar app) stopped answering.
+        focusPhone(id)
     }
 
     /** Inject one event into the launched app's display via InputManager's hidden injectInputEvent. */

@@ -405,6 +405,25 @@ internal class MediaConnection(
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = updateState()
+        override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+            video.value = videoAttached && videoSize.width > 0 && videoSize.height > 0
+        }
+    }
+
+    private var videoAttached = false
+    /** The app draws a picture on the surface given to [videoSurface] (a video player that supports it). */
+    val video = MutableStateFlow(false)
+
+    /**
+     * Hands the app a surface for its video, or takes it back (null). Players that support it
+     * (media3's surface command) draw their video there; audio apps ignore it. Main thread.
+     */
+    fun videoSurface(surface: android.view.Surface?) {
+        val b = browser ?: return
+        if (!b.isCommandAvailable(Player.COMMAND_SET_VIDEO_SURFACE)) return
+        videoAttached = surface != null
+        if (surface != null) b.setVideoSurface(surface) else b.clearVideoSurface()
+        video.value = videoAttached && b.videoSize.width > 0
     }
 
     private val listener = object : MediaBrowser.Listener {

@@ -111,7 +111,7 @@ internal fun MediaAppScreen(hub: DefaultMediaHub, app: MediaApp, driving: Boolea
             ) { view ->
                 when (view) {
                     MediaView.BROWSE -> BrowseBody(hub, ui, status, source)
-                    MediaView.NOW_PLAYING -> NowPlayingView(hub, connection, source) { ui.view = it }
+                    MediaView.NOW_PLAYING -> NowPlayingView(hub, connection, source, driving) { ui.view = it }
                     MediaView.QUEUE -> QueueView(connection, source) { ui.view = MediaView.NOW_PLAYING }
                     MediaView.SEARCH -> SearchView(ui, driving)
                 }

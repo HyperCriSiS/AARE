@@ -1799,6 +1799,14 @@ private fun VehicleOverridesCard() {
     Section(stringResource(R.string.vehicles_section_title)) {
         Text(stringResource(R.string.vehicles_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
+        // Fixes known from car reports, one switch each; vehicles.json below covers everything else.
+        Text(stringResource(R.string.vehicles_known_fixes), style = MaterialTheme.typography.titleSmall)
+        val settings = remember { Settings(ctx) }
+        var skipMic by remember { mutableStateOf(settings.skipMicSetup) }
+        Toggle(stringResource(R.string.vehicles_skip_mic_setup_title), stringResource(R.string.vehicles_skip_mic_setup_subtitle), skipMic) {
+            skipMic = it; settings.skipMicSetup = it
+        }
+        Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.vehicles_rule_count, count), style = MaterialTheme.typography.bodyMedium)
         Text(file.absolutePath, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
@@ -1828,9 +1836,14 @@ private fun LogCard() {
         }.onFailure { Toast.makeText(ctx, it.message, Toast.LENGTH_SHORT).show() }
     }
     Section(title) {
-        // Always shown, so the trace can be turned on before connecting.
+        // Always shown, so the log can be turned on before connecting.
+        var keep by remember { mutableStateOf(settings.connectionLog) }
         var verbose by remember { mutableStateOf(settings.verboseProtocolLog) }
-        Toggle(stringResource(R.string.setup_toggle_verbose_log_title), stringResource(R.string.setup_toggle_verbose_log_subtitle), verbose) {
+        Toggle(stringResource(R.string.troubleshooting_log_title), stringResource(R.string.troubleshooting_log_subtitle), keep) {
+            keep = it; settings.connectionLog = it; DiagLog.enabled = it
+            if (!it) { verbose = false; settings.verboseProtocolLog = false; SessionAapLog.verbose = false }
+        }
+        if (keep) Toggle(stringResource(R.string.setup_toggle_verbose_log_title), stringResource(R.string.setup_toggle_verbose_log_subtitle), verbose) {
             verbose = it; settings.verboseProtocolLog = it; SessionAapLog.verbose = it
         }
         if (log.isNotEmpty()) {

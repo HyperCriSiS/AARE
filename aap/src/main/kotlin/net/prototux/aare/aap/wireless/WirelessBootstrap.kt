@@ -325,7 +325,7 @@ class WirelessBootstrap(
     private fun parseCredentials(payload: ByteArray): WifiCredentials {
         val info = parse("WifiInfoResponse") { WifiInfoResponse.parseFrom(payload) }
         val bssid = info.bssid.trim().takeIf { MAC.matches(it) && it != "00:00:00:00:00:00" }
-        if (info.bssid.isNotBlank() && bssid == null) log.w("wireless: ignoring malformed BSSID \"${info.bssid}\"")
+        if (info.bssid.isNotBlank() && bssid == null) log.w("wireless: ignoring a malformed BSSID (${info.bssid.length} characters)")
         return WifiCredentials(
             ssid = info.ssid,
             password = info.password,
@@ -354,7 +354,7 @@ class WirelessBootstrap(
             try {
                 listener.connectWifi(credentials)
             } catch (e: Exception) {
-                log.w("wireless: joining \"${credentials.ssid}\" threw", e)
+                log.w("wireless: joining the car's network threw", e)
                 JoinResult.Failed(WppStatus.WIFI_NETWORK_UNAVAILABLE, e.message ?: e.toString())
             } finally {
                 keepalive.stop()

@@ -151,7 +151,7 @@ for example to compare with Google's app.
 
 ## Finding out what happens with your car
 
-1. Connect, then open AARE on the phone: *Advanced > Connection log*. It's kept across
+1. Connect, then open AARE on the phone: *Advanced > Troubleshooting*. It's kept across
    reconnections, so you can read it after a drive.
 2. Look for these lines:
 

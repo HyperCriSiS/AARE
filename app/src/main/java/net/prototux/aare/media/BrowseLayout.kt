@@ -81,8 +81,8 @@ fun sections(entries: List<EntryHints>, level: StyleHints): List<Section> {
     return out
 }
 
-/** Android Auto shows the root's children as tabs when there are at most this many. */
-const val MAX_TABS = 4
+/** The root's children show as tabs when there are at most this many (our advertised limit). */
+const val MAX_TABS = MediaKeys.ROOT_CHILDREN_LIMIT_VALUE
 
 /**
  * Indices of the root children shown as tabs, empty for a plain list. Android Auto asks for

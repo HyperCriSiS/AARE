@@ -232,9 +232,9 @@ private fun BrowseLevel(hub: DefaultMediaHub, ui: MediaUi, level: Level) {
             loader.loading || !loader.end -> Placeholder(stringResource(R.string.common_loading), loading = true)
             else -> {
                 // An app that lists nothing for AARE at its top (YouTube serves only Google's own apps):
-                // the app itself on the car screen instead, where there is a helper for it.
+                // the app itself on the car screen instead, where there is a helper for it. An empty tab is not that.
                 val video = LocalPhoneVideo.current
-                if (video != null && video.auto && !ui.canGoBack) LaunchedEffect(Unit) { video.showAuto() }
+                if (video != null && video.auto && !ui.canGoBack && ui.tabs?.isEmpty() == true) LaunchedEffect(Unit) { video.showAuto() }
                 Placeholder(stringResource(R.string.media_nothing_here), loading = false, icon = Icons.Rounded.Folder)
             }
         }

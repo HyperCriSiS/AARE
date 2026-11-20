@@ -102,6 +102,9 @@ class LaunchHostService : ILaunchHost.Stub {
         display = vd
         displayId = vd.display.displayId
         keyboardOn(displayId)
+        // The car screen stays landscape: an app asking for portrait (a player leaving full screen)
+        // would otherwise shrink to a letterboxed phone in the middle.
+        shell("cmd", "window", "set-ignore-orientation-request", "-d", displayId.toString(), "true")
         if (keepDisplayAwake) enableKeepAwakeFallback(ctx, displayId)
         // The phone's own desktop: Android puts its home screen and navigation bar there by itself.
         if (desktop) return displayId

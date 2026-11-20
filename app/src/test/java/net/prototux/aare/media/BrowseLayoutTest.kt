@@ -85,13 +85,14 @@ class BrowseLayoutTest {
     }
 
     @Test
-    fun tabsFromOneToFourBrowsableRootChildren() {
+    fun tabsFromOneToMaxBrowsableRootChildren() {
         assertEquals(listOf(0), tabIndices(listOf(true)))
         assertEquals(listOf(0, 1, 2, 3), tabIndices(listOf(true, true, true, true)))
         assertEquals(listOf(0, 2), tabIndices(listOf(true, false, true)))
         assertTrue(tabIndices(emptyList()).isEmpty())
         assertTrue(tabIndices(listOf(false, false)).isEmpty())
-        assertTrue(tabIndices(List(5) { true }).isEmpty())
+        assertEquals((0 until MAX_TABS).toList(), tabIndices(List(MAX_TABS) { true }))
+        assertTrue(tabIndices(List(MAX_TABS + 1) { true }).isEmpty())
     }
 
     @Test

@@ -662,8 +662,13 @@ class CarRuntime(
     private var noticeSeq = 0L
 
     /** Opens [packageName]'s app on the car screen, as a tap on its notification does; null if the car screen has none. */
-    fun opener(packageName: String): (() -> Unit)? =
-        ui.apps.firstOrNull { it.packageName == packageName }?.let { app -> { actions.openApp(app) } }
+    fun opener(packageName: String, intent: android.app.PendingIntent? = null, done: () -> Unit = {}): (() -> Unit)? =
+        ui.apps.firstOrNull { it.packageName == packageName }?.let { app -> {
+            // The app itself on the car screen: on what the tap opens there (the conversation), not its start.
+            if (intent != null && app.kind == CarAppKind.MESSAGING && fullApp(packageName in settings.fullApps)) ui.openRequest = packageName to intent
+            actions.openApp(app)
+            done()
+        } }
 
     /** Keeps a notification (a message) for the notification centre. */
     fun remember(title: String, text: String, icon: Bitmap?, actions: List<Pair<String, () -> Unit>>, open: (() -> Unit)? = null) {

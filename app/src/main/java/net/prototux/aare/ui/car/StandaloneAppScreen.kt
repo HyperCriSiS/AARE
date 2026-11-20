@@ -84,6 +84,7 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             // Nor a navigation: opened later by hand, the app would start that old route over the driver's own.
             // Not by the map card: leaving it is how the request reaches the app full screen.
             if (!card && runtime.ui.navigationRequest?.first == packageName) runtime.ui.navigationRequest = null
+            if (!card && runtime.ui.openRequest?.first == packageName) runtime.ui.openRequest = null
             launcher.releaseAside()
         }
     }
@@ -111,6 +112,12 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
                 // Cleared only once done: the request is this effect's key, and clearing it cancels the effect.
                 try { withContext(Dispatchers.IO) { launcher.openLink(request.second, packageName) } }
                 finally { if (runtime.ui.navigationRequest == request) runtime.ui.navigationRequest = null }
+            }
+            // A notification tapped for this app: what the tap opens (the conversation), once it runs.
+            LaunchedEffect(started, runtime.ui.openRequest) {
+                val request = runtime.ui.openRequest?.takeIf { started && !card && it.first == packageName } ?: return@LaunchedEffect
+                try { withContext(Dispatchers.IO) { launcher.openPending(request.second) } }
+                finally { if (runtime.ui.openRequest == request) runtime.ui.openRequest = null }
             }
             // The assistant's car links, read off the car screen and run here: MacroDroid and the phone's own
             // tools only see the phone's display, not this one. Links already in the chat when it shows stay put.

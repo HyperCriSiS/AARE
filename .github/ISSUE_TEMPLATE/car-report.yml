@@ -73,5 +73,7 @@ body:
     id: log
     attributes:
       label: Connection log
-      description: AARE on the phone → Advanced → Connection log, the lines around the connection. Redact your location first.
+      description: |
+        If something doesn't work: first turn on Advanced → Connection log → "Verbose protocol log", reconnect and
+        reproduce it, then tap Save and attach the whole file. The normal log rarely shows why. Redact your location first.
       render: text

@@ -1799,6 +1799,12 @@ private fun VehicleOverridesCard() {
     Section(stringResource(R.string.vehicles_section_title)) {
         Text(stringResource(R.string.vehicles_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
+        val settings = remember { Settings(ctx) }
+        var skipMic by remember { mutableStateOf(settings.skipMicSetup) }
+        Toggle(stringResource(R.string.vehicles_skip_mic_setup_title), stringResource(R.string.vehicles_skip_mic_setup_subtitle), skipMic) {
+            skipMic = it; settings.skipMicSetup = it
+        }
+        Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.vehicles_rule_count, count), style = MaterialTheme.typography.bodyMedium)
         Text(file.absolutePath, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))

@@ -281,7 +281,7 @@ class CarSession(
                         }
                     }
                 }
-                s.hasMediaSourceService() -> mic = MicrophoneChannel(s, micListener, sendSetup = quirks?.micSetup ?: true).also { channels += it }
+                s.hasMediaSourceService() -> mic = MicrophoneChannel(s, micListener, sendSetup = !settings.skipMicSetup && (quirks?.micSetup ?: true)).also { channels += it }
                 s.hasInputSourceService() -> inputServices += s
                 s.hasSensorSourceService() -> channels += SensorChannel(s, sensorListener)
                 s.hasNavigationStatusService() -> navStatus = NavigationStatusChannel(s).also { channels += it }

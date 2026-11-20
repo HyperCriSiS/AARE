@@ -40,11 +40,21 @@ body:
         - Other / not sure
     validations:
       required: true
+  - type: checkboxes
+    id: verbose
+    attributes:
+      label: Verbose log
+      description: The normal log rarely shows why something fails. Before you reproduce the problem, turn on Advanced → Connection log → "Verbose protocol log", then reconnect.
+      options:
+        - label: I turned on "Verbose protocol log" before reproducing the problem.
+          required: true
   - type: textarea
     id: log
     attributes:
       label: Logs
       description: |
-        The connection log (Advanced → Connection log), and if you can, `adb logcat | grep -iE 'aare|AareAap'`
-        around the problem. Redact anything private first.
+        The whole connection log with "Verbose protocol log" on: tap Save and attach the file, or paste it here.
+        If you can, also `adb logcat | grep -iE 'aare|AareAap'` around the problem. Redact anything private first.
       render: text
+    validations:
+      required: true

@@ -213,6 +213,13 @@ class CarSession(
      */
     val closedBeforeVersionExchange: Boolean get() = aap.closedDuring == AapSession.State.VERSION
 
+    /** The protocol state the session was in when it closed. */
+    val closedDuring: AapSession.State get() = aap.closedDuring
+
+    /** Why the session failed; null when it ended with a bye-bye from either side (or is still running). */
+    @Volatile var closeError: Throwable? = null
+        private set
+
     /**
      * Asks the head unit to show its own UI (radio, vehicle settings), like Android Auto's "Exit".
      * Focus isn't dropped here: the head unit answers with a native VIDEO_FOCUS_NOTIFICATION (or
@@ -300,6 +307,7 @@ class CarSession(
                         }
                     })
                     channels += bt
+                    bluetooth = bt
                     main.post { if (!closed) bluetoothPower = PhoneBluetoothPower(context) { announceAgain(bt) }.also { it.start() } }
                 }
             }
@@ -340,6 +348,8 @@ class CarSession(
     }
 
     override fun onRunning(session: AapSession) {
+        if (vehicleOverride?.pairAgainWhenRunning == true && bluetooth?.announceAgain() == true)
+            DiagLog.add("car bluetooth: announcing the phone again, session running (vehicles.json)")
         main.post {
             if (closed) return@post
             listener.onStatus(this, context.getString(R.string.notif_status_projecting_to, headUnitName))
@@ -488,6 +498,7 @@ class CarSession(
     } }
 
     override fun onClosed(session: AapSession, reason: String, error: Throwable?) {
+        closeError = error
         val rejected = session.certificateRefusal
         val refusal = session.pinRefusal
         main.post {
@@ -1138,6 +1149,9 @@ class CarSession(
         val m = Build.MODEL
         return if (m.startsWith(Build.MANUFACTURER, ignoreCase = true)) m else "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} $m"
     }
+
+    /** The car's Bluetooth service, to announce the phone again once the session runs (vehicles.json `pairAgainWhenRunning`). */
+    private var bluetooth: BluetoothChannel? = null
 
     /**
      * The phone's own Bluetooth MAC for the car's pairing handshake, or null if unknown. Prefer the

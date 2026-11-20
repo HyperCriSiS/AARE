@@ -44,7 +44,7 @@ body:
     id: verbose
     attributes:
       label: Verbose log
-      description: The normal log rarely shows why something fails. Before you reproduce the problem, turn on Advanced → Connection log → "Verbose protocol log", then reconnect.
+      description: The normal log rarely shows why something fails. Before you reproduce the problem, turn on Advanced → Troubleshooting → "Verbose protocol log", then reconnect.
       options:
         - label: I turned on "Verbose protocol log" before reproducing the problem.
           required: true

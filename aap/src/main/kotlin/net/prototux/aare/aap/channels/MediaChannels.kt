@@ -314,6 +314,7 @@ class VideoChannel(
      * granted, since it may be waiting for video before it shows anything. An explicit answer,
      * even a refusal, always wins. Returns whether it applied.
      */
+    @Synchronized
     fun assumeProjectedIfUnanswered(): Boolean {
         if (focusHeard || chosen == null) return false
         setFocus(VideoFocusMode.VIDEO_FOCUS_PROJECTED)

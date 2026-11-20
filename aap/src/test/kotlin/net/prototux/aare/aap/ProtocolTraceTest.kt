@@ -49,10 +49,17 @@ class ProtocolTraceTest {
     /** A refused or ignored message needs its content in the report, not only its name. */
     @Test fun smallBodiesShowInHexLargeOnesAndTlsDoNot() {
         val body = byteArrayOf(0, 0x08, 0x01, 0x7f)
-        assertEquals(" [08017f]", ProtocolTrace.payload(MediaMsg.VIDEO_FOCUS_REQUEST, body, 1, 3))
-        assertEquals("", ProtocolTrace.payload(MediaMsg.VIDEO_FOCUS_REQUEST, body, 1, 0))
-        assertEquals("", ProtocolTrace.payload(ControlMsg.ENCAPSULATED_SSL, body, 1, 3))
-        assertEquals("", ProtocolTrace.payload(ControlMsg.SERVICE_DISCOVERY_RESPONSE, ByteArray(200), 0, 200))
+        assertEquals(" [08017f]", ProtocolTrace.payload("video", MediaMsg.VIDEO_FOCUS_REQUEST, body, 1, 3))
+        assertEquals("", ProtocolTrace.payload("video", MediaMsg.VIDEO_FOCUS_REQUEST, body, 1, 0))
+        assertEquals("", ProtocolTrace.payload(null, ControlMsg.ENCAPSULATED_SSL, body, 1, 3))
+        assertEquals("", ProtocolTrace.payload(null, ControlMsg.SERVICE_DISCOVERY_RESPONSE, ByteArray(200), 0, 200))
+    }
+
+    /** Posted logs must not carry the driver's data: no bodies there, no Bluetooth addresses. */
+    @Test fun privateChannelsAndAddressesStayOut() {
+        assertEquals("", ProtocolTrace.payload("bluetooth", 1, byteArrayOf(1, 2), 0, 2))
+        assertEquals("", ProtocolTrace.payload("phonestatus", 1, byteArrayOf(1, 2), 0, 2))
+        assertEquals("car_address: 'xx:xx:xx:xx:xx:xx'", ProtocolTrace.oneLine("car_address: '00:00:00:00:00:00'"))
     }
 
     @Test fun debugTextFitsOnOneLine() {

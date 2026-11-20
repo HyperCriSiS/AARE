@@ -26,8 +26,27 @@ object SessionAapLog : AapLog {
     override fun d(msg: String) { Log.d("AareAap", msg); diag(msg) }
     override fun i(msg: String) { Log.i("AareAap", msg); diag(msg) }
     // Warnings and errors always reach the log the user sends: they are rare, and they are what fails.
-    override fun w(msg: String, t: Throwable?) { Log.w("AareAap", msg, t); DiagLog.add(with(msg, t)) }
-    override fun e(msg: String, t: Throwable?) { Log.e("AareAap", msg, t); DiagLog.add(withStack(msg, t)) }
+    override fun w(msg: String, t: Throwable?) { Log.w("AareAap", msg, t); limited(msg) { with(msg, t) } }
+    override fun e(msg: String, t: Throwable?) { Log.e("AareAap", msg, t); limited(msg) { withStack(msg, t) } }
+
+    /** Times each warning was seen: one per message would flood the log and push out the session start. */
+    private val seen = HashMap<String, Int>()
+
+    /** The first [WarningLimit.FIRST] of a warning, then one in [WarningLimit.EVERY] with its count. */
+    private fun limited(msg: String, line: () -> String) {
+        val n = synchronized(seen) {
+            if (seen.size > 500) seen.clear()
+            (seen[msg] ?: 0).plus(1).also { seen[msg] = it }
+        }
+        if (WarningLimit.shows(n)) DiagLog.add(if (n > WarningLimit.FIRST) "${line()} ($n so far)" else line())
+    }
+}
+
+/** How often a repeated warning reaches the connection log. */
+object WarningLimit {
+    const val FIRST = 3
+    const val EVERY = 100
+    fun shows(n: Int) = n <= FIRST || n % EVERY == 0
 }
 
 /** Also writes to the [DiagLog] the user sees in the app (not the debug lines). */

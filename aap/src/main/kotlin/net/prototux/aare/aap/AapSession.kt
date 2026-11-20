@@ -233,7 +233,7 @@ class AapSession(
             recentlySent.addLast(what)
             if (recentlySent.size > 4) recentlySent.removeFirst()
         }
-        log.d("$direction $what" + ProtocolTrace.payload(id, body, offset, length))
+        log.d("$direction $what" + ProtocolTrace.payload(channelName, id, body, offset, length))
     }
 
     fun send(channel: Int, id: Int, body: MessageLite, control: Boolean = false, priority: Int = Priority.CONTROL) {

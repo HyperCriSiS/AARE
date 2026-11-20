@@ -28,15 +28,20 @@ object ProtocolTrace {
      * The body of a set-up message in hex, so a report shows what was in it (focus mode, status,
      * codec). Empty for SSL (the handshake) and for bodies longer than [MAX_PAYLOAD] (discovery).
      */
-    fun payload(id: Int, body: ByteArray, offset: Int, length: Int): String {
-        if (length <= 0 || length > MAX_PAYLOAD || id == ControlMsg.ENCAPSULATED_SSL) return ""
+    fun payload(channelName: String?, id: Int, body: ByteArray, offset: Int, length: Int): String {
+        if (length <= 0 || length > MAX_PAYLOAD || id == ControlMsg.ENCAPSULATED_SSL || channelName in PRIVATE) return ""
         val sb = StringBuilder(" [")
         for (i in offset until offset + length) sb.append("%02x".format(body[i]))
         return sb.append(']').toString()
     }
 
-    /** A protobuf's debug text on one line, cut at [MAX_TEXT] characters. */
-    fun oneLine(text: String): String = text.replace(Regex("\\s+"), " ").trim().take(MAX_TEXT)
+    /** A protobuf's debug text on one line, cut at [MAX_TEXT] characters, Bluetooth addresses masked. */
+    fun oneLine(text: String): String =
+        text.replace(Regex("\\s+"), " ").replace(MAC, "xx:xx:xx:xx:xx:xx").trim().take(MAX_TEXT)
+
+    /** Channels whose messages carry the driver's data (pairing addresses, callers, roads, messages): names only. */
+    private val PRIVATE = setOf("bluetooth", "phonestatus", "navstatus", "notifications", "mediabrowser", "playback", "wifi")
+    private val MAC = Regex("(?i)\\b[0-9a-f]{2}(:[0-9a-f]{2}){5}\\b")
 
     private const val MAX_PAYLOAD = 96
     private const val MAX_TEXT = 1500

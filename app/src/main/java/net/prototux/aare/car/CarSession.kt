@@ -938,7 +938,13 @@ class CarSession(
     private val videoFocusCheck = object : Runnable {
         override fun run() {
             val ch = video ?: return
-            if (closed || ch.focusHeard) return
+            if (closed) return
+            if (ch.focusHeard) {
+                // The car's own screen first (its home screen, the reverse camera): AARE waits for the
+                // car to switch, when the driver picks Android Auto there. Said, since nothing else is.
+                if (!ch.focused) DiagLog.add("video focus: the car shows its own screen; waiting for it to switch to Android Auto")
+                return
+            }
             if (videoFocusAsks >= VIDEO_FOCUS_RETRIES) {
                 if (ch.assumeProjectedIfUnanswered()) DiagLog.add("video focus: the car never answered, sending video anyway")
                 return
@@ -1169,7 +1175,7 @@ class CarSession(
 
     companion object {
         private const val TAG = "AareSession"
-        private const val VIDEO_FOCUS_RETRY_MS = 3_000L
+        private const val VIDEO_FOCUS_RETRY_MS = 2_000L
         /** The rotary knob and touchpad keys, left out of the connection log. */
         private val NAV_KEYS = setOf(
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
@@ -1181,7 +1187,7 @@ class CarSession(
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY,
             KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_MEDIA_STOP, KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS,
         )
-        private const val VIDEO_FOCUS_RETRIES = 3
+        private const val VIDEO_FOCUS_RETRIES = 1
         const val KEYCODE_MEDIA = 65537
         const val KEYCODE_NAVIGATION = 65538
         const val KEYCODE_RADIO = 65539

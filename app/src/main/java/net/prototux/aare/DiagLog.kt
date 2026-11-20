@@ -29,14 +29,19 @@ object DiagLog {
     @Synchronized
     fun init(context: Context) {
         if (file != null) return
+        enabled = Settings(context).connectionLog
         val f = File(context.filesDir, "connection.log")
         file = f
         _lines.value = runCatching { f.readLines() }.getOrDefault(emptyList()).takeLast(MAX_LINES)
     }
 
+    /** Off (Settings.connectionLog), lines go to logcat only and nothing is kept. */
+    @Volatile var enabled = true
+
     @Synchronized
     fun add(line: String) {
         Log.i(TAG, line)
+        if (!enabled) return
         val stamp = SimpleDateFormat("dd/MM HH:mm:ss.SSS", Locale.US).format(Date())
         val all = (_lines.value + "$stamp  $line").takeLast(MAX_LINES)
         _lines.value = all

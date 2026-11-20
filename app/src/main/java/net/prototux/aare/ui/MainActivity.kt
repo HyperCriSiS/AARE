@@ -1828,9 +1828,14 @@ private fun LogCard() {
         }.onFailure { Toast.makeText(ctx, it.message, Toast.LENGTH_SHORT).show() }
     }
     Section(stringResource(R.string.troubleshooting_section_title)) {
-        // Always shown, so the trace can be turned on before connecting.
+        // Always shown, so the log can be turned on before connecting.
+        var keep by remember { mutableStateOf(settings.connectionLog) }
         var verbose by remember { mutableStateOf(settings.verboseProtocolLog) }
-        Toggle(stringResource(R.string.setup_toggle_verbose_log_title), stringResource(R.string.setup_toggle_verbose_log_subtitle), verbose) {
+        Toggle(stringResource(R.string.troubleshooting_log_title), stringResource(R.string.troubleshooting_log_subtitle), keep) {
+            keep = it; settings.connectionLog = it; DiagLog.enabled = it
+            if (!it) { verbose = false; settings.verboseProtocolLog = false; SessionAapLog.verbose = false }
+        }
+        if (keep) Toggle(stringResource(R.string.setup_toggle_verbose_log_title), stringResource(R.string.setup_toggle_verbose_log_subtitle), verbose) {
             verbose = it; settings.verboseProtocolLog = it; SessionAapLog.verbose = it
         }
         var skipMic by remember { mutableStateOf(settings.skipMicSetup) }

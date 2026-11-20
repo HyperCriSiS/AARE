@@ -25,9 +25,9 @@ object SessionAapLog : AapLog {
         if (t != null) "$msg: ${t.stackTraceToString().lineSequence().take(8).joinToString("\n    ")}" else msg
     override fun d(msg: String) { Log.d("AareAap", msg); diag(msg) }
     override fun i(msg: String) { Log.i("AareAap", msg); diag(msg) }
-    // Warnings and errors always reach the log the user sends: they are rare, and they are what fails.
-    override fun w(msg: String, t: Throwable?) { Log.w("AareAap", msg, t); limited(msg) { with(msg, t) } }
-    override fun e(msg: String, t: Throwable?) { Log.e("AareAap", msg, t); limited(msg) { withStack(msg, t) } }
+    // The normal log stays short; with the verbose log on, warnings come rate limited, errors with their stack.
+    override fun w(msg: String, t: Throwable?) { Log.w("AareAap", msg, t); if (verbose) limited(msg) { with(msg, t) } }
+    override fun e(msg: String, t: Throwable?) { Log.e("AareAap", msg, t); if (verbose) limited(msg) { withStack(msg, t) } }
 
     /** Times each warning was seen: one per message would flood the log and push out the session start. */
     private val seen = HashMap<String, Int>()

@@ -16,6 +16,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("hu_server", false)
         set(v) = prefs.edit { putBoolean("hu_server", v) }
 
+    /** Keep the connection log at all; off, nothing is written. */
+    var connectionLog: Boolean
+        get() = prefs.getBoolean("connection_log", true)
+        set(v) = prefs.edit { putBoolean("connection_log", v) }
+
     /** Write the protocol frame trace to the in-app connection log too, to capture it without adb. */
     var verboseProtocolLog: Boolean
         get() = prefs.getBoolean("verbose_protocol_log", false)

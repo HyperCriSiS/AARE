@@ -378,7 +378,7 @@ class ProjectionService : Service() {
         val cert = certs.pick(settings.certificateIndex)
         offered = cert
         // Who and what connects, so a report says it without asking: AARE, the phone, what changes the protocol.
-        log("---- AARE ${net.prototux.aare.BuildConfig.VERSION_NAME} on ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}, " +
+        if (settings.verboseProtocolLog) log("---- AARE ${net.prototux.aare.BuildConfig.VERSION_NAME} on ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}, " +
             "Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT}); verbose=${settings.verboseProtocolLog} " +
             "h264=${settings.forceH264} maxHeight=${settings.maxVideoHeight} 60fps=${settings.prefer60fps} " +
             "cbr=${settings.constantBitrateVideo} skipMicSetup=${settings.skipMicSetup}")

@@ -108,7 +108,8 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         if (started == true && Settings(context).videoLandscape) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = true, awake = false, panelOff = false) }
     }
     // Back from the car (or the car screen preview) goes to the app; without it, to the cover. Back on
-    // the player's first screen closes it: with no app left, the cover again, not an empty picture.
+    // the player's first screen closes it: with no app left, the dashboard, not an empty picture. Not
+    // the cover: that would switch this app to AARE's list for good.
     val cover by rememberUpdatedState(onCover)
     val scope = rememberCoroutineScope()
     DisposableEffect(appId) {
@@ -119,7 +120,7 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
                 launcher.key(t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)
                 scope.launch {
                     delay(BACK_SETTLE_MS)
-                    if (!withContext(Dispatchers.IO) { launcher.hasApp() }) cover()
+                    if (!withContext(Dispatchers.IO) { launcher.hasApp() }) runtime.actions.goHome()
                 }
             } else cover()
             true

@@ -45,4 +45,17 @@ class ProtocolTraceTest {
         assertEquals("FRAMING_ERROR", ProtocolTrace.name(null, ControlMsg.FRAMING_ERROR))
         assertEquals("0x63", ProtocolTrace.name(null, 99))
     }
+
+    /** A refused or ignored message needs its content in the report, not only its name. */
+    @Test fun smallBodiesShowInHexLargeOnesAndTlsDoNot() {
+        val body = byteArrayOf(0, 0x08, 0x01, 0x7f)
+        assertEquals(" [08017f]", ProtocolTrace.payload(MediaMsg.VIDEO_FOCUS_REQUEST, body, 1, 3))
+        assertEquals("", ProtocolTrace.payload(MediaMsg.VIDEO_FOCUS_REQUEST, body, 1, 0))
+        assertEquals("", ProtocolTrace.payload(ControlMsg.ENCAPSULATED_SSL, body, 1, 3))
+        assertEquals("", ProtocolTrace.payload(ControlMsg.SERVICE_DISCOVERY_RESPONSE, ByteArray(200), 0, 200))
+    }
+
+    @Test fun debugTextFitsOnOneLine() {
+        assertEquals("a: 1 b { c: 2 }", ProtocolTrace.oneLine("a: 1\nb {\n  c: 2\n}\n"))
+    }
 }

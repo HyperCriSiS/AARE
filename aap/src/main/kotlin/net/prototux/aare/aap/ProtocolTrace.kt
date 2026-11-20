@@ -24,6 +24,23 @@ object ProtocolTrace {
         else -> true
     }
 
+    /**
+     * The body of a set-up message in hex, so a report shows what was in it (focus mode, status,
+     * codec). Empty for SSL (the handshake) and for bodies longer than [MAX_PAYLOAD] (discovery).
+     */
+    fun payload(id: Int, body: ByteArray, offset: Int, length: Int): String {
+        if (length <= 0 || length > MAX_PAYLOAD || id == ControlMsg.ENCAPSULATED_SSL) return ""
+        val sb = StringBuilder(" [")
+        for (i in offset until offset + length) sb.append("%02x".format(body[i]))
+        return sb.append(']').toString()
+    }
+
+    /** A protobuf's debug text on one line, cut at [MAX_TEXT] characters. */
+    fun oneLine(text: String): String = text.replace(Regex("\\s+"), " ").trim().take(MAX_TEXT)
+
+    private const val MAX_PAYLOAD = 96
+    private const val MAX_TEXT = 1500
+
     /** A readable name for message [id] on [channelName], or its hex id when unknown. */
     fun name(channelName: String?, id: Int): String {
         val names = when {
@@ -37,7 +54,7 @@ object ProtocolTrace {
         return names[id] ?: "0x${id.toString(16)}"
     }
 
-    private fun isMedia(channelName: String) = channelName == "video" || channelName == "mic" || channelName.startsWith("audio")
+    fun isMedia(channelName: String) = channelName == "video" || channelName == "mic" || channelName.startsWith("audio")
 
     private val CONTROL = mapOf(
         ControlMsg.VERSION_REQUEST to "VERSION_REQUEST", ControlMsg.VERSION_RESPONSE to "VERSION_RESPONSE",

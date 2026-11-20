@@ -37,7 +37,7 @@ object DiagLog {
     @Synchronized
     fun add(line: String) {
         Log.i(TAG, line)
-        val stamp = SimpleDateFormat("dd/MM HH:mm:ss", Locale.US).format(Date())
+        val stamp = SimpleDateFormat("dd/MM HH:mm:ss.SSS", Locale.US).format(Date())
         val all = (_lines.value + "$stamp  $line").takeLast(MAX_LINES)
         _lines.value = all
         val f = file ?: return

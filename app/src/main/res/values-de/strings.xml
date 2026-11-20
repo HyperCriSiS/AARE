@@ -491,7 +491,7 @@
     <string name="vehicles_rule_count">%1$d Regel(n) geladen</string>
     <string name="vehicles_import">Datei importieren…</string>
     <string name="vehicles_template">Vorlage schreiben</string>
-    <string name="troubleshooting_section_title">Fehlerbehebung</string>
+    <string name="vehicles_known_fixes">Bekannte Korrekturen</string>
     <string name="troubleshooting_log_title">Verbindungsprotokoll</string>
     <string name="troubleshooting_log_subtitle">Führt ein kurzes Protokoll jeder Verbindung. Aus: Es wird nichts geschrieben.</string>
     <string name="vehicles_skip_mic_setup_title">Mikrofon-Einrichtung überspringen</string>

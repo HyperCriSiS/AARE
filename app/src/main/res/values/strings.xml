@@ -126,7 +126,7 @@
     <string name="vehicles_rule_count">%1$d rule(s) loaded</string>
     <string name="vehicles_import">Import file…</string>
     <string name="vehicles_template">Write template</string>
-    <string name="troubleshooting_section_title">Troubleshooting</string>
+    <string name="vehicles_known_fixes">Known fixes</string>
     <string name="troubleshooting_log_title">Connection log</string>
     <string name="troubleshooting_log_subtitle">Keep a short log of each connection. Off, nothing is written.</string>
     <string name="vehicles_skip_mic_setup_title">Skip microphone setup</string>

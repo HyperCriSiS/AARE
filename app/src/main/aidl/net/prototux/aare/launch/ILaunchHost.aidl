@@ -16,13 +16,13 @@ interface ILaunchHost {
     int start(in Surface surface, int width, int height, int dpi, String packageName, boolean keepDisplayAwake) = 1;
 
     /** The car screen's surface changed size (new [surface]/size). */
-    void resize(in Surface surface, int width, int height, int dpi) = 2;
+    oneway void resize(in Surface surface, int width, int height, int dpi) = 2;
 
     /** Inject a touch (MotionEvent) at car-screen coordinates into the launched app's display. */
     oneway void touch(long downTime, long eventTime, int action, float x, float y, int pointerId) = 3;
 
     /** Inject a key (e.g. Back) into the launched app's display. */
-    void key(long eventTime, int action, int keyCode) = 4;
+    oneway void key(long eventTime, int action, int keyCode) = 4;
 
     /** Tear the display down and stop feeding the app. */
     void stop() = 5;

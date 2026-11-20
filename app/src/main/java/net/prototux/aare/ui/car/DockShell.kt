@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,13 +64,14 @@ internal fun DockShell(
     // colour (song titles, events) takes. Without it that text is black, unreadable at night.
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier)) {
+            val appScreen = rememberAppScreens(state, appContent)
             val content: @Composable (Modifier) -> Unit = { modifier ->
                 Box(modifier) {
                     when (val screen = state.screen) {
                         CarScreen.Dashboard -> Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(12.dp))
                         CarScreen.Launcher -> Home(state, actions)
-                        is CarScreen.App -> state.app(screen.appId)?.let { appContent(it, Modifier.fillMaxSize()) } ?: Home(state, actions)
-                        is CarScreen.Split -> SplitPane(screen, state, actions, appContent, Modifier.fillMaxSize())
+                        is CarScreen.App -> state.app(screen.appId)?.let { app -> key(app.id) { appScreen(app, Modifier.fillMaxSize()) } } ?: Home(state, actions)
+                        is CarScreen.Split -> SplitPane(screen, state, actions, appScreen, Modifier.fillMaxSize())
                     }
                 }
             }

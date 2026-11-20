@@ -32,7 +32,8 @@ internal object MediaKeys {
     const val ERROR_RESOLUTION_ACTION_LABEL = "android.media.extras.ERROR_RESOLUTION_ACTION_LABEL"
     const val ERROR_RESOLUTION_ACTION_INTENT = "android.media.extras.ERROR_RESOLUTION_ACTION_INTENT"
 
-    /** What we advertise: Android Auto's values, so apps hand us the tree they built for it. */
-    const val ROOT_CHILDREN_LIMIT_VALUE = 4
+    /** What we advertise: Android Auto's values, so apps hand us the tree they built for it, except
+     * more root tabs, since our tab row scrolls. */
+    const val ROOT_CHILDREN_LIMIT_VALUE = 8
     const val ART_SIZE_PX = 512
 }

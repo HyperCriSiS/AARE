@@ -28,6 +28,14 @@ object SettingsBackup {
     // set up for audio belong to it, like its id.
     private val DEVICE_KEYS = setOf("instance_id", "requested_permissions", "cert_index", "phone_bt_address", "root_audio")
 
+    /**
+     * Keys an imported file doesn't set: the head unit server opens the car screen, microphone and phone
+     * screen to the network, so a file from someone else mustn't switch it on. Set by hand on the phone.
+     */
+    private val NOT_IMPORTED = setOf("hu_server", "hu_server_lan", "hu_server_lan_once", "head_unit_server_mirror", "phone_screen_when_locked")
+
+    internal fun imports(key: String) = key !in NOT_IMPORTED
+
     fun export(context: Context): String {
         val prefs = JSONObject()
         for (name in FILES) {
@@ -48,23 +56,38 @@ object SettingsBackup {
         val root = runCatching { JSONObject(json) }.getOrNull()
         require(root != null && root.optString("app") == "AARE" && root.optInt("format") in 1..FORMAT) { "not an AARE settings file" }
         val prefs = root.getJSONObject("prefs")
-        for (name in FILES) {
-            val values = prefs.optJSONObject(name) ?: continue
+        // Read in full first: a broken entry fails the import before anything changed.
+        val read = FILES.mapNotNull { name ->
+            val values = prefs.optJSONObject(name) ?: return@mapNotNull null
+            val current = context.getSharedPreferences(name, Context.MODE_PRIVATE).all
+            name to values.keys().asSequence().filter { keeps(name, it) && imports(it) }.mapNotNull { key ->
+                val entry = values.getJSONObject(key)
+                val value: Any = when (entry.getString("type")) {
+                    "boolean" -> entry.getBoolean("value")
+                    "int" -> entry.getInt("value")
+                    "long" -> entry.getLong("value")
+                    "float" -> entry.getDouble("value").toFloat()
+                    "string" -> entry.getString("value")
+                    "set" -> entry.getJSONArray("value").let { a -> (0 until a.length()).mapTo(HashSet()) { a.getString(it) } }
+                    else -> return@mapNotNull null
+                }
+                // A value of another type than this phone's would make every later read of it throw.
+                key to value.takeIf { v -> current[key]?.let { typeOf(it) == typeOf(v) } ?: true }
+            }.toList()
+        }
+        require(read.all { (_, entries) -> entries.all { it.second != null } }) { "not an AARE settings file" }
+        for ((name, entries) in read) {
             val sp = context.getSharedPreferences(name, Context.MODE_PRIVATE)
             sp.edit {
                 // What this file keeps is replaced; what belongs to this phone stays.
-                sp.all.keys.filter { keeps(name, it) }.forEach(::remove)
-                for (key in values.keys()) {
-                    if (!keeps(name, key)) continue
-                    val entry = values.getJSONObject(key)
-                    when (entry.getString("type")) {
-                        "boolean" -> putBoolean(key, entry.getBoolean("value"))
-                        "int" -> putInt(key, entry.getInt("value"))
-                        "long" -> putLong(key, entry.getLong("value"))
-                        "float" -> putFloat(key, entry.getDouble("value").toFloat())
-                        "string" -> putString(key, entry.getString("value"))
-                        "set" -> putStringSet(key, entry.getJSONArray("value").let { a -> (0 until a.length()).mapTo(HashSet()) { a.getString(it) } })
-                    }
+                sp.all.keys.filter { keeps(name, it) && imports(it) }.forEach(::remove)
+                for ((key, value) in entries) when (value) {
+                    is Boolean -> putBoolean(key, value)
+                    is Int -> putInt(key, value)
+                    is Long -> putLong(key, value)
+                    is Float -> putFloat(key, value)
+                    is String -> putString(key, value)
+                    is Set<*> -> putStringSet(key, value.mapTo(HashSet()) { it.toString() })
                 }
             }
         }

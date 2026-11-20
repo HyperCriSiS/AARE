@@ -44,11 +44,11 @@ class MirrorTouchService : AccessibilityService() {
 
     fun back() = !locked() && performGlobalAction(GLOBAL_ACTION_BACK)
 
-    private fun locked() = getSystemService(KeyguardManager::class.java).isKeyguardLocked
+    private fun locked() = getSystemService(KeyguardManager::class.java).isKeyguardLocked && !net.prototux.aare.Settings(this).phoneScreenWhenLocked
 
     private fun stroke(points: List<Pair<Float, Float>>, durationMs: Long): Boolean {
         if (points.isEmpty()) return false
-        // Never drive a locked phone from the car, whatever the mirror shows.
+        // Never drive a locked phone from the car, whatever the mirror shows, unless chosen in the settings.
         if (locked()) return false
         val path = Path().apply {
             moveTo(points[0].first.coerceAtLeast(0f), points[0].second.coerceAtLeast(0f))

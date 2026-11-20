@@ -14,8 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -152,12 +150,13 @@ fun CarShell(
     // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
     BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
     LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
-    // A longer hold than the phone's before a long press counts: car touch screens report the lift late,
-    // and a plain tap on the rail opened the pane menu.
-    val base = LocalViewConfiguration.current
-    val viewConfiguration = remember(base) { object : ViewConfiguration by base { override val longPressTimeoutMillis = CAR_LONG_PRESS_MS } }
+    // Left alone, they close by themselves: nobody should have to reach for them while driving.
+    LaunchedEffect(paneChoice, shortcutsAt) {
+        if (paneChoice == null && shortcutsAt == null) return@LaunchedEffect
+        delay(MENU_TIMEOUT_MS); paneChoice = null; shortcutsAt = null
+    }
     val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
-    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus, LocalViewConfiguration provides viewConfiguration) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.
@@ -268,11 +267,7 @@ internal fun ContentArea(
     // pane to the other) instead of being torn down and built again: the phone screen, a standalone
     // app and the browser would lose their picture, process or page. For the same reason app
     // screens and splits share one content key and don't cross-fade: a fade composes both at once.
-    val currentAppContent by rememberUpdatedState(appContent)
-    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
-    val appScreen: @Composable (CarAppEntry, Modifier) -> Unit = { app, mod ->
-        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
-    }
+    val appScreen = rememberAppScreens(state, appContent)
     AnimatedContent(
         targetState = state.screen,
         transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
@@ -298,6 +293,16 @@ internal fun ContentArea(
             }
             is CarScreen.Split -> SplitPane(screen, state, actions, appScreen, Modifier.fillMaxSize())
         }
+    }
+}
+
+/** Each app's screen as movable content, so it keeps its state between full screen and a pane (see [ContentArea]). */
+@Composable
+internal fun rememberAppScreens(state: CarUiState, appContent: @Composable (CarAppEntry, Modifier) -> Unit): @Composable (CarAppEntry, Modifier) -> Unit {
+    val currentAppContent by rememberUpdatedState(appContent)
+    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
+    return { app, mod ->
+        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
     }
 }
 
@@ -546,9 +551,6 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
         })
         .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
-
-/** How long a finger rests on the car screen before it is a long press (the phone's is 400 ms). */
-private const val CAR_LONG_PRESS_MS = 800L
 
 /**
  * A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when shorter than [min]
@@ -939,3 +941,6 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
         RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_dismiss), filled = false) { actions.dismissNotice(notice) }
     }
 }
+
+/** How long the pane menu and the shortcuts stay open untouched. */
+private const val MENU_TIMEOUT_MS = 8_000L

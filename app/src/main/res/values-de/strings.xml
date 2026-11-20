@@ -6,6 +6,8 @@
     <string name="phone_mode_desktop">Eigener Bildschirm</string>
     <string name="phone_mode_mirror_hint">Der Bildschirm des Telefons selbst, ins Querformat gedreht, solange er im Auto angezeigt wird, live bedienbar. Apps, die nur hochkant laufen, bleiben ein Streifen in der Mitte.</string>
     <string name="phone_mode_desktop_hint">Beim Parken ein eigener Bildschirm in der Größe des Autobildschirms, mit Androids Desktop und Taskleiste: Apps laufen dort quer, und das Telefon zeigt weiter, was es zeigte.</string>
+    <string name="phone_toggle_locked_title">Auch gesperrt bedienbar</string>
+    <string name="phone_toggle_locked_subtitle">Das Auto zeigt und bedient das Handy auch, wenn es gesperrt ist. Dann kann jeder im Auto dein Handy benutzen.</string>
     <string name="phone_toggle_off_title">Handy-Display aus</string>
     <string name="phone_toggle_off_subtitle">Das Panel bleibt dunkel, solange das Auto den Bildschirm zeigt (ab Android 15). Die Ein-Taste schaltet es wieder ein.</string>
     <string name="video_toggle_landscape_title">Videos sofort im Vollbild</string>
@@ -411,6 +413,10 @@
     <string name="app_place_overview">App-Übersicht</string>
     <string name="app_place_off">Nicht im Auto</string>
     <string name="app_full_title">Ganze App</string>
+    <string name="app_video_title">Anzeige</string>
+    <string name="app_video_auto">Automatisch</string>
+    <string name="app_video_list">Liste</string>
+    <string name="app_video_subtitle">Im Stand die Liste von AARE oder die App selbst samt Video auf dem Auto-Bildschirm. Automatisch zeigt die App, wenn sie AARE nichts auflistet. Auch der Kamera-Knopf im Auto legt das fest.</string>
     <string name="app_full_subtitle">Im Stand oder im Beifahrermodus der eigene Bildschirm der App samt Tastatur statt der Ansicht von AARE. Während der Fahrt die Ansicht von AARE.</string>
     <string name="standalone_search">Apps suchen</string>
     <string name="standalone_need_root">Benötigt root oder Shizuku. Richten Sie eins davon auf der Seite Autoaudio ein und kommen Sie dann zurück.</string>

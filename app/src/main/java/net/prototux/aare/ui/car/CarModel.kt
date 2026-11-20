@@ -183,6 +183,8 @@ class CarUiState {
     var assistantVoice by mutableStateOf<String?>(null)
     /** A navigation for a phone app on the car screen: its package and the address to open there, until it does. */
     var navigationRequest by mutableStateOf<Pair<String, String>?>(null)
+    /** A notification tapped for a phone app on the car screen: its package and what the tap opens, until it does. */
+    var openRequest by mutableStateOf<Pair<String, android.app.PendingIntent>?>(null)
     /** Turn-by-turn from a navigation app running on the phone (Google Maps, Waze…). */
     var phoneGuidance by mutableStateOf<PhoneGuidance?>(null)
     /** Right-hand drive: the rail goes to the right, next to the driver. */

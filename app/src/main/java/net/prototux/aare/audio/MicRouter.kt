@@ -28,6 +28,9 @@ class MicRouter(
     @Volatile private var carRequested = false
     private var phoneThread: Thread? = null
     @Volatile private var phoneRunning = false
+    /** The audio session of AARE's own phone-mic recording, 0 without one: not a phone app recording. */
+    @Volatile var phoneMicSession = 0
+        private set
     private var carRate = 16_000
     private var carChannels = 1
     /** The phone's apps hear the car's mic: its PCM as the car sends it, and the car's answer. */
@@ -141,6 +144,7 @@ class MicRouter(
                 return@Thread
             }
             val buf = ByteArray(640) // 20 ms
+            phoneMicSession = rec.audioSessionId
             rec.startRecording()
             var failed = false
             while (phoneRunning) {
@@ -166,6 +170,7 @@ class MicRouter(
         // A newer mic thread took over meanwhile: it isn't this one's to stop.
         if (phoneThread !== Thread.currentThread()) return
         phoneRunning = false
+        phoneMicSession = 0
         phoneThread = null
         if (client !== c) return
         client = null
@@ -175,6 +180,7 @@ class MicRouter(
 
     private fun stopPhoneMic() {
         phoneRunning = false
+        phoneMicSession = 0
         phoneThread?.join(300)
         phoneThread = null
     }

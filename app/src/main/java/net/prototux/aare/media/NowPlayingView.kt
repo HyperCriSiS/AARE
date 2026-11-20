@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -73,7 +74,7 @@ import net.prototux.aare.ui.theme.LocalCarDimens
  * buttons, the app's extra buttons and a queue button. Side by side in landscape, stacked in portrait.
  */
 @Composable
-internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state: SourceState, setView: (MediaView) -> Unit) {
+internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state: SourceState, driving: Boolean, setView: (MediaView) -> Unit) {
     val info = state.info
     if (info == null) {
         // right after a tap the app needs a moment to resolve the item: wait before saying "nothing"
@@ -109,7 +110,14 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
                     Column(Modifier.fillMaxWidth()) { Details(state, info, source) }
                 } else {
                     Row(Modifier.weight(1f).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        ArtBox(info.art, Icons.Rounded.MusicNote, Modifier.fillMaxHeight().aspectRatio(1f), MaterialTheme.shapes.large)
+                        // Parked, a video player draws its video here instead of the art (media3's
+                        // surface command): no phone screen and no helper needed.
+                        val session = (source as? MediaConnection)?.takeIf { !driving }
+                        val playing = session?.video?.collectAsState()?.value == true
+                        Box(Modifier.fillMaxHeight().aspectRatio(if (playing) 16f / 9f else 1f)) {
+                            ArtBox(info.art, Icons.Rounded.MusicNote, Modifier.fillMaxSize(), MaterialTheme.shapes.large)
+                            if (session != null) SessionVideo(session, Modifier.fillMaxSize().clip(MaterialTheme.shapes.large))
+                        }
                         Spacer(Modifier.width(28.dp))
                         Column(Modifier.weight(1f)) { Details(state, info, source) }
                     }
@@ -119,6 +127,29 @@ internal fun NowPlayingView(hub: DefaultMediaHub, source: PlaybackSource, state:
             }
         }
     }
+}
+
+/** The app's video on a texture: clear (the art shows through) until the app draws on it. */
+@Composable
+private fun SessionVideo(session: MediaConnection, modifier: Modifier) {
+    androidx.compose.ui.viewinterop.AndroidView(modifier = modifier, factory = { ctx ->
+        var surface: android.view.Surface? = null
+        android.view.TextureView(ctx).apply {
+            isOpaque = false
+            surfaceTextureListener = object : android.view.TextureView.SurfaceTextureListener {
+                override fun onSurfaceTextureAvailable(st: android.graphics.SurfaceTexture, w: Int, h: Int) {
+                    surface = android.view.Surface(st).also { session.videoSurface(it) }
+                }
+                override fun onSurfaceTextureSizeChanged(st: android.graphics.SurfaceTexture, w: Int, h: Int) = Unit
+                override fun onSurfaceTextureDestroyed(st: android.graphics.SurfaceTexture): Boolean {
+                    session.videoSurface(null)
+                    surface?.release(); surface = null
+                    return true
+                }
+                override fun onSurfaceTextureUpdated(st: android.graphics.SurfaceTexture) = Unit
+            }
+        }
+    })
 }
 
 @Composable

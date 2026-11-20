@@ -53,6 +53,9 @@ A change counts as checked only when:
   - `app/src/main/java/net/prototux/aare/ui/MainActivity.kt` (Apps page, backup)
   - `app/src/main/java/net/prototux/aare/service/ProjectionService.kt` (certificate choice)
   - `app/src/main/java/net/prototux/aare/Settings.kt`, `SettingsBackup.kt`, `UpdateChecker.kt`
+  - For upstream changes only (Dependabot updates stay the agent's): the build logic, which a
+    release runs with the signing key: `*.gradle.kts`, `gradle/`, `gradlew`, `gradlew.bat`,
+    `tools/magisk/`, `.github/`
 - Agent run: `update-agent.yml`, daily at 07:17 UTC; a first job checks whether anything waits,
   and only then the agent starts. It merges upstream changes that touch no protected path and
   pass CI, and due dependency updates, major versions included after reviewing their release

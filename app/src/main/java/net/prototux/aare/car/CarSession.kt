@@ -198,7 +198,12 @@ class CarSession(
         listener.onStatus(this, context.getString(R.string.notif_status_connecting_to, transport.name))
     }
 
-    fun stop() = aap.stop()
+    fun stop() {
+        // The service releases the media hub right after this, before the close runs teardown: pause now,
+        // or music fed to the car carries on from the phone's speaker.
+        pauseIfFeedingCar(media, feedingCar = audioOuts.containsKey(AudioStreamType.AUDIO_STREAM_MEDIA))
+        aap.stop()
+    }
 
     /**
      * The session closed before the head unit's version request ever came in: this attempt never
@@ -347,7 +352,7 @@ class CarSession(
             net.prototux.aare.notify.CarNotificationListener.sink = { m ->
                 drivingMode.onMessage(m.key, m.group)
                 if ((!m.group || settings.groupMessages) && showsMessage(m.packageName, settings.mutedMessageApps, settings.hiddenApps)) {
-                    val open = runtime.opener(m.packageName)
+                    val open = runtime.opener(m.packageName, m.contentIntent, m.dismiss)
                     runtime.remember(m.title, m.text, m.icon, m.actions, open)
                     if (settings.messageBanners) runtime.notice(m.title, m.text, m.icon, 10_000, m.actions, message = true, open = open)
                     if (settings.readMessagesAloud) m.readAloud()
@@ -395,7 +400,8 @@ class CarSession(
         override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>) {
             if (closed) return
             val recording = PhoneAppsMic.anyTakesOver(
-                configs.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
+                // AARE's own phone-mic fallback for a car app's assistant is not a phone app recording.
+                configs.filter { it.clientAudioSessionId != micRouter.phoneMicSession || micRouter.phoneMicSession == 0 }.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
                 emptySet(),
             )
             if (recordingPause.onRecording(recording, SystemClock.uptimeMillis()) == MicTakeover.Action.OPEN) {
@@ -717,7 +723,8 @@ class CarSession(
                 // "focus previous" (not D-pad up/down, which is 2D spatial and wrong for a knob).
                 for (r in report.relativeEvent.dataList) {
                     val meta = if (r.delta < 0) KeyEvent.META_SHIFT_ON else 0
-                    repeat(kotlin.math.abs(r.delta)) {
+                    // Capped: a knob turns a few detents per report, a huge value from a faulty unit would flood the UI.
+                    repeat(kotlin.math.abs(r.delta).coerceAtMost(MAX_ROTARY_STEPS)) {
                         val t = SystemClock.uptimeMillis()
                         display?.dispatchKey(KeyEvent(t, t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB, 0, meta))
                         display?.dispatchKey(KeyEvent(t, t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_TAB, 0, meta))
@@ -1186,6 +1193,8 @@ class CarSession(
         private const val STALL_CHECK_MS = 500L
         /** How often a paused resume looks again whether the phone's call or assistant answer ended. */
         private const val CALL_CHECK_MS = 1_000L
+        /** Detents taken from one rotary report; a real knob sends a handful. */
+        private const val MAX_ROTARY_STEPS = 64
         /** Encoder restarts allowed in [RESTART_WINDOW_MS], for this display and the cluster's. */
         internal const val MAX_RESTARTS = 3
         internal const val RESTART_WINDOW_MS = 10_000L

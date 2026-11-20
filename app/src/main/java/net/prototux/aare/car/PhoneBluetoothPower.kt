@@ -182,8 +182,9 @@ class PhoneBluetoothPower(private val context: Context, private val onTurnedOn: 
         /** Runs [command]. Null when it exited with 0, else its output or why it didn't run. */
         fun run(command: List<String>): String? = runCatching {
             val p = ProcessBuilder(command).redirectErrorStream(true).start()
+            // Waited for before reading: read first, a su that hangs would never let the timeout fire.
+            if (!p.waitFor(10, TimeUnit.SECONDS)) { p.destroyForcibly(); return "timed out" }
             val out = p.inputStream.bufferedReader().use { it.readText() }.trim()
-            if (!p.waitFor(10, TimeUnit.SECONDS)) { p.destroy(); return "timed out" }
             if (p.exitValue() == 0) null else out.ifEmpty { "exit ${p.exitValue()}" }
         }.getOrElse { it.message ?: it.javaClass.simpleName }
     }

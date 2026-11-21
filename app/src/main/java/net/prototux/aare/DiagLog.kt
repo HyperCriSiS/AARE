@@ -39,7 +39,9 @@ object DiagLog {
     @Volatile var enabled = true
 
     @Synchronized
-    fun add(line: String) {
+    fun add(raw: String) {
+        // Posted with car reports: no Bluetooth addresses, whichever line carries one.
+        val line = net.prototux.aare.aap.ProtocolTrace.masked(raw)
         Log.i(TAG, line)
         if (!enabled) return
         val stamp = SimpleDateFormat("dd/MM HH:mm:ss.SSS", Locale.US).format(Date())

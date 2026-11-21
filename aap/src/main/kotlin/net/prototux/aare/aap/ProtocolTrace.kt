@@ -37,7 +37,10 @@ object ProtocolTrace {
 
     /** A protobuf's debug text on one line, cut at [MAX_TEXT] characters, Bluetooth addresses masked. */
     fun oneLine(text: String): String =
-        text.replace(Regex("\\s+"), " ").replace(MAC, "xx:xx:xx:xx:xx:xx").trim().take(MAX_TEXT)
+        masked(text.replace(Regex("\\s+"), " ")).trim().take(MAX_TEXT)
+
+    /** [text] with every Bluetooth address replaced by xx:xx:xx:xx:xx:xx. */
+    fun masked(text: String): String = text.replace(MAC, "xx:xx:xx:xx:xx:xx")
 
     /** Channels whose messages carry the driver's data (pairing addresses, callers, roads, messages): names only. */
     private val PRIVATE = setOf("bluetooth", "phonestatus", "navstatus", "notifications", "mediabrowser", "playback", "wifi")

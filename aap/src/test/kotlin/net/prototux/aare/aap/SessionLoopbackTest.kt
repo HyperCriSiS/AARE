@@ -14,6 +14,7 @@ import aap_protobuf.service.navigationstatus.message.NavigationStatusOuterClass.
 import aap_protobuf.service.sensorsource.message.SensorBatchOuterClass.SensorBatch
 import aap_protobuf.service.sensorsource.message.SensorTypeOuterClass.SensorType
 import net.prototux.aare.aap.cert.SelfSignedCertificate
+import net.prototux.aare.aap.channels.sendBatteryStatus
 import net.prototux.aare.aap.channels.AudioChannel
 import net.prototux.aare.aap.channels.InputChannel
 import net.prototux.aare.aap.channels.MediaPlaybackChannel
@@ -357,6 +358,13 @@ open class SessionLoopbackTest {
         assertEquals(null, closeError)
     }
 
+    /** #39: a Harman head unit on protocol 1.3 refused the battery status with UNEXPECTED_MESSAGE. */
+    @Test
+    fun batteryStatusOnlyFromProtocolOneFour() {
+        assertTrue(running.await(10, TimeUnit.SECONDS))
+        assertEquals(headUnitMinor >= 4, phone.sendBatteryStatus(80, critical = false))
+    }
+
     @Test
     fun headUnitFocusRequestWithoutInputStaysProjected() {
         assertTrue(running.await(10, TimeUnit.SECONDS))
@@ -433,4 +441,9 @@ class ZeroOmittingSessionLoopbackTest : SessionLoopbackTest() {
  */
 class ProtocolOneFiveSessionLoopbackTest : SessionLoopbackTest() {
     override val headUnitMinor = 5
+}
+
+/** The same sessions against a head unit on protocol 1.3, like the Maruti Suzuki Harman unit (#39). */
+class ProtocolOneThreeSessionLoopbackTest : SessionLoopbackTest() {
+    override val headUnitMinor = 3
 }

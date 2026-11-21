@@ -62,6 +62,12 @@ class ProtocolTraceTest {
         assertEquals("car_address: 'xx:xx:xx:xx:xx:xx'", ProtocolTrace.oneLine("car_address: '00:00:00:00:00:00'"))
     }
 
+    /** #39: the wireless log named the car with its address, and the report showed it. */
+    @Test fun addressesInAnyLineAreMasked() {
+        assertEquals("ACL_CONNECTED Car (xx:xx:xx:xx:xx:xx) uuids=[]", ProtocolTrace.masked("ACL_CONNECTED Car (00:00:00:00:00:00) uuids=[]"))
+        assertEquals("no address here 12:34", ProtocolTrace.masked("no address here 12:34"))
+    }
+
     @Test fun debugTextFitsOnOneLine() {
         assertEquals("a: 1 b { c: 2 }", ProtocolTrace.oneLine("a: 1\nb {\n  c: 2\n}\n"))
     }

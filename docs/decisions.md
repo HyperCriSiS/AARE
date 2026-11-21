@@ -197,3 +197,47 @@ voice.
 - AARE has no listening (speech-to-text) of its own to apply the "exclusive transient focus while
   listening" half of the request to: `CarRuntime.openMicrophone` only relays the car's microphone
   to a connected car app (an assistant such as Lapin), which requests its own focus if it wants to.
+
+## Reconnecting a wireless link that dropped
+
+A wireless session that reached the car screen and then failed without a bye-bye from either side
+is reconnected by itself: 5 single attempts, after 3, 6, 9, 12 and 15 s (`WirelessReconnect`),
+apart from the initial connect's "car not ready yet" retries. A Disconnect, the car's bye-bye and
+the phone's Stop all say goodbye first, so they are never reconnected.
+
+- Ignition off drops the link without a bye-bye too; it is told apart by the car's Bluetooth
+  disconnecting (ACL_DISCONNECTED) up to 20 s before the drop or any time after it. Further back
+  doesn't count: some adapters hang up their Bluetooth link right after the bootstrap.
+- A reconnected session that drops again within a minute continues the same budget, so a link
+  that keeps failing is not reconnected forever.
+
+## Wireless bootstrap and USB: head unit compatibility choices, with these exceptions
+
+## Wireless bootstrap and USB: compatibility first
+
+Rule: nothing may break a head unit that works today, so every change to the WPP exchange either
+only adds a fallback or only applies after a failure.
+
+- Version response: always SUCCESS, echoing the head unit's version (1.0 when it sends none). A
+  stricter answer (refusing WPP 2, 3 and 7+, or below 4.5 head units whose Wi-Fi channels the phone
+  can't use) is only logged. The channel check takes every frequency of the Wi-Fi bands the phone
+  supports: apps can't read the channels it may use where it is.
+- Our own WifiStartRequest is never sent on a first attempt. Only after an attempt where the head
+  unit answered the version exchange and then sent no WifiStartRequest before the message timeout,
+  the connector's redials to that head unit ask it to start (5 s after the version exchange, again
+  every 2 s for up to 50 s while it answers "not yet" or "already started").
+- WifiInfoRequest is repeated every 3 s; the usual message timeout still decides when to give up.
+- SSID and passphrase lose one pair of surrounding quotes below WPP 4.5; if joining that way fails,
+  the join is tried once more with them as sent.
+- First message after the RFCOMM connect: 12 s, 3.7 s on the first attempt with a wireless adapter
+  (Bluetooth name containing "Intercooler" or "AndroidAuto-"), so it is redialled quickly: at once,
+  without the 10 s wait and without using up one of the two retries for a car that isn't ready.
+- RFCOMM frames over 1024 bytes are logged, not refused.
+- Bad endpoint: reported as WifiConnectionStatus(INVALID_HOST); port 0 is accepted below WPP 4.5 (it
+  fails at the TCP connect), a port outside 0-65535 is refused. WifiConnectionStatus carries an
+  error text only for PHONE_WIFI_DISABLED, written for the driver.
+- The wireless AAP socket keeps its big buffers and gets no read timeout: the ping watchdog allows
+  20 s of silence for head units that go off channel to scan. TCP keepalive is off: its first probe
+  would come after hours, the watchdog notices a dead link much sooner.
+- USB accessories are matched by model only ("Android Auto", "Android Open Automotive Protocol"):
+  some head units send another manufacturer. A failed openAccessory is retried once after 500 ms.

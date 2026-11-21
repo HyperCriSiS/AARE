@@ -152,6 +152,11 @@ class Settings(context: Context) {
         get() = prefs.getStringSet("video_apps", emptySet()) ?: emptySet()
         set(v) = prefs.edit { putStringSet("video_apps", v) }
 
+    /** While a media app shows its video in the car, the phone turns to landscape: players go full screen at once. */
+    var videoLandscape: Boolean
+        get() = prefs.getBoolean("video_landscape", false)
+        set(v) = prefs.edit { putBoolean("video_landscape", v) }
+
 
     /** Behind the dashboard: none, one of the built-in gradients, or [WALLPAPER_CUSTOM] (filesDir/wallpaper.jpg). */
     var wallpaper: String
@@ -217,6 +222,37 @@ class Settings(context: Context) {
         get() = prefs.getString("assistant_pkg", null)
         set(v) = prefs.edit { if (v == null) remove("assistant_pkg") else putString("assistant_pkg", v) }
 
+    /**
+     * A link the assistant hosted on the car screen opens before it listens (a Claude project, say),
+     * so the voice button starts it there; empty = its own voice mode, in a new chat.
+     */
+    var assistantLink: String
+        get() = prefs.getString("assistant_link", "") ?: ""
+        set(v) = prefs.edit { putString("assistant_link", v) }
+
+    /** The name of the assistant's project with the car link instructions, as the setup steps call it. */
+    var assistantProject: String
+        get() = prefs.getString("assistant_project", "Car001") ?: "Car001"
+        set(v) = prefs.edit { putString("assistant_project", v) }
+
+    /**
+     * With Shizuku or root, what "Phone screen" shows parked: [PHONE_SCREEN_MIRROR] the phone's own
+     * screen turned to landscape, or [PHONE_SCREEN_DESKTOP] a desktop of its own at the car screen's size.
+     */
+    var phoneScreenMode: String
+        get() = prefs.getString("phone_screen_mode", PHONE_SCREEN_MIRROR) ?: PHONE_SCREEN_MIRROR
+        set(v) = prefs.edit { putString("phone_screen_mode", v) }
+
+    /** While the phone's screen is mirrored with Shizuku or root, its panel is off (the power key turns it back on). */
+    var phoneScreenOff: Boolean
+        get() = prefs.getBoolean("phone_screen_off", true)
+        set(v) = prefs.edit { putBoolean("phone_screen_off", v) }
+
+    /** The app car links and voice requests navigate in (its package); null = the car navigation app used last. */
+    var navigationApp: String?
+        get() = prefs.getString("navigation_app", null)
+        set(v) = prefs.edit { if (v == null) remove("navigation_app") else putString("navigation_app", v) }
+
     /** Offer "Phone screen" in the car: the phone's own screen, for apps AARE can't host (Google Maps, Waze). */
     var phoneScreen: Boolean
         get() = prefs.getBoolean("phone_screen", false)
@@ -231,9 +267,21 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("standalone_apps", false)
         set(v) = prefs.edit { putBoolean("standalone_apps", v) }
 
-    /** Keep standalone apps active when Android links their display to the phone display. */
+    /**
+     * Apps (messaging apps by package, the phone by its app id) shown on the car screen as the phone
+     * app itself when parked, with Shizuku or root: a messenger's own screen instead of its
+     * messages, the phone's default dialer instead of AARE's.
+     */
+    var fullApps: Set<String>
+        get() = prefs.getStringSet("full_apps", emptySet()) ?: emptySet()
+        set(v) = prefs.edit { putStringSet("full_apps", HashSet(v)) }
+
+    /**
+     * Keep standalone apps active when Android links their display to the phone display. On by
+     * default from Android 17 (API 37), which switches their display off with the phone's screen.
+     */
     var standaloneKeepScreenAwake: Boolean
-        get() = prefs.getBoolean("standalone_keep_screen_awake", false)
+        get() = prefs.getBoolean("standalone_keep_screen_awake", android.os.Build.VERSION.SDK_INT >= 37)
         set(v) = prefs.edit { putBoolean("standalone_keep_screen_awake", v) }
 
     /** The packages the user allows onto the car screen (see [standaloneApps]). */
@@ -260,6 +308,16 @@ class Settings(context: Context) {
     var callBarOffsetY: Float
         get() = prefs.getFloat("call_bar_y", 0f)
         set(v) = prefs.edit { putFloat("call_bar_y", v) }
+
+    /** When a car connects, the phone's location goes on (with Shizuku or root). */
+    var locationOnInCar: Boolean
+        get() = prefs.getBoolean("location_on_in_car", false)
+        set(v) = prefs.edit { putBoolean("location_on_in_car", v) }
+
+    /** When the car goes, the phone's location goes off (with Shizuku or root). */
+    var locationOffAfterCar: Boolean
+        get() = prefs.getBoolean("location_off_after_car", false)
+        set(v) = prefs.edit { putBoolean("location_off_after_car", v) }
 
     /** While connected, the car's GPS becomes the phone's location (needs AARE as mock location app). */
     var carGpsForPhone: Boolean
@@ -341,6 +399,21 @@ class Settings(context: Context) {
         get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
 
+    /** The space between the icons in the car's rail, in the car screen's pixels, below 0 drawing them closer; null for the standard space. */
+    var railSpacing: Int?
+        get() = if (prefs.contains("rail_spacing_px")) prefs.getInt("rail_spacing_px", 0) else null
+        set(v) = prefs.edit { if (v == null) remove("rail_spacing_px") else putInt("rail_spacing_px", v) }
+
+    /** The car screen's density at the last connection, to show the rail's standard space in its pixels. */
+    var carDpi: Int
+        get() = prefs.getInt("car_dpi", 240)
+        set(v) = prefs.edit { putInt("car_dpi", v) }
+
+    /** Messaging apps whose messages don't show in the car (no banner, not in the notification centre). */
+    var mutedMessageApps: Set<String>
+        get() = prefs.getStringSet("muted_message_apps", null).orEmpty()
+        set(v) = prefs.edit { putStringSet("muted_message_apps", v) }
+
     /** A sideways swipe on an app in the car's rail or launcher opens it in the pane on that side. */
     var paneSwipe: Boolean
         get() = prefs.getBoolean("pane_swipe", true)
@@ -397,6 +470,8 @@ class Settings(context: Context) {
 
     companion object {
         const val BROWSER_DEFAULT_URL = "https://duckduckgo.com/"
+        const val PHONE_SCREEN_MIRROR = "mirror"
+        const val PHONE_SCREEN_DESKTOP = "desktop"
         const val RAIL_AUTO = "auto"
         const val RAIL_LEFT = "left"
         const val RAIL_RIGHT = "right"

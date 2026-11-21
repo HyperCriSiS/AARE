@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AARE</string>
+    <string name="phone_mode_title">With Shizuku or root</string>
+    <string name="phone_mode_mirror">Phone, landscape</string>
+    <string name="phone_mode_desktop">Own screen</string>
+    <string name="phone_mode_mirror_hint">The phone\'s own screen, turned to landscape while it shows in the car, touched live. Apps that only run upright stay a strip in the middle.</string>
+    <string name="phone_mode_desktop_hint">Parked, a screen of its own at the car screen\'s size, with Android\'s desktop and taskbar: apps run there in landscape, and the phone keeps showing what it showed.</string>
+    <string name="phone_toggle_off_title">Phone display off</string>
+    <string name="phone_toggle_off_subtitle">Its panel stays dark while the car shows it (Android 15 or newer). The power key turns it back on.</string>
+    <string name="video_toggle_landscape_title">Videos in full screen right away</string>
+    <string name="video_toggle_landscape_subtitle">While a media app shows its video in the car, the phone turns to landscape, so players fill the picture as soon as a video plays. Off, the app shows its own player screen, with its own full screen button.</string>
+    <string name="video_full_screen">Full screen</string>
+    <string name="video_exit_full_screen">Leave full screen</string>
     <string name="mirror_touch_description">Lets you use the phone screen from the car: AARE replays the touches made on the car screen on the phone, and checks which app is in front so the phone screen stays paused while driving unless it shows a navigation app. AARE reads nothing else.</string>
     <string name="mirror_locked_placeholder">The phone screen is paused while the phone is locked. Unlock the phone to show it.</string>
     <string name="mirror_driving_no_accessibility">The phone screen is paused while driving. To show navigation apps while driving, turn on AARE in the phone\'s accessibility settings: it tells AARE which app is open.</string>
@@ -146,6 +157,10 @@
     <string name="setup_section_location">Location</string>
     <string name="setup_toggle_car_gps_title">Use the car\'s GPS</string>
     <string name="setup_toggle_car_gps_subtitle">While connected, apps on the phone see the car\'s position instead of the phone\'s own, so navigation apps don\'t mix the two</string>
+    <string name="setup_toggle_location_on_title">Location on when connected</string>
+    <string name="setup_toggle_location_on_subtitle">Turns the phone\'s location on when a car connects, as navigation and speed camera apps need it. With Shizuku or root.</string>
+    <string name="setup_toggle_location_off_title">Location off when disconnected</string>
+    <string name="setup_toggle_location_off_subtitle">Turns the phone\'s location off once the car is no longer connected. With Shizuku or root.</string>
     <string name="setup_check_mock_location_title">Allow AARE to set the location</string>
     <string name="setup_check_mock_location_subtitle">Developer options &gt; Select mock location app &gt; AARE</string>
     <string name="setup_section_video">Video</string>
@@ -171,6 +186,9 @@
     <string name="setup_choice_dark">Dark</string>
     <string name="setup_choice_light">Light</string>
     <string name="setup_choice_bar">Bar</string>
+    <string name="setup_choice_bar_spacing">Space between the icons in the bar</string>
+    <string name="setup_spacing_px">%1$d px</string>
+    <string name="setup_spacing_reset">Standard</string>
     <string name="setup_choice_bar_auto">Driver\'s side</string>
     <string name="setup_choice_left">Left</string>
     <string name="setup_choice_right">Right</string>
@@ -284,6 +302,8 @@
     <string name="msg_toggle_group_subtitle">Also show messages from group conversations</string>
     <string name="msg_toggle_read_aloud_title">Read messages aloud</string>
     <string name="msg_toggle_read_aloud_subtitle">Read each new message aloud as it arrives</string>
+    <string name="msg_apps_title">Apps shown in the car</string>
+    <string name="msg_apps_subtitle">Its messages as banners and in the notification centre</string>
     <string name="msg_hint_apps">Messaging apps (WhatsApp, Signal, SMS…) also have their own page in the car\'s app list.</string>
     <string name="msg_section_while_driving">While driving</string>
     <string name="msg_toggle_dnd_title">Do Not Disturb</string>
@@ -332,16 +352,32 @@
     <string name="phone_toggle_enable_subtitle">The phone\'s own screen, for apps AARE can\'t host (Google Maps, Waze). Paused while the phone is locked, and while driving unless a navigation app is guiding. Not offered on the head unit server unless enabled there</string>
     <string name="phone_check_touch_title">Touch on the phone screen</string>
     <string name="phone_check_touch_subtitle">Turn on AARE in Accessibility. Sideloaded apps may first need "Allow restricted settings" in AARE\'s app info</string>
+    <string name="phone_check_touch_not_needed">Not needed: Shizuku or root is active, and replays the touches itself</string>
     <string name="phone_hint_touch_capture">The picture uses the screen-capture permission (Car audio page, choose Entire screen).</string>
     <string name="phone_app_row_subtitle">The phone\'s own screen, for apps AARE can\'t host</string>
 
     <!-- standalone: launching ordinary phone apps on the car screen (root/Shizuku, parked only) -->
     <string name="standalone_section_title">Apps on the car screen (advanced)</string>
-    <string name="standalone_section_warning">These are not Android Auto apps: AARE shows their normal phone screen, only while parked, and needs root or Shizuku. Use at your own risk.</string>
+    <string name="standalone_section_warning">These are not Android Auto apps: AARE shows their normal phone screen, only while parked (navigation apps such as Google Maps also while driving), and needs root or Shizuku. Use at your own risk.</string>
     <string name="standalone_toggle_title">Launch phone apps on the car screen</string>
     <string name="standalone_toggle_subtitle">Pick the apps below. Shown only when parked.</string>
     <string name="standalone_keep_awake_title">No-sleep mode for standalone apps</string>
     <string name="standalone_keep_awake_subtitle">Keeps the physical phone screen awake while an app is open. On affected Android 17 phones, virtual displays stop when the phone screen is off. Uses more battery.</string>
+    <string name="setup_app_kind_phone_app">Phone app</string>
+    <string name="setup_section_overview">App overview</string>
+    <string name="setup_overview_hint">The car\'s app list, in this order. Each app is in one place: the rail, the shortcuts or here.</string>
+    <string name="setup_section_more_apps">More apps</string>
+    <string name="setup_more_apps_hint">Apps not in the car yet, every app on the phone included. Tap + to give one a place; phone apps show their normal screen while parked or in passenger mode (navigation apps always).</string>
+    <string name="setup_more_apps_hint_no_helper">Apps not in the car yet. Phone apps need Shizuku or root.</string>
+    <string name="setup_section_app_options">Options</string>
+    <string name="app_place_change">Options</string>
+    <string name="app_place_rail">Rail</string>
+    <string name="app_place_shortcuts">Shortcuts</string>
+    <string name="app_place_overview">App overview</string>
+    <string name="app_place_off">Not in the car</string>
+    <string name="app_full_title">The whole app</string>
+    <string name="app_full_subtitle">Parked or in passenger mode, the app\'s own screen, keyboard included, instead of AARE\'s view of it. While driving, AARE\'s view.</string>
+    <string name="standalone_search">Search apps</string>
     <string name="standalone_need_root">Needs root or Shizuku. Set one up in Audio settings, then come back.</string>
     <string name="standalone_not_native">Not an Android Auto app · parked use</string>
     <string name="standalone_starting">Starting…</string>
@@ -364,7 +400,19 @@
     <string name="assistant_no_default">No default assistant set on the phone</string>
     <string name="assistant_has_car_app_subtitle">On the car screen, with the car\'s microphone</string>
     <string name="assistant_opens_on_phone">Opens on the phone</string>
-    <string name="assistant_hint">The steering-wheel voice button and the rail\'s microphone open this assistant. Assistants with a car app, such as Lapin, work best.</string>
+    <string name="assistant_project_label">Project name</string>
+    <string name="assistant_project_hint">Recommended: one word without spaces, such as Car001.</string>
+    <string name="assistant_project_steps">Car links: 1. In Claude, create a project named %1$s. 2. Copy the instructions and paste them into its instructions. 3. Copy the project\'s link and paste it below as start link.</string>
+    <string name="assistant_copy_instructions">Copy instructions</string>
+    <string name="assistant_link_label">Start link</string>
+    <string name="assistant_link_hint">The project\'s link (https://claude.ai/project/…): open the project at claude.ai and copy the address. The assistant opens it before it listens.</string>
+    <string name="navigation_app_title">Navigation for car links</string>
+    <string name="navigation_app_hint">Where the assistant\'s car links and the car\'s \"navigate to\" start the route.</string>
+    <string name="navigation_app_last">Car navigation app used last</string>
+    <string name="navigation_app_last_subtitle">The app that navigated last in the car</string>
+    <string name="navigation_app_car">Android Auto app</string>
+    <string name="navigation_app_phone">Phone app on the car screen: also add it under Apps, with Shizuku or root</string>
+    <string name="assistant_hint">The steering-wheel voice button and the rail\'s microphone open this assistant. Assistants with a car app, such as Lapin, work best. One without a car app, such as Claude, shows on the car screen only with Shizuku or root; otherwise it opens on the phone.</string>
 
     <!-- notif: notifications and in-car notices -->
     <string name="notif_channel_connection">Car connection</string>
@@ -376,6 +424,8 @@
     <string name="notif_cert_expiring_title">Certificate expiring soon</string>
     <string name="notif_cert_expiring_text">%1$s expires on %2$s. Cars that only accept Google\'s certificate will refuse AARE after that: download a newer one.</string>
     <string name="notif_cert_expired_title">Certificate expired</string>
+    <string name="notif_bluetooth_off_title">Bluetooth is off</string>
+    <string name="notif_bluetooth_off_text">Calls stay on the phone until Bluetooth is on. Tap to turn it on.</string>
     <string name="notif_cert_expired_text">%1$s expired on %2$s. Cars that only accept Google\'s certificate refuse AARE now: download a newer one.</string>
     <string name="notif_cert_download_title">Head unit rejected AARE\'s certificate</string>
     <string name="notif_cert_download_message">This head unit only accepts Google\'s certificate. Download the one from the latest Android Auto app, then reconnect.</string>
@@ -544,6 +594,7 @@
     <string name="carapp_error_no_answer">%1$s didn\'t answer. It may only accept Google\'s Android Auto (see the app list on the phone).</string>
     <string name="carapp_error_api_level">%1$s needs car API level %2$d; this host supports %3$d</string>
     <string name="carapp_error_stopped">%1$s stopped</string>
+    <string name="carapp_error_stopped_repeatedly">%1$s crashed three times in a row and is no longer restarted</string>
     <string name="carapp_error_google_only">%1$s only accepts Google\'s Android Auto. It needs to allow AARE (see the app list on the phone).</string>
     <string name="carapp_error_cant_start">%1$s couldn\'t start: %2$s</string>
     <!-- Split screen: the two pane options after a long press on a rail app, and the divider -->
@@ -567,8 +618,6 @@
     <string name="common_remove">Remove</string>
     <string name="common_done">Done</string>
     <string name="common_add_apps">Add apps</string>
-    <string name="video_full_screen">Full screen</string>
-    <string name="video_exit_full_screen">Leave full screen</string>
     <string name="standalone_failed">Couldn\'t start the app on the car screen.</string>
     <string name="backup_title">Back up settings</string>
     <string name="backup_hint">Saves AARE\'s settings, the trusted cars and the vehicle rules to a file, and loads them back, here or on another phone. Certificates stay out: download or import them again there.</string>

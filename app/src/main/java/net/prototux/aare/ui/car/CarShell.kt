@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -150,8 +152,12 @@ fun CarShell(
     // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
     BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
     LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
+    // A longer hold than the phone's before a long press counts: car touch screens report the lift late,
+    // and a plain tap on the rail opened the pane menu.
+    val base = LocalViewConfiguration.current
+    val viewConfiguration = remember(base) { object : ViewConfiguration by base { override val longPressTimeoutMillis = CAR_LONG_PRESS_MS } }
     val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
-    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus, LocalViewConfiguration provides viewConfiguration) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.
@@ -284,7 +290,8 @@ internal fun ContentArea(
             is CarScreen.App -> {
                 val app = state.app(screen.appId)
                 when {
-                    app != null -> appScreen(app, Modifier.fillMaxSize())
+                    // Keyed by the app: in the same slot, one app's movable screen otherwise took another's place.
+                    app != null -> key(app.id) { appScreen(app, Modifier.fillMaxSize()) }
                     launcherHome -> Launcher(state, actions, Modifier.fillMaxSize())
                     else -> Dashboard(state, actions, navMap, Modifier.fillMaxSize().padding(gutter))
                 }
@@ -326,6 +333,11 @@ internal fun sideRailFit(height: Dp) = SideRailFit(
     status = height >= 534.dp,
     settings = height >= 480.dp,
 )
+
+/** The space between the rail's icons: the one set on the phone, in the car screen's pixels, or the standard one. */
+@Composable
+private fun railGap(state: CarUiState, bottom: Boolean) =
+    state.railSpacing?.let { with(LocalDensity.current) { it.toDp() } } ?: railGapDp(bottom).dp
 
 @Composable
 private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Boolean, area: DpSize) {
@@ -383,7 +395,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) { apps(if (tightBar) 0 else 2, !tighterBar) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(railGap(state, bottom = true))) { apps(if (tightBar) 0 else 2, !tighterBar) }
             }
             if (state.driverOnRight) driverEnd() else status()
         }
@@ -408,7 +420,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             Box(Modifier.weight(1f).padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
                 Column(
                     Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(railGap(state, bottom = false)),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) { apps(fit.recentSlots, fit.settings) }
             }
@@ -516,15 +528,18 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
                 // Once the finger has moved sideways, it is a swipe, however slow: its moves are
                 // consumed so the click handler drops both the tap and the long press.
                 var swiping = false
+                // Moved up or down first: the rail's scroll had the finger, its lift is no swipe.
+                var scrolled = false
                 while (true) {
                     val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
                     val d = change.position - down.position
                     if (!swiping && abs(d.x) > viewConfiguration.touchSlop && abs(d.x) > abs(d.y)) swiping = true
+                    if (!swiping && abs(d.y) > viewConfiguration.touchSlop) scrolled = true
                     if (change.pressed) {
                         if (swiping) change.consume()
                         continue
                     }
-                    swipeSide(d.x, d.y, min)?.let { left -> change.consume(); current?.open?.invoke(left) }
+                    if (!scrolled) swipeSide(d.x, d.y, min)?.let { left -> change.consume(); current?.open?.invoke(left) }
                     break
                 }
             }
@@ -532,8 +547,14 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
         .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
 
-/** A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when not at least [min] long and mostly sideways. */
-internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > 2 * abs(dy)) dx < 0 else null
+/** How long a finger rests on the car screen before it is a long press (the phone's is 400 ms). */
+private const val CAR_LONG_PRESS_MS = 800L
+
+/**
+ * A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when shorter than [min]
+ * sideways or steeper than 45 degrees. In a car a swipe is rarely straight; steeper is the rail's scroll.
+ */
+internal fun swipeSide(dx: Float, dy: Float, min: Float): Boolean? = if (abs(dx) >= min && abs(dx) > abs(dy)) dx < 0 else null
 
 @Composable
 internal fun MicButton(listening: Boolean, onClick: () -> Unit) {
@@ -658,12 +679,13 @@ private fun NavCard(state: CarUiState, actions: CarActions, navMap: @Composable 
     val nav = state.app(state.activeNavAppId)
     val guidance = state.phoneGuidance
     Card(modifier) {
-        if (guidance != null) {
+        // Google Maps in the card shows its own guidance: the card stays, its helper display too.
+        if (guidance != null && guidance.packageName != nav?.packageName) {
             GuidanceCard(guidance)
         } else if (nav != null) {
             navMap(nav, Modifier.fillMaxSize())
         } else {
-            val navApps = state.apps.filter { it.kind == CarAppKind.NAVIGATION }
+            val navApps = state.apps.filter { it.isNavigation }
             Column(Modifier.fillMaxSize().padding(28.dp), verticalArrangement = Arrangement.Center) {
                 Icon(Icons.Rounded.Map, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(48.dp))
                 Spacer(Modifier.height(16.dp))
@@ -895,7 +917,8 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
     }
     Row(
         modifier.padding(16.dp).fillMaxWidth(0.6f).clip(MaterialTheme.shapes.large)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest).padding(16.dp),
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .let { m -> notice.open?.let { open -> m.clickable { open(); actions.dismissNotice(notice) } } ?: m }.padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (notice.icon != null) {

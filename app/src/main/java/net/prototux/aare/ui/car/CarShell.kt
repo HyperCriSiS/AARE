@@ -108,6 +108,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import net.prototux.aare.R
 import net.prototux.aare.notify.PhoneGuidance
+import net.prototux.aare.ui.theme.carBackdrop
 import net.prototux.aare.ui.theme.CarTheme
 import net.prototux.aare.ui.theme.LocalCarDimens
 import net.prototux.aare.ui.theme.LocalCarTheme
@@ -156,7 +157,7 @@ fun CarShell(
         delay(MENU_TIMEOUT_MS); paneChoice = null; shortcutsAt = null
     }
     val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
-    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize().carBackdrop()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.

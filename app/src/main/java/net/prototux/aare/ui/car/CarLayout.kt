@@ -44,6 +44,8 @@ object CarStyles {
         CarStyle("high_contrast", CarLayout.TASKBAR),
         CarStyle("night", CarLayout.TASKBAR),
         CarStyle("retro", CarLayout.TASKBAR),
+        CarStyle("frosted_glass", CarLayout.TASKBAR),
+        CarStyle("dark_glass", CarLayout.TASKBAR),
     )
 
     /** The styles this phone can show (Material You needs Android 12). */

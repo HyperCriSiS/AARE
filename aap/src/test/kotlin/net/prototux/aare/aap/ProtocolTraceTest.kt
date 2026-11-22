@@ -70,6 +70,7 @@ class ProtocolTraceTest {
 
     @Test fun theUsbSerialNumberStaysOut() {
         assertEquals("usb:Android|Open Automotive", ProtocolTrace.peer("usb:Android|Open Automotive|0123456789"))
+        assertEquals("usb:A|B", ProtocolTrace.peer("usb:A|B|12|34"))
         assertEquals("tcp", ProtocolTrace.peer("tcp"))
     }
 
@@ -80,7 +81,8 @@ class ProtocolTraceTest {
 
     /** They name the phone, other paired phones and the driver's profile. */
     @Test fun controlMessagesWithNamesShowNoBody() {
-        for (id in listOf(ControlMsg.SERVICE_DISCOVERY_REQUEST, ControlMsg.CAR_CONNECTED_DEVICES_RESPONSE, ControlMsg.USER_SWITCH_REQUEST))
+        for (id in listOf(ControlMsg.SERVICE_DISCOVERY_REQUEST, ControlMsg.SERVICE_DISCOVERY_RESPONSE, ControlMsg.SERVICE_DISCOVERY_UPDATE,
+            ControlMsg.CAR_CONNECTED_DEVICES_REQUEST, ControlMsg.CAR_CONNECTED_DEVICES_RESPONSE, ControlMsg.USER_SWITCH_REQUEST, ControlMsg.USER_SWITCH_RESPONSE))
             assertEquals("", ProtocolTrace.payload(null, id, byteArrayOf(1, 2), 0, 2))
         assertEquals(" [0102]", ProtocolTrace.payload(null, ControlMsg.AUDIO_FOCUS_NOTIFICATION, byteArrayOf(1, 2), 0, 2))
     }

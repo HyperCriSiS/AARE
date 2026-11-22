@@ -124,6 +124,25 @@ class VideoFocusFallbackTest {
         assertEquals(1, hu.videoStart!!.sessionId)
     }
 
+    /** The connection log says whether the car takes the frames (#39). */
+    @Test
+    fun theReportTellsACarThatAcksFromOneThatDoesNot() {
+        connect(answerVideoFocus = true)
+        assertTrue(hu.firstVideoFrame.await(5, TimeUnit.SECONDS))
+        Thread.sleep(300)
+        assertTrue(video!!.report(), Regex("sent [1-9]\\d*, [1-9]\\d* acks, window 2,.*").containsMatchIn(video!!.report()))
+        assertFalse(video!!.report(), "unpaced" in video!!.report())
+    }
+
+    @Test
+    fun theReportSaysWhenTheCarNeverAcks() {
+        connect(answerVideoFocus = false)
+        hu.dropVideoUnacked = true
+        assertTrue(video!!.assumeProjectedIfUnanswered())
+        Thread.sleep(1_000)
+        assertTrue(video!!.report(), " 0 acks, window 2, in flight 2, " in video!!.report())
+    }
+
     /** The VW Play's reverse camera: frames in flight are dropped unacked, then the car hands the screen back. */
     @Test
     fun videoComesBackAfterTheCarDroppedFramesUnacked() {

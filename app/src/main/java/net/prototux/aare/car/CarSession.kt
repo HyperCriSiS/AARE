@@ -289,7 +289,10 @@ class CarSession(
                 s.hasPhoneStatusService() -> phoneStatus = net.prototux.aare.aap.channels.PhoneStatusChannel(s) { phoneBridge?.onInput(it) }.also { channels += it }
                 s.hasWifiProjectionService() -> channels += WifiProjectionChannel(s)
                 s.hasBluetoothService() -> {
-                    val bt = BluetoothChannel(s, phoneBtAddress(), object : BluetoothChannel.Listener {
+                    val address = phoneBtAddress()
+                    DiagLog.add(if (address != null) "car bluetooth: announcing the phone" else
+                        "car bluetooth: the phone's address is unknown, not announcing it (Connection settings)")
+                    val bt = BluetoothChannel(s, address, object : BluetoothChannel.Listener {
                         override fun onPairingResponse(alreadyPaired: Boolean, ok: Boolean) {
                             DiagLog.add("car bluetooth: pairing ${if (ok) "accepted" else "refused"}${if (alreadyPaired) " (already paired)" else ""}")
                         }
@@ -538,6 +541,10 @@ class CarSession(
                 // The encoder was paused while the car showed its own screen: time the stall check from here.
                 lastFrameMs = SystemClock.elapsedRealtime()
                 if (projected) {
+                    logNextKeyFrame = true
+                    videoReports = 0
+                    main.removeCallbacks(videoReport)
+                    main.postDelayed(videoReport, videoReportDelayMs(0))
                     encoder?.requestKeyFrame()
                     display?.invalidate()
                 }
@@ -592,7 +599,7 @@ class CarSession(
             }
         }
         videoDescription = "${w}x$h@$fps ${dpi}dpi" + layout.describe()
-        Log.i(TAG, "projection $videoDescription")
+        net.prototux.aare.SessionAapLog.i("projection $videoDescription")
 
         val ch = video ?: return
         // lateinit: the sink below needs to know whether its encoder is still the current one.
@@ -602,13 +609,15 @@ class CarSession(
             // Per stream: a restart (new config, encoder error) starts again from the full bitrate.
             private val abr = BitrateController(VideoEncoder.defaultBitrate(w, h, fps)) { encoder?.setBitrate(it) }
             override fun onCodecConfig(data: ByteArray, offset: Int, length: Int) {
-                Log.i(TAG, "codec config: $length bytes")
+                // The stream's profile, level and size (SPS, PPS): what a car's decoder may refuse.
+                net.prototux.aare.SessionAapLog.i("video codec config, $length bytes: " + hex(data, offset, minOf(length, 64)))
                 ch.sendCodecConfig(data, offset, length)
             }
             override fun onFrame(data: ByteArray, offset: Int, length: Int, ptsUs: Long, keyFrame: Boolean) {
                 frames++
                 lastFrameMs = SystemClock.elapsedRealtime()
-                if (frames == 1 || keyFrame && frames < 100 || frames % 600 == 0) {
+                if (frames == 1 || keyFrame && (frames < 100 || logNextKeyFrame) || frames % 600 == 0) {
+                    if (keyFrame) logNextKeyFrame = false
                     // In the verbose log: whether frames flow, and whether the car had given focus (a black screen).
                     net.prototux.aare.SessionAapLog.i("video frame $frames (${if (keyFrame) "key, " else ""}$length bytes), focused=${ch.focused}, dropped=${ch.droppedFrames}")
                 }
@@ -616,7 +625,7 @@ class CarSession(
                 abr.onFrame(ch)
             }
             override fun onError(e: Exception) {
-                Log.e(TAG, "encoder failed, restarting", e)
+                net.prototux.aare.SessionAapLog.e("video encoder failed, restarting", e)
                 main.post {
                     // The session ended, or this encoder was already replaced: nothing to restart.
                     if (closed || encoder !== enc) return@post
@@ -691,8 +700,28 @@ class CarSession(
         }
     }
 
+    /** The next key frame goes to the log: the one sent because the car gave its screen (again). */
+    @Volatile private var logNextKeyFrame = false
+    private var videoReports = 0
+    @Volatile private var touches = 0
+
+    /** Verbose log: how the car takes the video, more often right after it gave its screen. Main thread. */
+    private val videoReport = object : Runnable {
+        override fun run() {
+            if (closed || display == null) return
+            logVideo()
+            main.postDelayed(this, videoReportDelayMs(++videoReports))
+        }
+    }
+
+    private fun logVideo() {
+        video?.let { net.prototux.aare.SessionAapLog.i("video: ${it.report()}, $touches touches from the car") }
+    }
+
     private fun teardownVideo() {
         main.removeCallbacks(stallCheck)
+        main.removeCallbacks(videoReport)
+        if (display != null) logVideo()
         display?.release(); display = null
         encoder?.stop(); encoder = null
     }
@@ -704,6 +733,7 @@ class CarSession(
     private val inputListener = object : InputChannel.Listener {
         override fun onInput(report: InputReport) {
             if (report.hasTouchEvent()) {
+                if (touches++ == 0) net.prototux.aare.SessionAapLog.i("first touch from the car")
                 val ev = touch?.map(report.touchEvent) ?: return
                 display?.dispatchTouch(ev)
             }
@@ -1309,3 +1339,10 @@ private fun androidx.compose.ui.graphics.ImageBitmap.asAndroidBitmapCompat(): Bi
 
 /** Whether a message from [packageName] reaches the car screen: not muted, and its app not set "not in the car" ([hidden]). */
 internal fun showsMessage(packageName: String, muted: Set<String>, hidden: Set<String>) = packageName !in muted && packageName !in hidden
+
+/** How long until video report [n] (0: the first) after the car gave its screen: soon at first, then one in 30 s. */
+internal fun videoReportDelayMs(n: Int): Long = longArrayOf(1_000, 2_000, 7_000, 10_000).getOrElse(n) { 30_000 }
+
+/** [length] bytes of [data] from [offset] in hex. */
+internal fun hex(data: ByteArray, offset: Int, length: Int): String =
+    (offset until offset + length).joinToString("") { "%02x".format(data[it]) }

@@ -359,6 +359,16 @@ class VideoChannel(
         if (changed || projected) listener.onVideoFocus(projected)
     }
 
+    /**
+     * How the head unit takes the running stream, for the connection log: whether it acks frames tells
+     * a car that takes them and shows something else from one that ignores them (#39).
+     */
+    fun report(): String = "sent $streamSent, $streamAcks acks, window $maxUnacked, in flight ${unacked.get()}, " +
+        "waiting $pendingFrames, dropped $droppedFrames, longest ack wait $maxAckGapMs ms, last latency $ackLatencyMs ms, " +
+        "stalls $stalls, restarts $restarts" +
+        (if (ackless) ", no acks from the car, sending unpaced" else "") +
+        (if (!started) ", stopped" else "") + if (!focused) ", no focus" else ""
+
     /** Asks the head unit to show its own UI (e.g. the driver chose "exit" on the phone). */
     fun requestNativeFocus() {
         send(MediaMsg.VIDEO_FOCUS_REQUEST, VideoFocusRequestNotification.newBuilder()

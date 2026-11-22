@@ -29,7 +29,8 @@ object ProtocolTrace {
      * codec). Empty for SSL (the handshake) and for bodies longer than [MAX_PAYLOAD] (discovery).
      */
     fun payload(channelName: String?, id: Int, body: ByteArray, offset: Int, length: Int): String {
-        if (length <= 0 || length > MAX_PAYLOAD || id == ControlMsg.ENCAPSULATED_SSL || channelName in PRIVATE) return ""
+        if (length <= 0 || length > MAX_PAYLOAD || id == ControlMsg.ENCAPSULATED_SSL || channelName in PRIVATE ||
+            channelName == null && id in PRIVATE_CONTROL) return ""
         val sb = StringBuilder(" [")
         for (i in offset until offset + length) sb.append("%02x".format(body[i]))
         return sb.append(']').toString()
@@ -42,9 +43,15 @@ object ProtocolTrace {
     /** [text] with every Bluetooth address replaced by xx:xx:xx:xx:xx:xx. */
     fun masked(text: String): String = text.replace(MAC, "xx:xx:xx:xx:xx:xx")
 
+    /** A head unit's key in the trust store without its USB serial number ("usb:make|model|serial"). */
+    fun peer(key: String): String = if (key.startsWith("usb:")) key.substringBeforeLast('|') else key
+
     /** Channels whose messages carry the driver's data (pairing addresses, callers, roads, messages): names only. */
     private val PRIVATE = setOf("bluetooth", "phonestatus", "navstatus", "notifications", "mediabrowser", "playback", "wifi")
-    private val MAC = Regex("(?i)\\b[0-9a-f]{2}(:[0-9a-f]{2}){5}\\b")
+    /** Control messages naming the phone, other paired phones or the driver's profile: names only. */
+    private val PRIVATE_CONTROL = setOf(ControlMsg.SERVICE_DISCOVERY_REQUEST, ControlMsg.CAR_CONNECTED_DEVICES_REQUEST,
+        ControlMsg.CAR_CONNECTED_DEVICES_RESPONSE, ControlMsg.USER_SWITCH_REQUEST, ControlMsg.USER_SWITCH_RESPONSE)
+    private val MAC = Regex("(?i)\\b[0-9a-f]{2}([:-])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}\\b")
 
     private const val MAX_PAYLOAD = 96
     private const val MAX_TEXT = 1500

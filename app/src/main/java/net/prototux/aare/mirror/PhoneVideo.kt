@@ -137,7 +137,7 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         full?.value = {
             VideoButtons(Modifier.fillMaxSize(), buttons = {
                 CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { runtime.fullScreenVideo = null; full?.value = null })
-            }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
+            }) { HostedAppSurface(launcher, packageName, fullScreenVideoDpi(runtime.densityDpi), Modifier.fillMaxSize()) }
         }
     }
     // Rebuilt (the car's own screen over it a moment): full screen again, as it was left.
@@ -156,6 +156,12 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         }
     }
 }
+
+/**
+ * The density of a video full screen: only the player shows there, so no tablet layout is wanted,
+ * and its controls, made for a phone in the hand, need to be larger for a touch at arm's length.
+ */
+internal fun fullScreenVideoDpi(carDpi: Int): Int = carDpi * 3 / 2
 
 /**
  * A video with [buttons] stacked at its right edge, halfway down, fading out after a few seconds

@@ -172,8 +172,8 @@ class WirelessAutoStarter(
 
         @SuppressLint("MissingPermission")
         fun deviceLabel(device: BluetoothDevice): String {
-            val name = runCatching { device.name }.getOrNull()?.takeIf { it.isNotBlank() } ?: "?"
-            return "$name (${device.address})"
+            // Posted with car reports: told apart by a short code, no name ("Max's car") and no address.
+            return "device %04x".format(device.address.hashCode() and 0xffff)
         }
 
         fun formatUuids(uuids: Array<out ParcelUuid>?): String {

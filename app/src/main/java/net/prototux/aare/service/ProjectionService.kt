@@ -225,7 +225,7 @@ class ProjectionService : Service() {
             return
         }
         lastWirelessAddress = address
-        log("wireless: connecting to ${runCatching { device.name }.getOrNull() ?: address}")
+        log("wireless: connecting to ${net.prototux.aare.transport.wireless.WirelessAutoStarter.deviceLabel(device)}")
         _state.update { it.copy(status = getString(R.string.notif_status_connecting_wirelessly)) }
         wirelessJob = scope.launch {
             // Right after the Bluetooth link comes up some cars accept the connection but don't
@@ -273,7 +273,7 @@ class ProjectionService : Service() {
             scheduleIdleStop()
             return
         }
-        log("wireless: ${runCatching { device.name }.getOrNull() ?: device.address} already connected over Bluetooth, connecting")
+        log("wireless: ${net.prototux.aare.transport.wireless.WirelessAutoStarter.deviceLabel(device)} already connected over Bluetooth, connecting")
         connectWireless(device.address)
     }
 
@@ -459,7 +459,7 @@ class ProjectionService : Service() {
                     certNotice(getString(R.string.notif_cert_download_title), getString(R.string.notif_cert_download_message), retry = true)
                 }
             }
-            pinRefusal?.let { log("head unit ${it.peerKey} showed certificate SHA-256 ${it.fingerprint}") }
+            pinRefusal?.let { log("head unit ${net.prototux.aare.aap.ProtocolTrace.peer(it.peerKey)} showed certificate SHA-256 ${it.fingerprint}") }
             log("disconnected: $why")
             _state.update { it.copy(connected = false, status = getString(R.string.notif_status_not_connected), video = "", lastError = why.takeIf { r -> "stopped" !in r && "ended" !in r },
                 // A new refusal replaces it; a session that got past the handshake means it is settled.

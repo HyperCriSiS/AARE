@@ -17,7 +17,7 @@ class PinnedHeadUnits(context: Context) : PinStore {
 
     override fun add(peerKey: String, sha256: String) {
         prefs.edit(commit = true) { putStringSet(peerKey, get(peerKey) + sha256) }
-        DiagLog.add("trusted head unit certificate for $peerKey: SHA-256 $sha256")
+        DiagLog.add("trusted head unit certificate for ${net.prototux.aare.aap.ProtocolTrace.peer(peerKey)}: SHA-256 $sha256")
     }
 
     /** Every trusted head unit: key to fingerprints. */

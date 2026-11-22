@@ -68,6 +68,23 @@ class ProtocolTraceTest {
         assertEquals("no address here 12:34", ProtocolTrace.masked("no address here 12:34"))
     }
 
+    @Test fun theUsbSerialNumberStaysOut() {
+        assertEquals("usb:Android|Open Automotive", ProtocolTrace.peer("usb:Android|Open Automotive|0123456789"))
+        assertEquals("tcp", ProtocolTrace.peer("tcp"))
+    }
+
+    @Test fun dashedAddressesAreMaskedToo() {
+        assertEquals("xx:xx:xx:xx:xx:xx", ProtocolTrace.masked("00-00-00-00-00-00"))
+        assertEquals("dated 2026-11-22", ProtocolTrace.masked("dated 2026-11-22"))
+    }
+
+    /** They name the phone, other paired phones and the driver's profile. */
+    @Test fun controlMessagesWithNamesShowNoBody() {
+        for (id in listOf(ControlMsg.SERVICE_DISCOVERY_REQUEST, ControlMsg.CAR_CONNECTED_DEVICES_RESPONSE, ControlMsg.USER_SWITCH_REQUEST))
+            assertEquals("", ProtocolTrace.payload(null, id, byteArrayOf(1, 2), 0, 2))
+        assertEquals(" [0102]", ProtocolTrace.payload(null, ControlMsg.AUDIO_FOCUS_NOTIFICATION, byteArrayOf(1, 2), 0, 2))
+    }
+
     @Test fun debugTextFitsOnOneLine() {
         assertEquals("a: 1 b { c: 2 }", ProtocolTrace.oneLine("a: 1\nb {\n  c: 2\n}\n"))
     }

@@ -602,7 +602,7 @@ class ProjectionService : Service() {
                     certNotice(getString(R.string.notif_cert_download_title), getString(R.string.notif_cert_download_message), retry = true)
                 }
             }
-            pinRefusal?.let { log("head unit ${it.peerKey} showed certificate SHA-256 ${it.fingerprint}") }
+            pinRefusal?.let { log("head unit ${net.prototux.aare.aap.ProtocolTrace.peer(it.peerKey)} showed certificate SHA-256 ${it.fingerprint}") }
             log("disconnected: $why")
             _state.update { it.copy(connected = false, status = getString(R.string.notif_status_not_connected), video = "", lastError = why.takeIf { r -> "stopped" !in r && "ended" !in r },
                 // A new refusal replaces it; a session that got past the handshake means it is settled.

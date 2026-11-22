@@ -344,6 +344,7 @@ class AapSession(
                     if (--pendingOpens <= 0 && state == State.OPENING) enterRunning()
                 }
                 ControlMsg.CHANNEL_CLOSE_NOTIFICATION -> {
+                    log.w("the car closed channel ${ch.id} (${ch.name})")
                     ch.opened = false
                     runHandler(ch) { ch.onClosed() }
                 }
@@ -363,8 +364,16 @@ class AapSession(
             val status = runCatching { aap_protobuf.service.media.shared.message.ConfigOuterClass.Config.parseFrom(msg.bodyBytes()).status }.getOrNull()
             if (status != aap_protobuf.service.media.shared.message.ConfigOuterClass.Config.Status.STATUS_READY) log.w("${ch.name}: the car answered the stream setup with $status")
         }
+        if (msg.id == SensorMsg.BATCH && ch.name == "sensors" && !sensorsHeard) {
+            // Only that they come: what they say (position, speed) is the driver's.
+            sensorsHeard = true
+            log.d("sensors: first data from the car")
+        }
         runHandler(ch) { ch.onMessage(msg) }
     }
+
+    /** The car has sent sensor data (reader thread only). */
+    private var sensorsHeard = false
 
     /** "Unexpected message" answers per channel (reader thread only). */
     private val unexpectedCounts = HashMap<Int, Int>()

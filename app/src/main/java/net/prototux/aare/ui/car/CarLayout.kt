@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -54,6 +55,17 @@ object CarStyles {
     /** The style a theme and layout make up, or null for a mix of the user's own ("Custom"). */
     fun matching(themeId: String, layout: CarLayout): CarStyle? =
         all.firstOrNull { it.themeId == themeId && it.layout == layout }
+}
+
+/** Whether [labels] can be read in one row of equal buttons on a phone: about 330 dp, 7 dp a letter, 50 dp of padding and check mark each. */
+internal fun fitsOneRow(labels: List<String>): Boolean =
+    labels.isEmpty() || labels.maxOf { it.length } * 7 + 50 <= 330 / labels.size
+
+/** What a style, theme or accent looks like, for the dot on its chip: its background to its accent, or its one color. Empty when it has no color of its own. */
+internal fun styleSwatch(value: String): List<Color> {
+    CarAccents.all.firstOrNull { it.id == value }?.let { return listOf(it.dark.primary) }
+    val theme = CarThemes.all.firstOrNull { it.id == value.substringBefore('/') } ?: return emptyList()
+    return theme.nightBackdrop.ifEmpty { listOf(theme.night.background) } + theme.night.primary
 }
 
 /**

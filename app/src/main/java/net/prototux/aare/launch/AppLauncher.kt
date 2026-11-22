@@ -28,6 +28,9 @@ import java.util.concurrent.TimeUnit
 class AppLauncher(private val context: Context, key: String = "launch") {
     @Volatile private var host: ILaunchHost? = null
 
+    /** Held while a surface connects and starts the app, or moves it (HostedAppSurface). */
+    val starting = Any()
+
     // --- Shizuku path ---
     // One helper per [key]: Shizuku tells user services apart by their tag only, so two launchers
     // with the same key would share one helper, its display, and its end when one releases it.

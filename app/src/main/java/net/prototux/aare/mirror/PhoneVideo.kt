@@ -81,7 +81,8 @@ val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
  * and come back on a touch. With [Settings.videoLandscape] the phone turns to landscape while the
  * app runs here, so players go full screen at once. Once it runs, its [player] is opened on the
  * same display: started from the car, an app otherwise shows its start screen rather than the
- * video. While it runs here the app isn't on the phone's screen; it goes back there when this closes.
+ * video. Back first leaves full screen. While it runs here the app isn't on the phone's screen; it
+ * goes back there when this closes.
  */
 @Composable
 internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String, modifier: Modifier, onCover: () -> Unit, player: PendingIntent? = null) {
@@ -111,10 +112,13 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
     // the player's first screen closes it: with no app left, the dashboard, not an empty picture. Not
     // the cover: that would switch this app to AARE's list for good.
     val cover by rememberUpdatedState(onCover)
+    val leaveFull = { runtime.fullScreenVideo = null; full?.value = null }
     val scope = rememberCoroutineScope()
     DisposableEffect(appId) {
         val back: () -> Boolean = {
-            if (launcher.connected) {
+            // Full screen: first back out of that, as in any player.
+            if (full?.value != null) leaveFull()
+            else if (launcher.connected) {
                 val t = android.os.SystemClock.uptimeMillis()
                 launcher.key(t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK)
                 launcher.key(t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)
@@ -136,8 +140,8 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         runtime.fullScreenVideo = appId
         full?.value = {
             VideoButtons(Modifier.fillMaxSize(), buttons = {
-                CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { runtime.fullScreenVideo = null; full?.value = null })
-            }) { HostedAppSurface(launcher, packageName, fullScreenVideoDpi(runtime.densityDpi), Modifier.fillMaxSize()) }
+                CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = leaveFull)
+            }) { HostedAppSurface(launcher, packageName, fullScreenVideoDpi(runtime.densityDpi), Modifier.fillMaxSize()) { started = it } }
         }
     }
     // Rebuilt (the car's own screen over it a moment): full screen again, as it was left.
@@ -146,8 +150,9 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = { runtime.fullScreenVideo = null; onCover() })
         if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = enterFull)
     }) video@{
-        // Full screen, the one display moves onto the copy over everything.
-        if (full?.value != null) return@video
+        // Full screen, the one display moves onto the copy over everything. About to be again (a rebuild):
+        // nothing here first, which would start the app twice.
+        if (full != null && (full.value != null || runtime.fullScreenVideo == appId)) return@video
         HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) { started = it }
         when (started) {
             null -> Placeholder(stringResource(R.string.standalone_starting), loading = true)
@@ -171,7 +176,7 @@ internal fun fullScreenVideoDpi(carDpi: Int): Int = carDpi * 3 / 2
 private fun VideoButtons(modifier: Modifier, buttons: @Composable () -> Unit, video: @Composable () -> Unit) {
     var touches by remember { mutableIntStateOf(0) }
     var shown by remember { mutableStateOf(true) }
-    LaunchedEffect(touches) { shown = true; delay(3_000); shown = false }
+    LaunchedEffect(touches) { shown = true; delay(5_000); shown = false }
     Box(
         modifier.background(Color.Black).pointerInput(Unit) {
             // Seen before the app's touch forwarding, and not consumed.

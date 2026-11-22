@@ -189,19 +189,24 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
             factory = { ctx ->
                 TextureView(ctx).apply {
                     surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                        @Volatile private var gone = false
                         override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
                             val surface = Surface(st)
                             // connect() blocks (binds Shizuku / spawns su), so do it off the main thread.
                             Thread {
-                                // Already running (the kept assistant): only moved onto this surface.
-                                if (launcher.connected) { launcher.resize(surface, w, h, dpiFor(w, h)); onStarted(true) }
-                                else onStarted(launcher.connect() && launcher.start(surface, w, h, dpiFor(w, h), packageName, Settings(ctx).standaloneKeepScreenAwake) >= 0)
+                                // One at a time: two surfaces (full screen entered while the app starts) would each start it.
+                                synchronized(launcher.starting) {
+                                    // Already running (the kept assistant): only moved onto this surface.
+                                    if (gone) Unit
+                                    else if (launcher.connected) { launcher.resize(surface, w, h, dpiFor(w, h)); onStarted(true) }
+                                    else onStarted(launcher.connect() && launcher.start(surface, w, h, dpiFor(w, h), packageName, Settings(ctx).standaloneKeepScreenAwake) >= 0)
+                                }
                             }.apply { isDaemon = true }.start()
                         }
                         override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
                             launcher.resize(Surface(st), w, h, dpiFor(w, h))
                         }
-                        override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean = true
+                        override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean { gone = true; return true }
                         override fun onSurfaceTextureUpdated(st: SurfaceTexture) = Unit
                     }
                 }

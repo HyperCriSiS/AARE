@@ -53,6 +53,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import net.prototux.aare.ui.car.fitsOneRow
+import net.prototux.aare.ui.car.styleSwatch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -107,6 +112,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -781,7 +787,7 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
         Section(stringResource(R.string.setup_section_look)) {
             StyleChoices(
                 themeId, layoutId, accent,
-                choice = { title, options, selected, onSelect -> Choices(title, options, selected, onSelect) },
+                choice = { title, options, selected, onSelect -> Choices(title, options, selected, swatch = ::styleSwatch, onSelect = onSelect) },
                 onChange = { t, l -> themeId = t; layoutId = l; settings.carThemeId = t; settings.carLayoutId = l },
                 onAccent = { accent = it; settings.carAccent = it },
             )
@@ -1019,11 +1025,26 @@ private fun AudioSettings(settings: Settings, state: ProjectionService.State, re
 
 private const val SHIZUKU_REQUEST = 42
 
-/** A labelled row of mutually exclusive options. */
+/** Labelled, mutually exclusive options: one row, or chips over several where their names wouldn't fit it. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Choices(title: String, options: List<Pair<String, String>>, selected: String, onSelect: (String) -> Unit) {
+private fun Choices(title: String, options: List<Pair<String, String>>, selected: String, swatch: (String) -> List<Color> = { emptyList() }, onSelect: (String) -> Unit) {
     Text(title, style = MaterialTheme.typography.bodyLarge)
     Spacer(Modifier.height(6.dp))
+    if (!fitsOneRow(options.map { it.second })) {
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { (value, label) ->
+                val colors = swatch(value)
+                FilterChip(selected = value == selected, onClick = { onSelect(value) }, label = { Text(label) },
+                    leadingIcon = if (colors.isEmpty()) null else ({
+                        Box(Modifier.size(18.dp).clip(CircleShape)
+                            .background(Brush.linearGradient(if (colors.size == 1) colors + colors else colors))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape))
+                    }))
+            }
+        }
+        return
+    }
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         options.forEachIndexed { i, (value, label) ->
             SegmentedButton(selected = value == selected, onClick = { onSelect(value) }, shape = SegmentedButtonDefaults.itemShape(i, options.size)) {

@@ -131,7 +131,10 @@ class VideoFocusFallbackTest {
         assertTrue(hu.firstVideoFrame.await(5, TimeUnit.SECONDS))
         Thread.sleep(300)
         assertTrue(video!!.report(), Regex("sent [1-9]\\d*, [1-9]\\d* acks, window 2,.*").containsMatchIn(video!!.report()))
-        assertFalse(video!!.report(), "unpaced" in video!!.report())
+        phone.stop()
+        val end = System.currentTimeMillis() + 3_000
+        while (video!!.closingReport == null && System.currentTimeMillis() < end) Thread.sleep(20)
+        assertFalse("the last report is from before the end", "no focus" in video!!.closingReport!!)
     }
 
     @Test

@@ -44,12 +44,13 @@ object ProtocolTrace {
     fun masked(text: String): String = text.replace(MAC, "xx:xx:xx:xx:xx:xx")
 
     /** A head unit's key in the trust store without its USB serial number ("usb:make|model|serial"). */
-    fun peer(key: String): String = if (key.startsWith("usb:")) key.substringBeforeLast('|') else key
+    fun peer(key: String): String = if (key.startsWith("usb:")) key.split('|').take(2).joinToString("|") else key
 
     /** Channels whose messages carry the driver's data (pairing addresses, callers, roads, messages): names only. */
     private val PRIVATE = setOf("bluetooth", "phonestatus", "navstatus", "notifications", "mediabrowser", "playback", "wifi")
-    /** Control messages naming the phone, other paired phones or the driver's profile: names only. */
-    private val PRIVATE_CONTROL = setOf(ControlMsg.SERVICE_DISCOVERY_REQUEST, ControlMsg.CAR_CONNECTED_DEVICES_REQUEST,
+    /** Control messages naming the phone, the car's addresses, other paired phones or the driver's profile: names only. */
+    private val PRIVATE_CONTROL = setOf(ControlMsg.SERVICE_DISCOVERY_REQUEST, ControlMsg.SERVICE_DISCOVERY_RESPONSE,
+        ControlMsg.SERVICE_DISCOVERY_UPDATE, ControlMsg.CAR_CONNECTED_DEVICES_REQUEST,
         ControlMsg.CAR_CONNECTED_DEVICES_RESPONSE, ControlMsg.USER_SWITCH_REQUEST, ControlMsg.USER_SWITCH_RESPONSE)
     private val MAC = Regex("(?i)\\b[0-9a-f]{2}([:-])[0-9a-f]{2}(\\1[0-9a-f]{2}){4}\\b")
 

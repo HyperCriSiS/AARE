@@ -554,14 +554,12 @@ class CarSession(
         override fun onVideoFocus(projected: Boolean) {
             DiagLog.add("video focus: ${if (projected) "projected" else "native"}")
             main.post {
+                if (projected) logNextKeyFrame = true
                 encoder?.setSuspended(!projected)
                 // The encoder was paused while the car showed its own screen: time the stall check from here.
                 lastFrameMs = SystemClock.elapsedRealtime()
                 if (projected) {
-                    logNextKeyFrame = true
-                    videoReports = 0
-                    main.removeCallbacks(videoReport)
-                    main.postDelayed(videoReport, videoReportDelayMs(0))
+                    startVideoReports()
                     encoder?.requestKeyFrame()
                     display?.invalidate()
                 }
@@ -680,6 +678,8 @@ class CarSession(
         lastFrameMs = SystemClock.elapsedRealtime()
         main.removeCallbacks(stallCheck)
         main.postDelayed(stallCheck, STALL_CHECK_MS)
+        // A restarted stream (encoder error, new layout) while the car shows it.
+        if (ch.focused) startVideoReports()
         // Pass the declared panel as-is (0 when the head unit declares none); the mapper resolves
         // the source resolution, including 0x0, visible-pixel and under-declared panels.
         val inputCh = touchSize
@@ -731,8 +731,14 @@ class CarSession(
         }
     }
 
+    private fun startVideoReports() {
+        videoReports = 0
+        main.removeCallbacks(videoReport)
+        main.postDelayed(videoReport, videoReportDelayMs(0))
+    }
+
     private fun logVideo() {
-        video?.let { net.prototux.aare.SessionAapLog.i("video: ${it.report()}, $touches touches from the car") }
+        video?.let { net.prototux.aare.SessionAapLog.i("video: ${it.closingReport ?: it.report()}, $touches touches from the car") }
     }
 
     private fun teardownVideo() {

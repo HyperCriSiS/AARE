@@ -461,7 +461,12 @@ class VideoChannel(
         pendingFrames = pending.size
     }
 
+    /** [report] as the session ended; the state it describes is reset then. */
+    @Volatile var closingReport: String? = null
+        private set
+
     override fun onClosed() {
+        closingReport = report()
         super.onClosed()
         focused = false
         encoderStarted = false

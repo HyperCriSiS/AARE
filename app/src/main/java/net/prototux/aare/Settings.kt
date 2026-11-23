@@ -515,8 +515,6 @@ class Settings(context: Context) {
         const val CHROME_AUTO = "auto"
         const val CHROME_SHOW = "show"
         const val CHROME_HIDE = "hide"
-        const val NIGHT_SOURCE_CAR = "car"
-        const val NIGHT_SOURCE_LIGHT_SENSOR = "light_sensor"
         const val WALLPAPER_CUSTOM = "custom"
         /** The user's wallpaper photo, in the app's files. */
         const val WALLPAPER_FILE = "wallpaper.jpg"

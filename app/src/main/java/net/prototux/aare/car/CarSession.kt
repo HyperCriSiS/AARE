@@ -643,18 +643,10 @@ class CarSession(
         videoConfig = config
         val (w, h) = resolution(config.codecResolution)
         val fps = fpsOf(config)
-        val dpi = vehicleOverride?.dpi ?: if (config.density > 0) config.density else defaultDensity(minOf(w, h))
-        val layout = ProjectionLayout.of(config, w, h).let { base ->
-            val o = vehicleOverride
-            if (o?.widthMargin == null && o?.heightMargin == null) base
-            else {
-                // vehicles.json overrides the car's reported margins (split evenly, like the official phone).
-                val fw = (o.widthMargin ?: (base.marginLeft + base.marginRight)).coerceIn(0, w - 1)
-                val fh = (o.heightMargin ?: (base.marginTop + base.marginBottom)).coerceIn(0, h - 1)
-                base.copy(marginLeft = fw / 2, marginRight = fw - fw / 2, marginTop = fh / 2, marginBottom = fh - fh / 2)
-            }
-        }
-        videoDescription = "${w}x$h@$fps ${dpi}dpi" + layout.describe()
+        val dpi = densityOf(config, w, h)
+        val layout = layoutOf(config, w, h)
+        videoFormat = "${w}x$h@$fps ${dpi}dpi"
+        videoDescription = videoFormat + layout.describe()
         Log.i(TAG, "projection $videoDescription")
 
         val ch = video ?: return
@@ -715,12 +707,6 @@ class CarSession(
         lastFrameMs = SystemClock.elapsedRealtime()
         main.removeCallbacks(stallCheck)
         main.postDelayed(stallCheck, STALL_CHECK_MS)
-        // Pass the declared panel as-is (0 when the head unit declares none); the mapper resolves
-        // the source resolution, including 0x0, visible-pixel and under-declared panels.
-        val inputCh = touchSize
-        val native = offeredVideo.map(::visibleSize).maxByOrNull { it.first.toLong() * it.second }
-        touch = TouchMapper(inputCh?.first ?: 0, inputCh?.second ?: 0, layout,
-            native?.first ?: layout.visibleWidth, native?.second ?: layout.visibleHeight)
     }
 
     /** An encoder that fails again and again ends the session rather than restart forever. */

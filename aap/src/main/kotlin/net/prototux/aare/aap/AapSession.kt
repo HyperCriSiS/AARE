@@ -61,12 +61,6 @@ class SessionOptions(
     val trustOnFirstUse: Boolean = false,
     /** Clock for ping timestamps, in nanoseconds (elapsedRealtimeNanos). */
     val clockNanos: () -> Long = System::nanoTime,
-    /**
-     * Answer the version request with the head unit's own version instead of AapSession.versionReply. Some
-     * aftermarket wireless adapters relay the phone's answer to the car and stall unless it
-     * matches what they asked for.
-     */
-    val echoHeadUnitVersion: Boolean = false,
 ) {
     init {
         require(pins == null || peerKey != null) { "peerKey is required with pins" }

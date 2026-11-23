@@ -268,6 +268,9 @@ class AapSession(
         schedule({ close("stopped by phone", null) }, BYEBYE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
     }
 
+    /** Ends a wireless session because the user turned wireless projection off on the phone. */
+    fun stopWirelessDisabled() = stop(wirelessDisabledReason(headUnitVersion))
+
     // ------------------------------------------------------------------ sending
 
     /** Queues a message. [plain] must hold the 2-byte id followed by the body. */
@@ -805,6 +808,15 @@ class AapSession(
         /** The protocol version the phone answers to a head unit asking for [major].[minor]. */
         internal fun versionReply(major: Int, minor: Int): Pair<Int, Int> =
             if (major < 1 || (major == 1 && minor <= 7)) 1 to 7 else 6 to 2
+
+        /**
+         * The bye-bye reason for wireless turned off on the phone: head units before 4.5 don't
+         * know WIRELESS_PROJECTION_DISABLED, so they get USER_SELECTION.
+         */
+        internal fun wirelessDisabledReason(headUnitVersion: Pair<Int, Int>?): ByeByeReason {
+            val (major, minor) = headUnitVersion ?: return ByeByeReason.USER_SELECTION
+            return if (major > 4 || (major == 4 && minor >= 5)) ByeByeReason.WIRELESS_PROJECTION_DISABLED else ByeByeReason.USER_SELECTION
+        }
 
         /**
          * The link's last moments, for a failed session's log line: tells a link that died while

@@ -1806,6 +1806,10 @@ private fun VehicleOverridesCard() {
         Toggle(stringResource(R.string.vehicles_skip_mic_setup_title), stringResource(R.string.vehicles_skip_mic_setup_subtitle), skipMic) {
             skipMic = it; settings.skipMicSetup = it
         }
+        var headersOnce by remember { mutableStateOf(settings.videoHeadersOnce) }
+        Toggle(stringResource(R.string.vehicles_video_headers_once_title), stringResource(R.string.vehicles_video_headers_once_subtitle), headersOnce) {
+            headersOnce = it; settings.videoHeadersOnce = it
+        }
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.vehicles_rule_count, count), style = MaterialTheme.typography.bodyMedium)
         Text(file.absolutePath, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),

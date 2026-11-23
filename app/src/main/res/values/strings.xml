@@ -129,6 +129,8 @@
     <string name="troubleshooting_log_subtitle">Keep a short log of each connection. Off, nothing is written.</string>
     <string name="vehicles_skip_mic_setup_title">Skip microphone setup</string>
     <string name="vehicles_skip_mic_setup_subtitle">Try this when audio plays but the car never shows the picture. Some older head units refuse this message and then stay on their own screen. Takes effect at the next connection.</string>
+    <string name="vehicles_video_headers_once_title">Send video headers only once</string>
+    <string name="vehicles_video_headers_once_subtitle">Try this when the car plays the sound but shows no picture, also with \"Skip microphone setup\". The stream description (SPS/PPS) then goes out only at the start instead of before every key frame, which some head units can\'t decode. Takes effect at the next connection.</string>
     <string name="setup_tagline">Open-source car projection</string>
     <string name="setup_status_certificate">certificate: %1$s</string>
     <string name="setup_status_disconnected_hint">Plug the phone into the car\'s Android Auto USB port, or connect to a paired car wirelessly.</string>

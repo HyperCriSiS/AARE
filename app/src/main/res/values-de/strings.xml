@@ -496,6 +496,11 @@
     <string name="vehicles_rule_count">%1$d Regel(n) geladen</string>
     <string name="vehicles_import">Datei importieren…</string>
     <string name="vehicles_template">Vorlage schreiben</string>
+    <string name="vehicles_known_fixes">Bekannte Korrekturen</string>
+    <string name="troubleshooting_log_title">Verbindungsprotokoll</string>
+    <string name="troubleshooting_log_subtitle">Führt ein kurzes Protokoll jeder Verbindung. Aus: Es wird nichts geschrieben.</string>
+    <string name="vehicles_skip_mic_setup_title">Mikrofon-Einrichtung überspringen</string>
+    <string name="vehicles_skip_mic_setup_subtitle">Einschalten, wenn Ton läuft, das Auto aber nie das Bild zeigt. Manche älteren Autoradios lehnen diese Nachricht ab und bleiben dann auf ihrem eigenen Bildschirm. Gilt ab der nächsten Verbindung.</string>
     <string name="vehicles_malformed_at">vehicles.json hat einen Fehler in Zeile %1$d, Spalte %2$d (%3$s): Die Regeln darin werden ignoriert.</string>
     <string name="vehicles_malformed">vehicles.json kann nicht verwendet werden (%1$s): Die Regeln darin werden ignoriert.</string>
     <string name="setup_toggle_force_h264_title">H.264-Video erzwingen</string>

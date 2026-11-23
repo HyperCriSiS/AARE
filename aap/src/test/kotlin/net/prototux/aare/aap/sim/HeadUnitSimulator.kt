@@ -93,6 +93,8 @@ class HeadUnitSimulator(
     omitZeroFields: Boolean = false,
     /** The protocol minor version the head unit announces. */
     private val protocolMinor: Int = 6,
+    /** False: stays silent on video focus requests, like a car that waits for video first. */
+    private val answerVideoFocus: Boolean = true,
     /** The protocol major version the head unit announces. */
     private val protocolMajor: Int = 1,
 ) {
@@ -113,6 +115,9 @@ class HeadUnitSimulator(
     var phoneRequest: ServiceDiscoveryRequest? = null
     val openedChannels = ConcurrentHashMap.newKeySet<Int>()
     val videoFrames = AtomicInteger()
+    /** While true, video frames are taken but never acked (the car is showing its own screen). */
+    @Volatile var dropVideoUnacked = false
+    val droppedUnacked = AtomicInteger()
     val videoBytes = AtomicInteger()
     val codecConfigs = AtomicInteger()
     val audioChunks = AtomicInteger()
@@ -125,6 +130,8 @@ class HeadUnitSimulator(
     val byeBye = CountDownLatch(1)
     val closed = CountDownLatch(1)
     @Volatile var videoStart: Start? = null
+    /** STOP messages on the video channel. */
+    val videoStops = AtomicInteger()
     /** Each media channel's session, from its latest START: its acks carry it, as a head unit's do. */
     val sessionIds = ConcurrentHashMap<Int, Int>()
     @Volatile var error: Throwable? = null
@@ -248,10 +255,11 @@ class HeadUnitSimulator(
                 sessionIds[m.channel] = start.sessionId
                 if (m.channel == video) videoStart = start
             }
+            MediaMsg.STOP -> if (m.channel == video) videoStops.incrementAndGet()
             MediaMsg.VIDEO_FOCUS_REQUEST -> {
                 focusRequests.incrementAndGet()
                 val r = VideoFocusRequestNotification.parseFrom(m.bodyBytes())
-                send(video, MediaMsg.VIDEO_FOCUS_NOTIFICATION, VideoFocusNotification.newBuilder()
+                if (answerVideoFocus) send(video, MediaMsg.VIDEO_FOCUS_NOTIFICATION, VideoFocusNotification.newBuilder()
                     .setFocus(if (r.mode == VideoFocusMode.VIDEO_FOCUS_NATIVE) VideoFocusMode.VIDEO_FOCUS_NATIVE else VideoFocusMode.VIDEO_FOCUS_PROJECTED)
                     .setUnsolicited(false).build())
             }
@@ -270,6 +278,8 @@ class HeadUnitSimulator(
                     audioChunks.incrementAndGet()
                 }
                 val session = sessionIds[m.channel] ?: 0
+                // Like the VW Play behind its reverse camera: video arrives and is dropped unacked.
+                if (m.channel == video && dropVideoUnacked) { droppedUnacked.incrementAndGet(); return }
                 if (m.channel == video || ackAudio)
                     send(m.channel, MediaMsg.ACK, Ack.newBuilder().apply { if (session != 0 || writeZeros) setSessionId(session) }.setAck(1).build())
             }

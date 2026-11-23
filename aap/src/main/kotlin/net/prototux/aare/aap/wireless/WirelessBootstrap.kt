@@ -433,7 +433,7 @@ class WirelessBootstrap(
     private fun parseCredentials(payload: ByteArray): WifiCredentials {
         val info = parse("WifiInfoResponse") { WifiInfoResponse.parseFrom(payload) }
         val bssid = info.bssid.trim().takeIf { MAC.matches(it) && it != "00:00:00:00:00:00" }
-        if (info.bssid.isNotBlank() && bssid == null) log.w("wireless: ignoring malformed BSSID \"${info.bssid}\"")
+        if (info.bssid.isNotBlank() && bssid == null) log.w("wireless: ignoring a malformed BSSID (${info.bssid.length} characters)")
         // One pair of surrounding double quotes is dropped from both for head units
         // below WPP 4.5 (or without a version request): some send them in Android's quoted form.
         val unquote = !headUnitAtLeast(4, 5)

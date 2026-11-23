@@ -217,7 +217,23 @@ class AapSession(
     fun sendRaw(channel: Int, plain: ByteArray, length: Int = plain.size, control: Boolean = false,
                 encrypted: Boolean = true, priority: Int = Priority.CONTROL, onSent: (() -> Unit)? = null) {
         if (closed.get()) return
+        if (!control && length >= 2) trace("tx", channel, ((plain[0].toInt() and 0xff) shl 8) or (plain[1].toInt() and 0xff), plain, 2, length - 2)
         queue.offer(Outgoing(priority, seq.incrementAndGet(), channel, control, encrypted, plain, length, onSent))
+    }
+
+    /** The last messages [trace] showed as sent, for a head unit's "unexpected message" answer. */
+    private val recentlySent = ArrayDeque<String>()
+
+    /** Logs a message the verbose log keeps ([ProtocolTrace]): "tx video START", "rx AUDIO_FOCUS_NOTIFICATION"… */
+    private fun trace(direction: String, channel: Int, id: Int, body: ByteArray, offset: Int, length: Int) {
+        val channelName = if (channel == 0) null else channels[channel]?.name ?: return
+        if (!ProtocolTrace.shown(channelName, id)) return
+        val what = (channelName?.let { "$it " } ?: "") + ProtocolTrace.name(channelName, id)
+        if (direction == "tx") synchronized(recentlySent) {
+            recentlySent.addLast(what)
+            if (recentlySent.size > 4) recentlySent.removeFirst()
+        }
+        log.d("$direction $what" + ProtocolTrace.payload(channelName, id, body, offset, length))
     }
 
     fun send(channel: Int, id: Int, body: MessageLite, control: Boolean = false, priority: Int = Priority.CONTROL) {
@@ -335,8 +351,23 @@ class AapSession(
             }
             return
         }
+        if (msg.id == UNEXPECTED_MESSAGE) {
+            // The car's way of saying we sent something it didn't expect on this channel. The first
+            // few, then one in a hundred: a repeated one flooded the connection log on a drive.
+            val n = unexpectedCounts.merge(ch.id, 1, Int::plus) ?: 1
+            if (n <= 3 || n % 100 == 0) log.w("car says it got an unexpected message on channel ${ch.id} (${ch.name})" + if (n > 3) ", $n so far" else "")
+        }
+        trace("rx", msg.channel, msg.id, msg.body, msg.bodyOffset, msg.bodyLength)
+        if (msg.id == MediaMsg.CONFIG && ProtocolTrace.isMedia(ch.name)) {
+            // A sink that never says READY stays silent or black with nothing else in the log.
+            val status = runCatching { aap_protobuf.service.media.shared.message.ConfigOuterClass.Config.parseFrom(msg.bodyBytes()).status }.getOrNull()
+            if (status != aap_protobuf.service.media.shared.message.ConfigOuterClass.Config.Status.STATUS_READY) log.w("${ch.name}: the car answered the stream setup with $status")
+        }
         runHandler(ch) { ch.onMessage(msg) }
     }
+
+    /** "Unexpected message" answers per channel (reader thread only). */
+    private val unexpectedCounts = HashMap<Int, Int>()
 
     private inline fun runHandler(ch: ServiceChannel, block: () -> Unit) {
         try {
@@ -350,7 +381,7 @@ class AapSession(
     // ------------------------------------------------------------------ control channel
 
     private fun handleControl(msg: AapMessage) {
-        log.d("rx $msg")
+        trace("rx", 0, msg.id, msg.body, msg.bodyOffset, msg.bodyLength)
         // Until service discovery only the version and TLS handshake messages make sense.
         if (state.ordinal < State.DISCOVERY.ordinal &&
             msg.id != ControlMsg.VERSION_REQUEST && msg.id != ControlMsg.ENCAPSULATED_SSL &&
@@ -401,6 +432,9 @@ class AapSession(
             }
             ControlMsg.BYEBYE_RESPONSE -> close("session ended", null)
             ControlMsg.CHANNEL_OPEN_RESPONSE -> log.w("channel open response on control channel")
+            // It doesn't say which: the last ones sent are the suspects (#100: a protocol 1.3 unit).
+            ControlMsg.UNEXPECTED_MESSAGE -> log.w("head unit refused a message (unexpected message); last sent: " +
+                synchronized(recentlySent) { recentlySent.joinToString() }.ifEmpty { "nothing logged" })
             else -> log.d("unhandled control message $msg")
         }
     }
@@ -500,6 +534,8 @@ class AapSession(
         }
         discovery = resp
         log.i("head unit: ${describe(resp)}")
+        // Everything the car offers (screens, codecs, touch size, keys, sensors), for reports.
+        resp.channelsList.forEach { log.d("service #${it.id}: ${ProtocolTrace.oneLine(it.toString())}") }
         resp.connectionConfiguration?.pingConfiguration?.let { pc ->
             if (pc.hasIntervalMs() && pc.intervalMs > 0) pingIntervalMs = pc.intervalMs.toLong().coerceIn(250, 5_000)
             if (pc.hasTimeoutMs() && pc.timeoutMs > 0) deadAfterMs = maxOf(pc.timeoutMs.toLong() * 3, 20_000L)
@@ -601,6 +637,7 @@ class AapSession(
     companion object {
         const val PROTOCOL_MAJOR = 1
         const val PROTOCOL_MINOR = 7
+        private const val UNEXPECTED_MESSAGE = 0x00FF
 
         private fun now() = System.nanoTime() / 1_000_000
 

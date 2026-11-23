@@ -16,10 +16,20 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("hu_server", false)
         set(v) = prefs.edit { putBoolean("hu_server", v) }
 
+    /** Keep the connection log at all; off, nothing is written. */
+    var connectionLog: Boolean
+        get() = prefs.getBoolean("connection_log", true)
+        set(v) = prefs.edit { putBoolean("connection_log", v) }
+
     /** Write the protocol frame trace to the in-app connection log too, to capture it without adb. */
     var verboseProtocolLog: Boolean
         get() = prefs.getBoolean("verbose_protocol_log", false)
         set(v) = prefs.edit { putBoolean("verbose_protocol_log", v) }
+
+    /** Never send SETUP on the car's microphone channel: some head units refuse it and then show no video. */
+    var skipMicSetup: Boolean
+        get() = prefs.getBoolean("skip_mic_setup", false)
+        set(v) = prefs.edit { putBoolean("skip_mic_setup", v) }
 
     /** Also accept head units from the network (TCP 5277, no authentication). Switched off again after one session if [headUnitServerLanOnce]. */
     var headUnitServerLan: Boolean

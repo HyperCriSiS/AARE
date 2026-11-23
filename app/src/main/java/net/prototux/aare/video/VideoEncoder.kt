@@ -51,6 +51,8 @@ class VideoEncoder(
      * busy pictures.
      */
     private val constantBitrate: Boolean = false,
+    /** Encoder changes for a head unit that takes the stream but shows nothing (see [EncoderTweaks]). */
+    private val tweaks: EncoderTweaks = EncoderTweaks(),
     private val sink: Sink,
 ) {
     interface Sink {
@@ -84,9 +86,12 @@ class VideoEncoder(
             setInteger(MediaFormat.KEY_BIT_RATE, bitrate)
             setInteger(MediaFormat.KEY_FRAME_RATE, fps)
             // Long GOP: the transport is reliable, and we ask for key frames when they're needed.
-            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 2)
-            kind.profile?.let { int(MediaFormat.KEY_PROFILE, it) }
-            kind.levelFor(width, height, fps)?.let { int(MediaFormat.KEY_LEVEL, it) }
+            setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, if (tweaks.shortGop) 1 else 2)
+            val h264 = kind == VideoCodecKind.H264
+            (if (h264 && tweaks.constrainedBaseline) MediaCodecInfo.CodecProfileLevel.AVCProfileConstrainedBaseline else kind.profile)
+                ?.let { int(MediaFormat.KEY_PROFILE, it) }
+            (if (h264 && tweaks.level30) MediaCodecInfo.CodecProfileLevel.AVCLevel3 else kind.levelFor(width, height, fps))
+                ?.let { int(MediaFormat.KEY_LEVEL, it) }
             int(MediaFormat.KEY_BITRATE_MODE, bitrateMode)
             // Keep frames flowing on a static screen so the head unit's decoder never stalls.
             if (MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER !in dropped) setLong(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 1_000_000L / 5)
@@ -94,7 +99,7 @@ class VideoEncoder(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) int(MediaFormat.KEY_LATENCY, 1)
             int(MediaFormat.KEY_MAX_B_FRAMES, 0)
             // SPS/PPS before every key frame, so a head unit that resets its decoder can resync.
-            int(MediaFormat.KEY_PREPEND_HEADER_TO_SYNC_FRAMES, 1)
+            if (!tweaks.noRepeatedHeaders) int(MediaFormat.KEY_PREPEND_HEADER_TO_SYNC_FRAMES, 1)
         }
         // Until the codec runs, a failure must release what was made so far: the caller never
         // gets an encoder to stop, and a leaked codec holds one of the few hardware instances.
@@ -103,7 +108,8 @@ class VideoEncoder(
         try {
             var format = format(emptySet())
             val name = MediaCodecList(MediaCodecList.REGULAR_CODECS).findEncoderForFormat(format)
-            c = if (name != null) MediaCodec.createByCodecName(name) else MediaCodec.createEncoderByType(kind.mime)
+            val software = if (tweaks.softwareEncoder) softwareEncoder(kind.mime) else null
+            c = (software ?: name)?.let { MediaCodec.createByCodecName(it) } ?: MediaCodec.createEncoderByType(kind.mime)
             if (constantBitrate) {
                 val cbr = MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CBR
                 val supported = runCatching { c.codecInfo.getCapabilitiesForType(kind.mime).encoderCapabilities?.isBitrateModeSupported(cbr) == true }.getOrDefault(false)
@@ -268,6 +274,40 @@ class VideoEncoder(
         }
     }
 }
+
+/**
+ * Encoder changes to try, one variant at a time, on a head unit that acks every frame but never
+ * shows the picture: a lower level, Constrained Baseline, no SPS/PPS repeated before key frames
+ * (only the codec config), Android's software encoder instead of the phone's, or all of them.
+ */
+data class EncoderTweaks(
+    val level30: Boolean = false,
+    val constrainedBaseline: Boolean = false,
+    val noRepeatedHeaders: Boolean = false,
+    val softwareEncoder: Boolean = false,
+    val shortGop: Boolean = false,
+) {
+    companion object {
+        val VARIANTS = listOf("", "level30", "constrained", "headers", "software", "all")
+
+        fun of(variant: String) = when (variant) {
+            "level30" -> EncoderTweaks(level30 = true)
+            "constrained" -> EncoderTweaks(constrainedBaseline = true)
+            "headers" -> EncoderTweaks(noRepeatedHeaders = true)
+            "software" -> EncoderTweaks(softwareEncoder = true)
+            "all" -> EncoderTweaks(level30 = true, constrainedBaseline = true, softwareEncoder = true, shortGop = true)
+            else -> EncoderTweaks()
+        }
+    }
+}
+
+/** Android's own software encoder for [mime], or null if the phone has none that takes a Surface. */
+private fun softwareEncoder(mime: String): String? = MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
+    .filter { it.isEncoder && it.supportedTypes.any { t -> t.equals(mime, ignoreCase = true) } }
+    .filter { (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isSoftwareOnly) || it.name.startsWith("c2.android.") || it.name.startsWith("OMX.google.") }
+    .firstOrNull { info ->
+        runCatching { MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface in info.getCapabilitiesForType(mime).colorFormats }.getOrDefault(false)
+    }?.name
 
 /** The lowest H.264 level whose macroblock rate (and frame size) covers the stream. */
 private fun h264LevelFor(w: Int, h: Int, fps: Int): Int {

@@ -513,6 +513,16 @@
     <string name="vehicles_malformed">vehicles.json kann nicht verwendet werden (%1$s): Die Regeln darin werden ignoriert.</string>
     <string name="setup_toggle_force_h264_title">H.264-Video erzwingen</string>
     <string name="setup_toggle_force_h264_subtitle">Standardmäßig verwendet AARE den besten Codec, den Auto und Telefon gemeinsam unterstützen (H.265…). Aktivieren Sie dies, wenn das Bild im Auto ruckelt oder gestört ist.</string>
+    <string name="setup_choice_video_variant">Video-Encoder-Test</string>
+    <string name="setup_hint_video_variant">Nur für ein Auto, das den Ton spielt, aber nie das Bild zeigt: pro Verbindung eine Variante ausprobieren und melden, welche das Bild zeigt. Sonst auf Standard lassen.</string>
+    <string-array name="setup_video_variants">
+        <item>Standard</item>
+        <item>Level 3.0</item>
+        <item>Constrained Baseline</item>
+        <item>Kopfdaten nur einmal</item>
+        <item>Software-Encoder</item>
+        <item>Alles zusammen</item>
+    </string-array>
     <string name="common_ok">OK</string>
     <string name="common_try_again">Erneut versuchen</string>
     <string name="common_something_went_wrong">Etwas ist schiefgelaufen</string>

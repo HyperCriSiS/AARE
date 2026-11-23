@@ -187,6 +187,16 @@
     <string name="setup_toggle_force_h264_title">Force H.264 video</string>
     <string name="setup_toggle_constant_bitrate_title">Constant bitrate video</string>
     <string name="setup_toggle_constant_bitrate_subtitle">Keeps every frame about the same size. Turn on if the car drops the connection when the whole picture changes, as with the phone screen or a video. Busy pictures get a little softer. Takes effect from the next connection.</string>
+    <string name="setup_choice_video_variant">Video encoder test</string>
+    <string name="setup_hint_video_variant">Only for a car that plays the sound but never shows the picture: try one variant per connection and report which one shows it. Keep Default otherwise.</string>
+    <string-array name="setup_video_variants">
+        <item>Default</item>
+        <item>Level 3.0</item>
+        <item>Constrained Baseline</item>
+        <item>Headers only once</item>
+        <item>Software encoder</item>
+        <item>All together</item>
+    </string-array>
     <string name="setup_toggle_force_h264_subtitle">By default AARE uses the best codec the car and phone share (H.265…). Turn on if the car\'s picture is glitchy.</string>
     <string name="setup_section_your_cars">Your cars</string>
     <string name="setup_cars_empty">Cars appear here after the first connection.</string>

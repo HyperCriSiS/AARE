@@ -107,6 +107,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("constant_bitrate_video", false)
         set(v) = prefs.edit { putBoolean("constant_bitrate_video", v) }
 
+    /** A video encoder variant to try on a car that shows no picture (see [net.prototux.aare.video.EncoderTweaks]); "" is the default. */
+    var videoVariant: String
+        get() = prefs.getString("video_variant", "") ?: ""
+        set(v) = prefs.edit { putString("video_variant", v) }
+
     /**
      * Put calls on the phone's loudspeaker and microphone while connected to a car (CallSpeaker),
      * for setups whose hands-free microphone doesn't work. Off: calls go where Android routes them.

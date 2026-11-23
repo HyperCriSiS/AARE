@@ -142,6 +142,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -548,6 +549,7 @@ private fun ConnectionSettings(settings: Settings, refresh: Int) {
     var maxH by remember { mutableIntStateOf(settings.maxVideoHeight) }
     var forceH264 by remember { mutableStateOf(settings.forceH264) }
     var constantBitrate by remember { mutableStateOf(settings.constantBitrateVideo) }
+    var videoVariant by remember { mutableStateOf(settings.videoVariant) }
     var resume by remember { mutableStateOf(settings.resumeMedia) }
     var callsOnSpeaker by remember { mutableStateOf(settings.callsOnPhoneSpeaker) }
     var cars by remember { mutableStateOf(settings.knownCars) }
@@ -614,6 +616,11 @@ private fun ConnectionSettings(settings: Settings, refresh: Int) {
             Toggle(stringResource(R.string.setup_toggle_constant_bitrate_title), stringResource(R.string.setup_toggle_constant_bitrate_subtitle), constantBitrate) {
                 constantBitrate = it; settings.constantBitrateVideo = it
             }
+            Choices(stringResource(R.string.setup_choice_video_variant),
+                net.prototux.aare.video.EncoderTweaks.VARIANTS.zip(stringArrayResource(R.array.setup_video_variants)), videoVariant) {
+                videoVariant = it; settings.videoVariant = it
+            }
+            Text(stringResource(R.string.setup_hint_video_variant), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Section(stringResource(R.string.setup_section_your_cars)) {
             if (cars.isEmpty()) Text(stringResource(R.string.setup_cars_empty), style = MaterialTheme.typography.bodyMedium)

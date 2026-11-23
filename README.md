@@ -215,6 +215,7 @@ Not planned (rare, or redundant with what AARE draws itself):
   |---|---|
   | Car audio by screen capture | Android 10 (on Android 8 and 9: the privileged install, or the car's Bluetooth) |
   | Car audio through Shizuku | Android 12 |
+  | Car audio through root (su) | Android 12 |
   | WPA3-only car Wi-Fi (wireless) | Android 10 (WPA2 and WPA2/WPA3 work from Android 8) |
   | Signal bars on the car screen | Android 9 |
   | Hanging up or declining from the car | Android 9 |
@@ -480,6 +481,7 @@ AARE uses the best way to send the phone's sound to the car that the phone allow
 |---|---|---|---|
 | **System audio routing**, as Android Auto does it | a rooted phone, AARE installed as a privileged app (below), or the permission granted over `adb root` | yes, on the car's navigation channel | off |
 | **Shizuku** | [Shizuku](https://shizuku.rikka.app/) running, Android 12+ | yes, on the car's navigation channel | off |
+| **Root** | a rooted phone (KernelSU, Magisk, APatch…), Android 12+: the normal APK, nothing else to install | yes, on the car's navigation channel | off |
 | **Screen-capture permission** | one consent (choose *Entire screen*) | no | still plays |
 
 - **Privileged install (root):** `tools/magisk/build-module.sh` makes `build/aare-magisk.zip`.
@@ -505,7 +507,15 @@ AARE uses the best way to send the phone's sound to the car that the phone allow
   On phones that switch wireless debugging off when they lock (Samsung), start Shizuku from a
   computer over USB instead, with the command Shizuku shows under *Start via connecting to a
   computer*: started that way it doesn't need wireless debugging, and runs until the phone
-  reboots (as long as USB debugging stays on) ([discussion](https://github.com/prototux/AARE/discussions/49)).
+  reboots (as long as USB debugging stays on)
+  ([discussion](https://github.com/prototux/AARE/discussions/49)).
+- **Root alone (no Magisk module, no Shizuku):** on AARE's *Car audio* page tap *Shizuku or root*
+  and allow AARE in the root manager. AARE then starts a small helper of its own with `su`, which
+  takes the shell's rights and registers the same audio policy as the privileged install: music
+  and navigation voice go to their own car channels. If the phone refuses it, AARE falls back to
+  recording the phone's whole output through root, with navigation voice mixed into the music.
+  When Shizuku runs too, AARE uses Shizuku. The Magisk module and `adb root` remain options: they
+  let AARE register the policy itself, with no helper.
 - **Screen capture:** works everywhere, but Android only gives normal apps media, game and
   "unknown" sounds, so navigation voice stays on the phone, and apps may opt out. Android asks
   for the permission again once AARE has been closed. Reported but not confirmed yet: after a

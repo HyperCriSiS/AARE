@@ -2,6 +2,8 @@ package net.prototux.aare.aap
 
 import aap_protobuf.service.control.message.AudioFocusNotificationOuterClass.AudioFocusNotification
 import aap_protobuf.service.control.message.ServiceDiscoveryResponseOuterClass.ServiceDiscoveryResponse
+import aap_protobuf.service.control.message.UpdateUiConfigRequestOuterClass.UpdateUiConfigRequest
+import aap_protobuf.service.media.shared.message.UiConfigOuterClass.UiConfig
 import aap_protobuf.service.media.sink.message.VideoConfigurationOuterClass.VideoConfiguration
 import net.prototux.aare.aap.cert.SelfSignedCertificate
 import net.prototux.aare.aap.channels.VideoChannel
@@ -121,7 +123,7 @@ class VideoFocusFallbackTest {
 
         assertTrue("frames should reach the head unit", hu.firstVideoFrame.await(5, TimeUnit.SECONDS))
         Thread.sleep(300)
-        assertEquals(1, hu.videoStart!!.sessionId)
+        assertEquals("one START: the first session, 0", 0, hu.videoStart!!.sessionId)
     }
 
     /** The VW Play's reverse camera: frames in flight are dropped unacked, then the car hands the screen back. */
@@ -158,7 +160,7 @@ class VideoFocusFallbackTest {
 
         hu.requestFocusProjected()
         Thread.sleep(1_000)
-        assertEquals("a new session", 2, hu.videoStart!!.sessionId)
+        assertEquals("a new session", 1, hu.videoStart!!.sessionId)
         assertEquals(1, video!!.restarts)
         assertTrue("the decoder setup is sent again", hu.codecConfigs.get() > configsBefore)
         assertTrue("frames flow in the new session", hu.videoFrames.get() > stopped + 10)
@@ -186,5 +188,17 @@ class VideoFocusFallbackTest {
         assertTrue(focusGained.await(5, TimeUnit.SECONDS))
 
         assertFalse(video!!.assumeProjectedIfUnanswered())
+    }
+
+    /** A UI config request before the car grants focus (the stream not started yet) is answered once it starts. */
+    @Test
+    fun aUiConfigRequestBeforeFocusIsAnsweredOnceTheStreamStarts() {
+        connect(answerVideoFocus = false)
+        Thread.sleep(500) // the car's Config is in (a configuration chosen), no focus yet
+        hu.updateUiConfig(UpdateUiConfigRequest.newBuilder().setUiConfig(UiConfig.getDefaultInstance()).build())
+        Thread.sleep(300)
+        assertEquals("no reply before the stream runs", 0, hu.uiConfigReplies.size)
+        hu.requestFocusProjected()
+        assertTrue("a reply once it runs", hu.uiConfigReplies.poll(5, TimeUnit.SECONDS) != null)
     }
 }

@@ -21,6 +21,8 @@ import aap_protobuf.service.control.message.PingRequestOuterClass.PingRequest
 import aap_protobuf.service.control.message.PingResponseOuterClass.PingResponse
 import aap_protobuf.service.control.message.ServiceDiscoveryRequestOuterClass.ServiceDiscoveryRequest
 import aap_protobuf.service.control.message.ServiceDiscoveryResponseOuterClass.ServiceDiscoveryResponse
+import aap_protobuf.service.control.message.UpdateUiConfigReplyOuterClass.UpdateUiConfigReply
+import aap_protobuf.service.control.message.UpdateUiConfigRequestOuterClass.UpdateUiConfigRequest
 import aap_protobuf.service.inputsource.InputSourceServiceOuterClass.InputSourceService
 import aap_protobuf.service.inputsource.message.FeedbackEventOuterClass.FeedbackEvent
 import aap_protobuf.service.inputsource.message.InputFeedbackOuterClass.InputFeedback
@@ -31,7 +33,9 @@ import aap_protobuf.service.inputsource.message.TouchEventOuterClass.TouchEvent
 import aap_protobuf.service.media.shared.message.AudioConfigurationOuterClass.AudioConfiguration
 import aap_protobuf.service.media.shared.message.ConfigOuterClass.Config
 import aap_protobuf.service.media.shared.message.MediaCodecTypeOuterClass.MediaCodecType
+import aap_protobuf.service.media.shared.message.MediaStatsOuterClass.MediaStats
 import aap_protobuf.service.media.shared.message.StartOuterClass.Start
+import aap_protobuf.service.media.shared.message.UiConfigOuterClass.UiConfig
 import aap_protobuf.service.media.sink.MediaSinkServiceOuterClass.MediaSinkService
 import aap_protobuf.service.media.sink.message.AudioStreamTypeOuterClass.AudioStreamType
 import aap_protobuf.service.media.sink.message.VideoCodecResolutionTypeOuterClass.VideoCodecResolutionType
@@ -107,6 +111,12 @@ class HeadUnitSimulator(
     private val bluetoothMethods: List<BluetoothPairingMethod>? = null,
     /** The protocol major version the head unit announces. */
     private val protocolMajor: Int = 1,
+    /** The status the video sink's Config carries (audio always says READY). */
+    private val videoConfigStatus: Config.Status = Config.Status.STATUS_READY,
+    /** More video Configs sent right after the first, with these statuses. */
+    private val moreVideoConfigs: List<Config.Status> = emptyList(),
+    /** The video configuration's UI config, if any (insets, margins, theme). */
+    private val videoUiConfig: UiConfig? = null,
 ) {
     /** False when encoding like a proto3 head unit: fields set to 0 are not written. */
     private val writeZeros = !omitZeroFields
@@ -140,6 +150,8 @@ class HeadUnitSimulator(
     val audioChunks = AtomicInteger()
     /** Set false to simulate a head unit that stops acking audio mid-stream (#82). */
     @Volatile var ackAudio = true
+    /** Set false to simulate a head unit that doesn't ack video. */
+    @Volatile var ackVideo = true
     val pingsAnswered = AtomicInteger()
     val focusRequests = AtomicInteger()
     val sensorRequests = ConcurrentHashMap.newKeySet<SensorType>()
@@ -155,6 +167,12 @@ class HeadUnitSimulator(
     val videoStops = AtomicInteger()
     /** Each media channel's session, from its latest START: its acks carry it, as a head unit's do. */
     val sessionIds = ConcurrentHashMap<Int, Int>()
+    /** Every START the phone sent, by channel, latest last. */
+    val starts = ConcurrentHashMap<Int, LinkedBlockingQueue<Start>>()
+    /** UI configs the phone confirmed (UPDATE_UI_CONFIG_REPLY), in order. */
+    val uiConfigReplies = LinkedBlockingQueue<UiConfig>()
+    /** Video frames received when each UI config reply arrived. */
+    val framesAtUiConfigReply = LinkedBlockingQueue<Int>()
     @Volatile var error: Throwable? = null
     /** Video focus the phone reported, in order. */
     val focusNotifications = LinkedBlockingQueue<VideoFocusMode>()
@@ -293,14 +311,22 @@ class HeadUnitSimulator(
 
     private fun mediaSink(m: AapMessage) {
         when (m.id) {
-            MediaMsg.SETUP -> send(m.channel, MediaMsg.CONFIG, Config.newBuilder().setStatus(Config.Status.STATUS_READY)
-                .setMaxUnacked(maxUnacked).addConfigurationIndices(0).build())
+            MediaMsg.SETUP -> {
+                fun config(status: Config.Status) = Config.newBuilder().setStatus(status).setMaxUnacked(maxUnacked).addConfigurationIndices(0).build()
+                send(m.channel, MediaMsg.CONFIG, config(if (m.channel == video) videoConfigStatus else Config.Status.STATUS_READY))
+                if (m.channel == video) moreVideoConfigs.forEach { send(video, MediaMsg.CONFIG, config(it)) }
+            }
             MediaMsg.START -> {
                 val start = Start.parseFrom(m.bodyBytes())
                 sessionIds[m.channel] = start.sessionId
+                starts.computeIfAbsent(m.channel) { LinkedBlockingQueue() }.add(start)
                 if (m.channel == video) videoStart = start
             }
             MediaMsg.STOP -> if (m.channel == video) videoStops.incrementAndGet()
+            MediaMsg.UPDATE_UI_CONFIG_REPLY -> {
+                framesAtUiConfigReply.add(videoFrames.get())
+                uiConfigReplies.add(UpdateUiConfigReply.parseFrom(m.bodyBytes()).uiConfig)
+            }
             MediaMsg.VIDEO_FOCUS_REQUEST -> {
                 focusRequests.incrementAndGet()
                 val r = VideoFocusRequestNotification.parseFrom(m.bodyBytes())
@@ -325,7 +351,7 @@ class HeadUnitSimulator(
                 val session = sessionIds[m.channel] ?: 0
                 // Like the VW Play behind its reverse camera: video arrives and is dropped unacked.
                 if (m.channel == video && dropVideoUnacked) { droppedUnacked.incrementAndGet(); return }
-                if (m.channel == video || ackAudio)
+                if (if (m.channel == video) ackVideo else ackAudio)
                     send(m.channel, MediaMsg.ACK, Ack.newBuilder().apply { if (session != 0 || writeZeros) setSessionId(session) }.setAck(1).build())
             }
         }
@@ -401,6 +427,12 @@ class HeadUnitSimulator(
         send(channel, MediaMsg.ACK, Ack.newBuilder().setSessionId(sessionId).apply { count?.let { setAck(it) } }
             .addAllReceiveTimestampNs(receiveTimesNs).build())
 
+    /** Changes the projection's layout at runtime, as some head units do (insets, margins). */
+    fun updateUiConfig(request: UpdateUiConfigRequest) = send(video, MediaMsg.UPDATE_UI_CONFIG_REQUEST, request)
+
+    /** Reports playback statistics on a media channel, as head units 6.0 and later do. */
+    fun sendMediaStats(channel: Int, stats: MediaStats) = send(channel, MediaMsg.MEDIA_STATS, stats)
+
     fun sayByeBye() = send(0, ControlMsg.BYEBYE_REQUEST, ByeByeRequest.newBuilder().setReason(ByeByeReason.USER_SELECTION).build())
 
     fun discoveryResponse(): ServiceDiscoveryResponse {
@@ -421,7 +453,8 @@ class HeadUnitSimulator(
             .addChannels(Service.newBuilder().setId(video).setMediaSinkService(MediaSinkService.newBuilder()
                 .setAvailableType(MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP)
                 .addVideoConfigs(VideoConfiguration.newBuilder().setCodecResolution(res)
-                    .setFrameRate(VideoFrameRateType.VIDEO_FPS_30).setDensity(dpi).apply { if (writeZeros) { setWidthMargin(0); setHeightMargin(0) } })))
+                    .setFrameRate(VideoFrameRateType.VIDEO_FPS_30).setDensity(dpi).apply { if (writeZeros) { setWidthMargin(0); setHeightMargin(0) } }
+                    .apply { videoUiConfig?.let { setUiConfig(it) } })))
             .addChannels(audio(mediaAudio, AudioStreamType.AUDIO_STREAM_MEDIA, 48000, 2))
             .addChannels(audio(guidance, AudioStreamType.AUDIO_STREAM_GUIDANCE, 16000, 1))
             .addChannels(audio(system, AudioStreamType.AUDIO_STREAM_SYSTEM_AUDIO, 16000, 1))

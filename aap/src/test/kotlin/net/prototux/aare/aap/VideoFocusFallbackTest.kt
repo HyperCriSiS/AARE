@@ -2,6 +2,8 @@ package net.prototux.aare.aap
 
 import aap_protobuf.service.control.message.AudioFocusNotificationOuterClass.AudioFocusNotification
 import aap_protobuf.service.control.message.ServiceDiscoveryResponseOuterClass.ServiceDiscoveryResponse
+import aap_protobuf.service.control.message.UpdateUiConfigRequestOuterClass.UpdateUiConfigRequest
+import aap_protobuf.service.media.shared.message.UiConfigOuterClass.UiConfig
 import aap_protobuf.service.media.sink.message.VideoConfigurationOuterClass.VideoConfiguration
 import net.prototux.aare.aap.cert.SelfSignedCertificate
 import net.prototux.aare.aap.channels.VideoChannel
@@ -186,5 +188,17 @@ class VideoFocusFallbackTest {
         assertTrue(focusGained.await(5, TimeUnit.SECONDS))
 
         assertFalse(video!!.assumeProjectedIfUnanswered())
+    }
+
+    /** A UI config request before the car grants focus (the stream not started yet) is answered once it starts. */
+    @Test
+    fun aUiConfigRequestBeforeFocusIsAnsweredOnceTheStreamStarts() {
+        connect(answerVideoFocus = false)
+        Thread.sleep(500) // the car's Config is in (a configuration chosen), no focus yet
+        hu.updateUiConfig(UpdateUiConfigRequest.newBuilder().setUiConfig(UiConfig.getDefaultInstance()).build())
+        Thread.sleep(300)
+        assertEquals("no reply before the stream runs", 0, hu.uiConfigReplies.size)
+        hu.requestFocusProjected()
+        assertTrue("a reply once it runs", hu.uiConfigReplies.poll(5, TimeUnit.SECONDS) != null)
     }
 }

@@ -457,7 +457,8 @@ class VideoChannel(
      * so a still screen (no new frame) doesn't hold it back.
      */
     private fun onUiConfigRequest(request: UpdateUiConfigRequest) {
-        val current = chosen ?: run { earlyUiRequest = request; return }
+        // Before the stream runs (it starts when the car grants focus): answered once it does.
+        val current = chosen?.takeIf { started } ?: run { earlyUiRequest = request; return }
         val ui = current.uiConfig.takeIf { current.hasUiConfig() }
         val next = UiConfigUpdate.apply(ui, request, session.headUnitAtLeast(4, 3))
         if (!request.hasUiConfig()) {

@@ -371,12 +371,6 @@ class HeadUnitSimulator(
     fun sendAuthenticationData(authData: String, method: BluetoothPairingMethod) = send(bluetooth, BluetoothMsg.AUTHENTICATION_DATA,
         BluetoothAuthenticationData.newBuilder().setAuthData(authData).setPairingMethod(method).build())
 
-    /** Changes the projection's layout at runtime, as some head units do (insets, margins). */
-    fun updateUiConfig(request: UpdateUiConfigRequest) = send(video, MediaMsg.UPDATE_UI_CONFIG_REQUEST, request)
-
-    /** Reports playback statistics on a media channel, as head units 6.0 and later do. */
-    fun sendMediaStats(channel: Int, stats: MediaStats) = send(channel, MediaMsg.MEDIA_STATS, stats)
-
     /** Sends an ack of the head unit's own making on a media channel. */
     fun sendAck(channel: Int, sessionId: Int, count: Int? = null, receiveTimesNs: List<Long> = emptyList()) =
         send(channel, MediaMsg.ACK, Ack.newBuilder().setSessionId(sessionId).apply { count?.let { setAck(it) } }

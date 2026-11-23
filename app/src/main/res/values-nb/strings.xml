@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Kunne ikke laste ned sertifikatet: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Kobler til trådløst…</string>
     <string name="notif_status_not_connected">Ikke tilkoblet</string>
+    <string name="notif_status_reconnecting">Forbindelsen til bilen ble brutt, kobler til igjen (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · beholder samtykket til skjermopptak for bilaudio (Stopp frigir det)</string>
     <string name="notif_cert_changed_title">Head unit-sertifikat endret</string>
     <string name="notif_new_head_unit_title">Ny head unit</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Samtale i gang</string>
     <string name="phone_action_hang_up">Legg på</string>
     <string name="phone_keypad_delete">Slett</string>
+    <string name="voip_mic_title">%1$s kan ikke bruke mikrofonen</string>
+    <string name="voip_mic_car_text">Den andre parten hører deg ikke. Tillat det på telefonen: se varselet</string>
+    <string name="voip_mic_notification_text">Samtaler fra bilen via %1$s trenger mikrofontillatelsen dens. Trykk for å åpne innstillingene</string>
+    <string name="voip_call_failed_title">Kunne ikke ringe via %1$s</string>
+    <string name="voip_call_failed_text">Åpne den på telefonen for å ringe</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Lader</string>
     <string name="phone_incoming_call">Innkommende samtale</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Akselerometer</string>
     <string name="car_data_gyroscope">Gyroskop</string>
     <string name="car_data_dtc">Feilkoder</string>
+    <string name="car_data_dtc_unknown">Ukjent</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Produsentspesifikk drivlinjekode</string>
+    <string name="car_data_dtc_manufacturer_chassis">Produsentspesifikk chassiskode</string>
+    <string name="car_data_dtc_manufacturer_body">Produsentspesifikk karosserikode</string>
+    <string name="car_data_dtc_manufacturer_network">Produsentspesifikk nettverkskode</string>
     <string name="car_data_app_label">Bildata</string>
     <string name="car_data_show_in_car_title">Vis på bilskjermen</string>
     <string name="car_data_show_in_car_subtitle">Legg til en diagnoseapp i bilen for disse direktedataene</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">%1$d regel(regler) lastet inn</string>
     <string name="vehicles_import">Importer fil…</string>
     <string name="vehicles_template">Skriv mal</string>
+    <string name="vehicles_malformed_at">vehicles.json har en feil på linje %1$d, kolonne %2$d (%3$s): reglene i den ignoreres.</string>
+    <string name="vehicles_malformed">vehicles.json kan ikke brukes (%1$s): reglene i den ignoreres.</string>
     <string name="setup_toggle_force_h264_title">Tving frem H.264-video</string>
     <string name="setup_toggle_force_h264_subtitle">Som standard bruker AARE den beste kodeken som bilen og telefonen har felles (H.265…). Slå på hvis bildet i bilen er forstyrret.</string>
     <string name="common_ok">OK</string>

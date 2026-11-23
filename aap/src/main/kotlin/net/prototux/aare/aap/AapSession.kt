@@ -96,7 +96,7 @@ class AapSession(
     private val identity: PhoneIdentity,
     private val phone: PhoneDescription,
     private val callbacks: Callbacks,
-    private val log: AapLog = AapLog.Stdout,
+    internal val log: AapLog = AapLog.Stdout,
     private val options: SessionOptions = SessionOptions(),
 ) {
     interface Callbacks {
@@ -136,7 +136,7 @@ class AapSession(
     @Volatile private var tlsStarted = false
     @Volatile var discovery: ServiceDiscoveryResponse? = null
         private set
-    var headUnitVersion: Pair<Int, Int>? = null
+    @Volatile var headUnitVersion: Pair<Int, Int>? = null
         private set
 
     private val cryptor = Cryptor(identity.certificate, identity.privateKey, identity.chain,
@@ -146,7 +146,7 @@ class AapSession(
     val pinRefusal: PinRefusal? get() = cryptor.pinRefusal
 
     @Volatile private var tlsUp = false
-    private val reader = FrameReader(transport.input) { if (tlsUp) cryptor else null }
+    private val reader = FrameReader(transport.input, log) { if (tlsUp) cryptor else null }
     private val writer = FrameWriter(transport.output) { if (tlsUp) cryptor else null }
 
     private val queue = PriorityBlockingQueue<Outgoing>()
@@ -294,9 +294,23 @@ class AapSession(
                 lastInboundMs = now()
                 dispatch(msg)
             }
+        } catch (e: FramingException) {
+            onFramingError(e)
         } catch (e: Throwable) {
             fail(if (closed.get()) "closed" else "read failed", e)
         }
+    }
+
+    /**
+     * Tell the head unit its framing broke (FRAMING_ERROR, in the clear on
+     * the control channel, whether TLS is up or not) before hanging up. The write gets a short
+     * grace in case the writer is stuck.
+     */
+    private fun onFramingError(e: FramingException) {
+        if (closed.get()) return
+        sendRaw(0, AapMessage.plaintext(ControlMsg.FRAMING_ERROR, ByteArray(0)), encrypted = false,
+            onSent = { fail("framing error", e) })
+        schedule({ fail("framing error", e) }, 200, TimeUnit.MILLISECONDS)
     }
 
     private fun dispatch(msg: AapMessage) {
@@ -435,9 +449,9 @@ class AapSession(
         val major = if (msg.bodyLength >= 2) ((b[o].toInt() and 0xff) shl 8) or (b[o + 1].toInt() and 0xff) else 1
         val minor = if (msg.bodyLength >= 4) ((b[o + 2].toInt() and 0xff) shl 8) or (b[o + 3].toInt() and 0xff) else 0
         headUnitVersion = major to minor
-        // Like the official phone: 1.7 to anything up to 1.7, 6.1 to the newer GAL numbering.
-        // Status is always success; feature gating follows the head unit's own version.
-        val (replyMajor, replyMinor) = if (major < 1 || (major == 1 && minor <= 7)) 1 to 7 else 6 to 1
+        // 1.7 to anything up to 1.7, 6.2 to anything newer (even above
+        // 6.2). Status is always success; feature gating follows the head unit's own version.
+        val (replyMajor, replyMinor) = versionReply(major, minor)
         log.i("head unit protocol $major.$minor, answering $replyMajor.$replyMinor")
         val body = byteArrayOf(
             (replyMajor shr 8).toByte(), replyMajor.toByte(),
@@ -626,6 +640,10 @@ class AapSession(
         private const val UNEXPECTED_MESSAGE = 0x00FF
 
         private fun now() = System.nanoTime() / 1_000_000
+
+        /** The protocol version the phone answers to a head unit asking for [major].[minor]. */
+        internal fun versionReply(major: Int, minor: Int): Pair<Int, Int> =
+            if (major < 1 || (major == 1 && minor <= 7)) 1 to 7 else 6 to 2
 
         /**
          * The link's last moments, for a failed session's log line: tells a link that died while

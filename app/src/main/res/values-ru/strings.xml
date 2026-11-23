@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Не удалось скачать сертификат: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Беспроводное соединение…</string>
     <string name="notif_status_not_connected">Не подключено</string>
+    <string name="notif_status_reconnecting">Соединение с автомобилем потеряно, повторное подключение (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · сохраняет согласие на захват экрана для звука в автомобиле (Остановить освободит его)</string>
     <string name="notif_cert_changed_title">Сертификат головного устройства изменился</string>
     <string name="notif_new_head_unit_title">Новое головное устройство</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Звонок в процессе</string>
     <string name="phone_action_hang_up">Завершить</string>
     <string name="phone_keypad_delete">Удалить</string>
+    <string name="voip_mic_title">%1$s не может использовать микрофон</string>
+    <string name="voip_mic_car_text">Собеседник вас не услышит. Разрешите это на телефоне: см. уведомление</string>
+    <string name="voip_mic_notification_text">Звонкам из машины через %1$s нужно разрешение на микрофон. Нажмите, чтобы открыть его настройки</string>
+    <string name="voip_call_failed_title">Не удалось позвонить через %1$s</string>
+    <string name="voip_call_failed_text">Откройте его на телефоне, чтобы позвонить</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Зарядка</string>
     <string name="phone_incoming_call">Входящий звонок</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Акселерометр</string>
     <string name="car_data_gyroscope">Гироскоп</string>
     <string name="car_data_dtc">Коды неисправностей</string>
+    <string name="car_data_dtc_unknown">Неизвестно</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Код силового агрегата, определённый производителем</string>
+    <string name="car_data_dtc_manufacturer_chassis">Код шасси, определённый производителем</string>
+    <string name="car_data_dtc_manufacturer_body">Код кузова, определённый производителем</string>
+    <string name="car_data_dtc_manufacturer_network">Код сети, определённый производителем</string>
     <string name="car_data_app_label">Данные автомобиля</string>
     <string name="car_data_show_in_car_title">Показывать на экране автомобиля</string>
     <string name="car_data_show_in_car_subtitle">Добавьте диагностическое приложение в автомобиле для этих данных в реальном времени</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Загружено правил: %1$d</string>
     <string name="vehicles_import">Импортировать файл…</string>
     <string name="vehicles_template">Записать шаблон</string>
+    <string name="vehicles_malformed_at">В vehicles.json ошибка в строке %1$d, столбце %2$d (%3$s): его правила игнорируются.</string>
+    <string name="vehicles_malformed">vehicles.json нельзя использовать (%1$s): его правила игнорируются.</string>
     <string name="setup_toggle_force_h264_title">Принудительно использовать видео H.264</string>
     <string name="setup_toggle_force_h264_subtitle">По умолчанию AARE использует лучший кодек, поддерживаемый и автомобилем, и телефоном (H.265…). Включите, если изображение в автомобиле искажено.</string>
     <string name="common_ok">OK</string>

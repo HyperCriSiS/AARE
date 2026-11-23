@@ -139,6 +139,8 @@ class CarSession(
     private var phoneStatus: net.prototux.aare.aap.channels.PhoneStatusChannel? = null
     /** Calls, signal, battery and call availability to the car (from onRunning). */
     @Volatile private var phoneBridge: PhoneStatusBridge? = null
+    /** Answers the car's Bluetooth passkey or PIN while it pairs; null without a Bluetooth service. */
+    @Volatile private var btPairing: BluetoothPairing? = null
     /** Moves calls to the phone's speaker while connected (Settings.callsOnPhoneSpeaker); null when off. */
     private var callSpeaker: CallSpeaker? = null
     /** Keeps the phone's Bluetooth on while connected, as Android Auto does (main thread). */
@@ -305,9 +307,11 @@ class CarSession(
                         override fun onPairingResponse(alreadyPaired: Boolean, ok: Boolean) {
                             DiagLog.add("car bluetooth: pairing ${if (ok) "accepted" else "refused"}${if (alreadyPaired) " (already paired)" else ""}")
                         }
+                        override fun onAuthenticationData(authData: String) { btPairing?.onAuthenticationData(authData) }
                     })
                     channels += bt
                     bluetooth = bt
+                    btPairing = BluetoothPairing(context, bt, main).apply { start() }
                     main.post { if (!closed) bluetoothPower = PhoneBluetoothPower(context) { announceAgain(bt) }.also { it.start() } }
                 }
             }
@@ -1125,6 +1129,7 @@ class CarSession(
         net.prototux.aare.notify.CarNotificationListener.sink = null
         audioOuts.values.forEach { it.stop() }; audioOuts.clear()
         phoneBridge?.stop(); phoneBridge = null
+        btPairing?.stop(); btPairing = null
         callSpeaker?.stop(); callSpeaker = null
         bluetoothPower?.stop(); bluetoothPower = null
         locationFeed.close()

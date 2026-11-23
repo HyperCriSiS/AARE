@@ -1,6 +1,11 @@
 package net.prototux.aare.aap.sim
 
 import aap_protobuf.service.ServiceOuterClass.Service
+import aap_protobuf.service.bluetooth.BluetoothServiceOuterClass.BluetoothService
+import aap_protobuf.service.bluetooth.message.BluetoothAuthenticationDataOuterClass.BluetoothAuthenticationData
+import aap_protobuf.service.bluetooth.message.BluetoothAuthenticationResultOuterClass.BluetoothAuthenticationResult
+import aap_protobuf.service.bluetooth.message.BluetoothPairingMethodOuterClass.BluetoothPairingMethod
+import aap_protobuf.service.bluetooth.message.BluetoothPairingRequestOuterClass.BluetoothPairingRequest
 import aap_protobuf.service.control.message.AudioFocusNotificationOuterClass.AudioFocusNotification
 import aap_protobuf.service.control.message.AudioFocusRequestOuterClass.AudioFocusRequest
 import aap_protobuf.service.control.message.AudioFocusRequestTypeOuterClass.AudioFocusRequestType
@@ -57,6 +62,7 @@ import aap_protobuf.service.mediaplayback.MediaPlaybackStatusServiceOuterClass.M
 import aap_protobuf.shared.MessageStatusOuterClass.MessageStatus
 import com.google.protobuf.MessageLite
 import net.prototux.aare.aap.AapMessage
+import net.prototux.aare.aap.BluetoothMsg
 import net.prototux.aare.aap.ControlMsg
 import net.prototux.aare.aap.Cryptor
 import net.prototux.aare.aap.FrameReader
@@ -95,6 +101,8 @@ class HeadUnitSimulator(
     private val protocolMinor: Int = 6,
     /** False: stays silent on video focus requests, like a car that waits for video first. */
     private val answerVideoFocus: Boolean = true,
+    /** Pairing methods of a Bluetooth service to list; null lists no Bluetooth service. */
+    private val bluetoothMethods: List<BluetoothPairingMethod>? = null,
     /** The protocol major version the head unit announces. */
     private val protocolMajor: Int = 1,
 ) {
@@ -109,7 +117,8 @@ class HeadUnitSimulator(
 
     // channel ids, as a typical head unit numbers them
     val video = 1; val mediaAudio = 2; val guidance = 3; val system = 4; val mic = 5
-    val input = 6; val sensors = 7; val navStatus = 8; val playback = 9; val radio = 10
+    val input = 6; val sensors = 7; val navStatus = 8; val playback = 9; val radio = 10; val bluetooth = 11
+    val carBluetoothAddress = "00:11:22:33:44:55"
 
     val discoveryRequest = CountDownLatch(1)
     var phoneRequest: ServiceDiscoveryRequest? = null
@@ -145,6 +154,10 @@ class HeadUnitSimulator(
     val navTurns = LinkedBlockingQueue<NavigationNextTurnEvent>()
     /** Navigation statuses the phone sent, in order. */
     val navStatuses = LinkedBlockingQueue<NavigationStatus.NavigationStatusEnum>()
+    /** Bluetooth pairing requests the phone sent, in order. */
+    val pairingRequests = LinkedBlockingQueue<BluetoothPairingRequest>()
+    /** Bluetooth authentication results the phone sent, in order. */
+    val authResults = LinkedBlockingQueue<BluetoothAuthenticationResult>()
     /** False plays a head unit that never answers the phone's bye-bye. */
     @Volatile var answerByeBye = true
     /** AUTH_COMPLETE's status: non-zero plays a head unit that refuses the phone certificate. */
@@ -201,6 +214,10 @@ class HeadUnitSimulator(
                 NavStatusMsg.STATE -> navStates.add(NavigationState.parseFrom(m.bodyBytes()))
                 NavStatusMsg.TURN_EVENT -> navTurns.add(NavigationNextTurnEvent.parseFrom(m.bodyBytes()))
                 NavStatusMsg.STATUS -> navStatuses.add(NavigationStatus.parseFrom(m.bodyBytes()).status)
+            }
+            bluetooth -> when (m.id) {
+                BluetoothMsg.PAIRING_REQUEST -> pairingRequests.add(BluetoothPairingRequest.parseFrom(m.bodyBytes()))
+                BluetoothMsg.AUTHENTICATION_RESULT -> authResults.add(BluetoothAuthenticationResult.parseFrom(m.bodyBytes()))
             }
         }
     }
@@ -350,6 +367,16 @@ class HeadUnitSimulator(
     fun requestFocus(mode: VideoFocusMode) = send(video, MediaMsg.VIDEO_FOCUS_REQUEST,
         VideoFocusRequestNotification.newBuilder().setMode(mode).build())
 
+    /** The passkey or PIN the car shows while it pairs with the phone. */
+    fun sendAuthenticationData(authData: String, method: BluetoothPairingMethod) = send(bluetooth, BluetoothMsg.AUTHENTICATION_DATA,
+        BluetoothAuthenticationData.newBuilder().setAuthData(authData).setPairingMethod(method).build())
+
+    /** Changes the projection's layout at runtime, as some head units do (insets, margins). */
+    fun updateUiConfig(request: UpdateUiConfigRequest) = send(video, MediaMsg.UPDATE_UI_CONFIG_REQUEST, request)
+
+    /** Reports playback statistics on a media channel, as head units 6.0 and later do. */
+    fun sendMediaStats(channel: Int, stats: MediaStats) = send(channel, MediaMsg.MEDIA_STATS, stats)
+
     /** Sends an ack of the head unit's own making on a media channel. */
     fun sendAck(channel: Int, sessionId: Int, count: Int? = null, receiveTimesNs: List<Long> = emptyList()) =
         send(channel, MediaMsg.ACK, Ack.newBuilder().setSessionId(sessionId).apply { count?.let { setAck(it) } }
@@ -398,6 +425,10 @@ class HeadUnitSimulator(
             .addChannels(Service.newBuilder().setId(radio).setRadioService(RadioService.newBuilder().addRadioProperties(
                 RadioProperties.newBuilder().apply { if (writeZeros) { setRadioId(0); setType(RadioType.AM_RADIO) } }
                     .addChannelRange(Range.newBuilder().setMin(530).setMax(1710)).setChannelSpacing(10))))
+            .apply {
+                bluetoothMethods?.let { addChannels(Service.newBuilder().setId(bluetooth).setBluetoothService(
+                    BluetoothService.newBuilder().setCarAddress(carBluetoothAddress).addAllSupportedPairingMethods(it))) }
+            }
             .build()
     }
 

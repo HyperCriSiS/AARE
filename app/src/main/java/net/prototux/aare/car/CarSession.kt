@@ -40,6 +40,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -283,9 +284,9 @@ class CarSession(
                         0 -> if (video == null) {
                             mainDisplayId = s.mediaSinkService.displayId
                             videoCodec = pickVideoCodec(s.mediaSinkService.videoConfigsList)
-                            video = VideoChannel(s, videoListener(rhd), videoType(videoCodec)).also { channels += it }
+                            video = VideoChannel(s, videoListener(rhd), videoType(videoCodec), allowDropOverflow = quirks?.dropOverflow == true).also { channels += it }
                         }
-                        1 -> if (cluster == null) cluster = ClusterDisplay(context, runtime).also { channels += it.open(s) }
+                        1 -> if (cluster == null) cluster = ClusterDisplay(context, runtime).also { channels += it.open(s, allowDropOverflow = quirks?.dropOverflow == true) }
                     }
                 }
                 s.hasMediaSinkService() -> {
@@ -302,7 +303,7 @@ class CarSession(
                                 DiagLog.add("${sink.audioType.name.removePrefix("AUDIO_STREAM_")} sink #${s.id} asks for " +
                                     "${sink.availableType.name.removePrefix("MEDIA_CODEC_AUDIO_")} and is the only one: sending it PCM")
                             }
-                            AudioChannel(s, audioListener).also { audio += it; channels += it }
+                            AudioChannel(s, audioListener, allowDropOverflow = quirks?.dropOverflow == true).also { audio += it; channels += it }
                         }
                     }
                 }
@@ -584,8 +585,10 @@ class CarSession(
             display?.invalidate()
         }
 
-        override fun onUiConfig(config: UiConfig) {
-            // New insets or margins: lay the projection out again with them.
+        override fun onUiConfig(config: UiConfig, applied: () -> Unit) {
+            // New insets or margins: lay the running projection out again with them. The video
+            // size, frame rate and codec stay, so the encoder carries on with its stream (no new
+            // codec config mid-session), keeping its running encoder.
             main.post {
                 if (closed) return@post
                 val updated = (videoConfig ?: return@post).toBuilder().setUiConfig(config).build()
@@ -600,6 +603,7 @@ class CarSession(
                     videoDescription = videoFormat + layout.describe()
                     display?.invalidate() // a frame with the new layout, which the reply waits for
                 }
+                applied()
             }
         }
     }
@@ -711,9 +715,10 @@ class CarSession(
         // Assigned before show(), so that a failing show() still has teardownVideo() release the display.
         val pd = ProjectionDisplay(context, w, h, dpi, enc.inputSurface) {
             val d = LocalDensity.current
+            val l = projectionLayout.value ?: layout
             Box(Modifier.fillMaxSize().background(Color.Black)) {
                 with(d) {
-                    runtime.Root(Modifier.padding(start = (projectionLayout.value ?: layout).padLeft.toDp(), top = (projectionLayout.value ?: layout).padTop.toDp(), end = (projectionLayout.value ?: layout).padRight.toDp(), bottom = (projectionLayout.value ?: layout).padBottom.toDp()))
+                    runtime.Root(Modifier.padding(start = l.padLeft.toDp(), top = l.padTop.toDp(), end = l.padRight.toDp(), bottom = l.padBottom.toDp()))
                 }
             }
         }

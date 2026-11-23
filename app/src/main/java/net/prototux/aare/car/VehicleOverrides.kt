@@ -26,6 +26,11 @@ data class VehicleOverride(
     val pairAgainWhenRunning: Boolean? = null,
     /** Open the sensor channel first and the others once the car has answered it (AARE's default: all at once). */
     val sensorChannelFirst: Boolean? = null,
+    /**
+     * Run video (head units 6.0 and later) and audio (5.0 and later) in drop overflow mode: the
+     * head unit drops what it can't take instead of pacing the phone with acks. Default: off.
+     */
+    val dropOverflow: Boolean? = null,
 ) {
     /** These overrides, with [base]'s for every field left unset: a user rule over a built-in one. */
     fun over(base: VehicleOverride?): VehicleOverride = if (base == null) this else VehicleOverride(
@@ -39,6 +44,7 @@ data class VehicleOverride(
         micSetup = micSetup ?: base.micSetup,
         pairAgainWhenRunning = pairAgainWhenRunning ?: base.pairAgainWhenRunning,
         sensorChannelFirst = sensorChannelFirst ?: base.sensorChannelFirst,
+        dropOverflow = dropOverflow ?: base.dropOverflow,
     )
 
     fun skips(kind: String): Boolean = skipServices.orEmpty().any { matchesKind(it, kind) }
@@ -163,7 +169,7 @@ object VehicleOverrides {
                     dpi = int(a, "dpi"), widthMargin = int(a, "widthMargin"), heightMargin = int(a, "heightMargin"),
                     maxHeight = int(a, "maxHeight"), prefer60fps = bool(a, "prefer60fps"),
                     skipServices = strings(a, "skipServices"), openServices = strings(a, "openServices"),
-                    micSetup = bool(a, "micSetup"),
+                    micSetup = bool(a, "micSetup"), dropOverflow = bool(a, "dropOverflow"),
                     pairAgainWhenRunning = bool(a, "pairAgainWhenRunning"), sensorChannelFirst = bool(a, "sensorChannelFirst"),
                 ),
             )
@@ -181,7 +187,7 @@ object VehicleOverrides {
               "match": { "make": "", "model": "", "name": "" },
               "apply": {
                 "dpi": 160, "widthMargin": 0, "heightMargin": 0, "maxHeight": 1080, "prefer60fps": true,
-                "skipServices": [], "openServices": [], "micSetup": true,
+                "skipServices": [], "openServices": [], "micSetup": true, "dropOverflow": false,
                 "pairAgainWhenRunning": false, "sensorChannelFirst": false
               }
             }

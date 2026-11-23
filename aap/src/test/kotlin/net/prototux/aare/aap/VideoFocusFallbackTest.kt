@@ -121,7 +121,7 @@ class VideoFocusFallbackTest {
 
         assertTrue("frames should reach the head unit", hu.firstVideoFrame.await(5, TimeUnit.SECONDS))
         Thread.sleep(300)
-        assertEquals(1, hu.videoStart!!.sessionId)
+        assertEquals("one START: the first session, 0", 0, hu.videoStart!!.sessionId)
     }
 
     /** The VW Play's reverse camera: frames in flight are dropped unacked, then the car hands the screen back. */
@@ -158,7 +158,7 @@ class VideoFocusFallbackTest {
 
         hu.requestFocusProjected()
         Thread.sleep(1_000)
-        assertEquals("a new session", 2, hu.videoStart!!.sessionId)
+        assertEquals("a new session", 1, hu.videoStart!!.sessionId)
         assertEquals(1, video!!.restarts)
         assertTrue("the decoder setup is sent again", hu.codecConfigs.get() > configsBefore)
         assertTrue("frames flow in the new session", hu.videoFrames.get() > stopped + 10)

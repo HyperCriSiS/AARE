@@ -399,7 +399,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
                 if (state.driverOnRight) { menu(); mic() } else { mic(); menu() }
             } }
             val status: @Composable () -> Unit = { Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Clock(); if (!tightBar) WeatherChip(state.weather.takeIf { state.weatherInBar }); PhoneStatusIcons(); NotificationBell(state) { bell() }
+                if (state.chrome.clock) Clock(); if (!tightBar) WeatherChip(state.weather.takeIf { state.weatherInBar }); PhoneStatusIcons(state.chrome); NotificationBell(state) { bell() }
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -413,10 +413,10 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Clock()
+            if (state.chrome.clock) Clock()
             if (fit.status) {
                 Spacer(Modifier.height(6.dp))
-                PhoneStatusIcons()
+                PhoneStatusIcons(state.chrome)
                 Spacer(Modifier.height(4.dp))
                 WeatherChip(state.weather.takeIf { state.weatherInBar })
             }

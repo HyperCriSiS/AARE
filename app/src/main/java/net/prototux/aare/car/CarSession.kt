@@ -1,5 +1,6 @@
 package net.prototux.aare.car
 
+import androidx.compose.runtime.mutableStateOf
 import aap_protobuf.service.control.message.AudioFocusNotificationOuterClass.AudioFocusNotification
 import aap_protobuf.service.control.message.AudioFocusRequestTypeOuterClass.AudioFocusRequestType
 import aap_protobuf.service.control.message.AudioFocusStateTypeOuterClass.AudioFocusStateType
@@ -128,7 +129,8 @@ class CarSession(
     private val aap = AapSession(transport, identity, PhoneDescription(
         deviceName = deviceName(), label = "Android", instanceId = settings.instanceId,
         smallIcon = icon(32), mediumIcon = icon(64), largeIcon = icon(128),
-    ), this, net.prototux.aare.SessionAapLog.also { it.verbose = settings.verboseProtocolLog }, SessionOptions(sendPings = wireless, pins = PinnedHeadUnits(context), peerKey = peerKey, trustOnFirstUse = trustOnFirstUse))
+    ), this, net.prototux.aare.SessionAapLog.also { it.verbose = settings.verboseProtocolLog }, SessionOptions(sendPings = wireless, pins = PinnedHeadUnits(context), peerKey = peerKey, trustOnFirstUse = trustOnFirstUse,
+        clockNanos = SystemClock::elapsedRealtimeNanos))
 
     private var video: VideoChannel? = null
     private var mic: MicrophoneChannel? = null
@@ -259,6 +261,7 @@ class CarSession(
         val inputServices = ArrayList<Service>()
         var mainDisplayId = 0
         val quirks = vehicleOverride
+        session.sensorChannelFirst = quirks?.sensorChannelFirst == true
         for (s in response.channelsList) {
             val kind = AapSession.serviceKind(s)
             if (quirks?.skips(kind) == true) {
@@ -576,18 +579,17 @@ class CarSession(
             // New insets or margins: lay the projection out again with them.
             main.post {
                 if (closed) return@post
-                val last = videoConfig ?: return@post
-                Log.i(TAG, "UI config update from the head unit")
-                try {
-                    startProjection(last.toBuilder().setUiConfig(config).build(), rightHandDrive)
-                } catch (e: Exception) {
-                    Log.e(TAG, "can't apply the new UI config, keeping the old one", e)
-                    try {
-                        startProjection(last, rightHandDrive)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "can't restart the projection", e)
-                        aap.stop()
-                    }
+                val updated = (videoConfig ?: return@post).toBuilder().setUiConfig(config).build()
+                videoConfig = updated
+                val (w, h) = resolution(updated.codecResolution)
+                val layout = layoutOf(updated, w, h)
+                Log.i(TAG, "UI config update from the head unit:" + layout.describe())
+                // Not projecting: the next start lays out with it.
+                if (display != null) {
+                    showLayout(layout, densityOf(updated, w, h), rightHandDrive)
+                    applyChrome(updated)
+                    videoDescription = videoFormat + layout.describe()
+                    display?.invalidate() // a frame with the new layout, which the reply waits for
                 }
             }
         }
@@ -598,23 +600,59 @@ class CarSession(
     /** Every resolution the car offered: touch maps against its largest, not the one chosen (#269). */
     @Volatile private var offeredVideo: List<VideoConfiguration> = emptyList()
 
+    /** Where the UI goes in the frame (main thread). Compose state: a UI config update re-lays it out in place. */
+    private val projectionLayout = mutableStateOf<ProjectionLayout?>(null)
+
+    private fun densityOf(config: VideoConfiguration, w: Int, h: Int) =
+        vehicleOverride?.dpi ?: if (config.density > 0) config.density else defaultDensity(minOf(w, h))
+
+    private fun layoutOf(config: VideoConfiguration, w: Int, h: Int) = ProjectionLayout.of(config, w, h).let { base ->
+        val o = vehicleOverride
+        if (o?.widthMargin == null && o?.heightMargin == null) base
+        else {
+            // vehicles.json overrides the car's reported margins (split evenly, like the official phone).
+            val fw = (o.widthMargin ?: (base.marginLeft + base.marginRight)).coerceIn(0, w - 1)
+            val fh = (o.heightMargin ?: (base.marginTop + base.marginBottom)).coerceIn(0, h - 1)
+            base.copy(marginLeft = fw / 2, marginRight = fw - fw / 2, marginTop = fh / 2, marginBottom = fh - fh / 2)
+        }
+    }
+
+    /** Size, frame rate and density of the running projection, for [videoDescription]. */
+    private var videoFormat = ""
+
+    /** What the head unit draws itself (clock, signal, battery), so the car UI leaves it out. */
+    private fun applyChrome(config: VideoConfiguration) {
+        // Here, not at discovery: a UI config update can change what the head unit draws.
+        val chrome = CarChrome.drawnByHeadUnit(aap.headUnitAtLeast(4, 3), aap.uiChrome?.bits ?: 0, config.uiConfig.uiElementsList)
+        if (chrome != runtime.headUnitChrome) Log.i(TAG, "the head unit draws its own: $chrome")
+        runtime.headUnitChrome = chrome
+    }
+
+    /** Lays the car UI out in the frame: its size and density, and where touches land. */
+    private fun showLayout(layout: ProjectionLayout, dpi: Int, rightHandDrive: Boolean) {
+        runtime.densityDpi = dpi
+        settings.carDpi = dpi
+        runtime.screenWidthDp = layout.contentWidth * 160 / dpi
+        runtime.screenHeightDp = layout.contentHeight * 160 / dpi
+        runtime.rightHandDrive = rightHandDrive
+        projectionLayout.value = layout
+        // Pass the declared panel as-is (0 when the head unit declares none); the mapper resolves
+        // the source resolution, including 0x0, visible-pixel and under-declared panels.
+        val inputCh = touchSize
+        val native = offeredVideo.map(::visibleSize).maxByOrNull { it.first.toLong() * it.second }
+        touch = TouchMapper(inputCh?.first ?: 0, inputCh?.second ?: 0, layout,
+            native?.first ?: layout.visibleWidth, native?.second ?: layout.visibleHeight)
+    }
+
     private fun startProjection(config: VideoConfiguration, rightHandDrive: Boolean) {
         teardownVideo()
         videoConfig = config
         val (w, h) = resolution(config.codecResolution)
         val fps = fpsOf(config)
-        val dpi = vehicleOverride?.dpi ?: if (config.density > 0) config.density else defaultDensity(minOf(w, h))
-        val layout = ProjectionLayout.of(config, w, h).let { base ->
-            val o = vehicleOverride
-            if (o?.widthMargin == null && o?.heightMargin == null) base
-            else {
-                // vehicles.json overrides the car's reported margins (split evenly, like the official phone).
-                val fw = (o.widthMargin ?: (base.marginLeft + base.marginRight)).coerceIn(0, w - 1)
-                val fh = (o.heightMargin ?: (base.marginTop + base.marginBottom)).coerceIn(0, h - 1)
-                base.copy(marginLeft = fw / 2, marginRight = fw - fw / 2, marginTop = fh / 2, marginBottom = fh - fh / 2)
-            }
-        }
-        videoDescription = "${w}x$h@$fps ${dpi}dpi" + layout.describe()
+        val dpi = densityOf(config, w, h)
+        val layout = layoutOf(config, w, h)
+        videoFormat = "${w}x$h@$fps ${dpi}dpi"
+        videoDescription = videoFormat + layout.describe()
         Log.i(TAG, "projection $videoDescription")
 
         val ch = video ?: return
@@ -659,17 +697,14 @@ class CarSession(
         enc.start()
         encoder = enc
 
-        runtime.densityDpi = dpi
-        settings.carDpi = dpi
-        runtime.screenWidthDp = layout.contentWidth * 160 / dpi
-        runtime.screenHeightDp = layout.contentHeight * 160 / dpi
-        runtime.rightHandDrive = rightHandDrive
+        showLayout(layout, dpi, rightHandDrive)
+        applyChrome(config)
         // Assigned before show(), so that a failing show() still has teardownVideo() release the display.
         val pd = ProjectionDisplay(context, w, h, dpi, enc.inputSurface) {
             val d = LocalDensity.current
             Box(Modifier.fillMaxSize().background(Color.Black)) {
                 with(d) {
-                    runtime.Root(Modifier.padding(start = layout.padLeft.toDp(), top = layout.padTop.toDp(), end = layout.padRight.toDp(), bottom = layout.padBottom.toDp()))
+                    runtime.Root(Modifier.padding(start = (projectionLayout.value ?: layout).padLeft.toDp(), top = (projectionLayout.value ?: layout).padTop.toDp(), end = (projectionLayout.value ?: layout).padRight.toDp(), bottom = (projectionLayout.value ?: layout).padBottom.toDp()))
                 }
             }
         }
@@ -678,12 +713,6 @@ class CarSession(
         lastFrameMs = SystemClock.elapsedRealtime()
         main.removeCallbacks(stallCheck)
         main.postDelayed(stallCheck, STALL_CHECK_MS)
-        // Pass the declared panel as-is (0 when the head unit declares none); the mapper resolves
-        // the source resolution, including 0x0, visible-pixel and under-declared panels.
-        val inputCh = touchSize
-        val native = offeredVideo.map(::visibleSize).maxByOrNull { it.first.toLong() * it.second }
-        touch = TouchMapper(inputCh?.first ?: 0, inputCh?.second ?: 0, layout,
-            native?.first ?: layout.visibleWidth, native?.second ?: layout.visibleHeight)
     }
 
     /** An encoder that fails again and again ends the session rather than restart forever. */
@@ -1053,16 +1082,24 @@ class CarSession(
      * but the next route asks again.
      */
     private var navFocusPending = false
+    /** The car was asked for projected nav focus and hasn't been given it back yet. */
+    private var navFocusProjected = false
 
     /** A hosted app's trip or a phone app's guidance started, changed or ended. */
     private fun guidanceChanged(hosted: Boolean, guiding: Boolean) {
+        val handBack: Boolean
         synchronized(navLock) {
             val was = hostedGuiding || phoneGuiding
             if (hosted) hostedGuiding = guiding else phoneGuiding = guiding
             val now = hostedGuiding || phoneGuiding
             if (now && !was) navFocusPending = true
             else if (!now) navFocusPending = false
+            // When projected navigation stops, give nav focus back to the
+            // car, or its own navigation may stay suppressed after the route.
+            handBack = !now && navFocusProjected
+            if (handBack) navFocusProjected = false
         }
+        if (handBack && aap.state == AapSession.State.RUNNING) aap.requestNavFocus(NavFocusType.NAV_FOCUS_NATIVE)
         requestNavFocus()
     }
 
@@ -1070,6 +1107,7 @@ class CarSession(
         synchronized(navLock) {
             if (!navFocusPending || aap.state != AapSession.State.RUNNING) return
             navFocusPending = false
+            navFocusProjected = true
         }
         aap.requestNavFocus(NavFocusType.NAV_FOCUS_PROJECTED)
     }

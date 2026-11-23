@@ -43,6 +43,7 @@ of each file is used.
 | `openServices` | list | Services the car lists that AARE doesn't use, opened anyway; AARE sends nothing on them and ignores what the car sends. |
 | `micSetup` | true/false | Send SETUP on the microphone channel when it opens (default: true). |
 | `pairAgainWhenRunning` | true/false | Send the Bluetooth pairing request again once the session runs, for a car that drops the phone's hands-free link when projection starts (default: false). |
+| `sensorChannelFirst` | true/false | Open the sensor channel first and the other channels once the car has answered it, or after 1 s (default: false, all at once). |
 
 Services are named as the connection log writes them after `services:`: `video`, `mic`,
 `input`, `sensors`, `bluetooth`, `navstatus`, `playback`, `phonestatus`, `mediabrowser`,

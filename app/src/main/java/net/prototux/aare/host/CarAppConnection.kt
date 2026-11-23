@@ -233,7 +233,12 @@ class CarAppConnection(
         val previous = surface
         if (surfaceOwner === owner && previous != null &&
             (previous.width != width || previous.height != height || previous.dpi != dpi)) {
-            surfaceCallback?.let { cb -> call("onSurfaceDestroyed") { cb.onSurfaceDestroyed(Bundleable.create(previous), it) } }
+            // Waited for as when the surface goes: Blitzer.de's render thread still drawing on it aborts.
+            surfaceCallback?.let { cb ->
+                val answered = java.util.concurrent.CountDownLatch(1)
+                call("onSurfaceDestroyed", answered = answered) { cb.onSurfaceDestroyed(Bundleable.create(previous), it) }
+                answered.await(SURFACE_RELEASE_WAIT_MS, java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
         }
         surfaceOwner = owner
         surface = SurfaceContainer(s, width, height, dpi)

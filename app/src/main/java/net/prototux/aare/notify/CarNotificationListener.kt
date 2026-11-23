@@ -140,7 +140,10 @@ class CarNotificationListener : NotificationListenerService() {
         val app = runCatching { packageManager.getApplicationLabel(packageManager.getApplicationInfo(sbn.packageName, 0)).toString() }.getOrDefault(sbn.packageName)
         val title = if (last.sender.isNotEmpty() && last.sender != c.title) "${c.title} · ${last.sender}" else c.title.ifEmpty { app }
         val group = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(sbn.notification)?.isGroupConversation == true
-        sink(Message(sbn.key, title, last.text, c.icon, actions, group, sbn.packageName) { speak(if (last.sender.isNotEmpty()) "${last.sender}. ${last.text}" else last.text) })
+        // Tapped: the app opens on the conversation, and the notification goes, as when tapped on the phone.
+        val content = sbn.notification.contentIntent
+        val dismiss = { if (sbn.notification.flags and Notification.FLAG_AUTO_CANCEL != 0) runCatching { cancelNotification(sbn.key) }; Unit }
+        sink(Message(sbn.key, title, last.text, c.icon, actions, group, sbn.packageName, content, dismiss) { speak(if (last.sender.isNotEmpty()) "${last.sender}. ${last.text}" else last.text) })
     }
 
     /**
@@ -353,6 +356,10 @@ class CarNotificationListener : NotificationListenerService() {
         val group: Boolean,
         /** The app that posted it. */
         val packageName: String,
+        /** What tapping the notification on the phone opens: the conversation. */
+        val contentIntent: PendingIntent?,
+        /** Takes the notification away when its app says a tap does (auto cancel). */
+        val dismiss: () -> Unit,
         /** Reads the message aloud (through the media stream, so it reaches the car). */
         val readAloud: () -> Unit,
     )

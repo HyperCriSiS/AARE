@@ -162,6 +162,11 @@ class Settings(context: Context) {
         get() = prefs.getStringSet("video_apps", emptySet()) ?: emptySet()
         set(v) = prefs.edit { putStringSet("video_apps", v) }
 
+    /** The media apps always shown as AARE's list, even when they list nothing: packages. Neither here nor in [videoApps]: automatic. */
+    var videoAppsOff: Set<String>
+        get() = prefs.getStringSet("video_apps_off", emptySet()) ?: emptySet()
+        set(v) = prefs.edit { putStringSet("video_apps_off", v) }
+
     /** While a media app shows its video in the car, the phone turns to landscape: players go full screen at once. */
     var videoLandscape: Boolean
         get() = prefs.getBoolean("video_landscape", false)
@@ -257,6 +262,11 @@ class Settings(context: Context) {
     var phoneScreenOff: Boolean
         get() = prefs.getBoolean("phone_screen_off", true)
         set(v) = prefs.edit { putBoolean("phone_screen_off", v) }
+
+    /** The phone screen stays usable from the car while the phone is locked: anyone in the car can then use it. */
+    var phoneScreenWhenLocked: Boolean
+        get() = prefs.getBoolean("phone_screen_when_locked", false)
+        set(v) = prefs.edit { putBoolean("phone_screen_when_locked", v) }
 
     /** The app car links and voice requests navigate in (its package); null = the car navigation app used last. */
     var navigationApp: String?

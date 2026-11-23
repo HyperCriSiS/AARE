@@ -80,7 +80,9 @@ internal fun MediaAppScreen(hub: DefaultMediaHub, app: MediaApp, driving: Boolea
         return
     }
     if (connection == null) {
-        Placeholder(stringResource(R.string.media_connecting_to, app.label), loading = true, modifier = modifier.background(MaterialTheme.colorScheme.background))
+        // The hub holds one app: with two media apps side by side, a tap here takes it back to this one.
+        Placeholder(stringResource(R.string.media_connecting_to, app.label), loading = true,
+            modifier = modifier.background(MaterialTheme.colorScheme.background).clickable { hub.select(app) })
         return
     }
     val ui = remember(connection) { hub.uiFor(connection) }
@@ -109,7 +111,7 @@ internal fun MediaAppScreen(hub: DefaultMediaHub, app: MediaApp, driving: Boolea
             ) { view ->
                 when (view) {
                     MediaView.BROWSE -> BrowseBody(hub, ui, status, source)
-                    MediaView.NOW_PLAYING -> NowPlayingView(hub, connection, source) { ui.view = it }
+                    MediaView.NOW_PLAYING -> NowPlayingView(hub, connection, source, driving) { ui.view = it }
                     MediaView.QUEUE -> QueueView(connection, source) { ui.view = MediaView.NOW_PLAYING }
                     MediaView.SEARCH -> SearchView(ui, driving)
                 }
@@ -228,7 +230,13 @@ private fun BrowseLevel(hub: DefaultMediaHub, ui: MediaUi, level: Level) {
         when {
             loader.error != null -> ErrorCard(loader.error!!, Modifier.fillMaxWidth().padding(16.dp), onRetry = loader::retry)
             loader.loading || !loader.end -> Placeholder(stringResource(R.string.common_loading), loading = true)
-            else -> Placeholder(stringResource(R.string.media_nothing_here), loading = false, icon = Icons.Rounded.Folder)
+            else -> {
+                // An app that lists nothing for AARE at its top (YouTube serves only Google's own apps):
+                // the app itself on the car screen instead, where there is a helper for it. An empty tab is not that.
+                val video = LocalPhoneVideo.current
+                if (video != null && video.auto && !ui.canGoBack && ui.tabs?.isEmpty() == true) LaunchedEffect(Unit) { video.showAuto() }
+                Placeholder(stringResource(R.string.media_nothing_here), loading = false, icon = Icons.Rounded.Folder)
+            }
         }
         return
     }

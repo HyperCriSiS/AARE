@@ -856,6 +856,12 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                     }
                 }
             }
+            if (phoneScreen) {
+                var whenLocked by remember { mutableStateOf(settings.phoneScreenWhenLocked) }
+                Toggle(stringResource(R.string.phone_toggle_locked_title), stringResource(R.string.phone_toggle_locked_subtitle), whenLocked) {
+                    whenLocked = it; settings.phoneScreenWhenLocked = it
+                }
+            }
             // Media apps' videos run through the helper whether or not the phone screen is offered.
             if (remember { AppLauncher.available(ctx) }) {
                 var landscape by remember { mutableStateOf(settings.videoLandscape) }
@@ -1070,6 +1076,8 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
     var standalone by mutableStateOf(settings.standaloneApps)
     var keepAwake by mutableStateOf(settings.standaloneKeepScreenAwake)
     var fullApps by mutableStateOf(settings.fullApps)
+    var videoApps by mutableStateOf(settings.videoApps)
+    var videoAppsOff by mutableStateOf(settings.videoAppsOff)
     /** The app whose place is being chosen, or null. */
     var editing by mutableStateOf<AppItem?>(null)
     var allowed by mutableStateOf(settings.standaloneAppPackages)
@@ -1104,7 +1112,7 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
             val kind = if (a.isNavigation) nav else a.categories.firstOrNull()?.substringAfterLast('.')?.lowercase()
                 ?.replaceFirstChar { it.uppercase() } ?: ctx.getString(R.string.setup_app_kind_generic)
             AppItem(a.packageName, a.label, a.icon, kind)
-        } + l.media.map { AppItem(it.packageName, it.label, it.icon, ctx.getString(R.string.setup_app_kind_media)) } +
+        } + l.media.map { AppItem(it.packageName, it.label, it.icon, ctx.getString(R.string.setup_app_kind_media), video = canHost) } +
             l.messaging.map { AppItem(it.packageName, it.label, it.icon, ctx.getString(R.string.setup_app_kind_messaging), full = canHost) } +
             l.navigation.map { AppItem(it.packageName, it.label, it.icon, "$nav, $phoneApp") } +
             builtIns.map { (id, b) ->
@@ -1139,10 +1147,24 @@ private class AppsPage(private val ctx: Context, val settings: Settings) {
         fullApps = if (on) fullApps + item.key else fullApps - item.key
         settings.fullApps = fullApps
     }
+
+    /** How a media app shows, parked: [VIDEO_AUTO], [VIDEO_LIST] (AARE's view) or [VIDEO_APP] (the app itself). */
+    fun videoMode(item: AppItem) = when (item.key) { in videoApps -> VIDEO_APP; in videoAppsOff -> VIDEO_LIST; else -> VIDEO_AUTO }
+
+    fun setVideoMode(item: AppItem, mode: String) {
+        videoApps = if (mode == VIDEO_APP) videoApps + item.key else videoApps - item.key
+        videoAppsOff = if (mode == VIDEO_LIST) videoAppsOff + item.key else videoAppsOff - item.key
+        settings.videoApps = videoApps
+        settings.videoAppsOff = videoAppsOff
+    }
 }
 
 /** An app on the Apps page: its key (package, or a built-in app's id), [kind] as a label, and whether it shows only once picked. */
-private class AppItem(val key: String, val label: String, val icon: Bitmap?, val kind: String, val optIn: Boolean = false, val full: Boolean = false)
+private const val VIDEO_AUTO = "auto"
+private const val VIDEO_LIST = "list"
+private const val VIDEO_APP = "app"
+
+private class AppItem(val key: String, val label: String, val icon: Bitmap?, val kind: String, val optIn: Boolean = false, val full: Boolean = false, val video: Boolean = false)
 
 @Composable
 private fun rememberAppsPage(settings: Settings): AppsPage {
@@ -1344,6 +1366,15 @@ private fun PlaceDialog(p: AppsPage, app: AppItem) {
                     Toggle(stringResource(R.string.app_full_title), stringResource(R.string.app_full_subtitle), app.key in p.fullApps) {
                         p.setFull(app, it)
                     }
+                }
+                if (app.video) {
+                    Spacer(Modifier.height(8.dp))
+                    Choices(stringResource(R.string.app_video_title), listOf(
+                        VIDEO_AUTO to stringResource(R.string.app_video_auto),
+                        VIDEO_LIST to stringResource(R.string.app_video_list),
+                        VIDEO_APP to stringResource(R.string.app_full_title),
+                    ), p.videoMode(app)) { p.setVideoMode(app, it) }
+                    Text(stringResource(R.string.app_video_subtitle), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         },

@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.Surface
 import net.prototux.aare.BuildConfig
 import net.prototux.aare.audio.CaptureMethods
+import net.prototux.aare.Settings
 import rikka.shizuku.Shizuku
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -31,9 +32,14 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     // One helper per [key]: Shizuku tells user services apart by their tag only, so two launchers
     // with the same key would share one helper, its display, and its end when one releases it.
     private val args = Shizuku.UserServiceArgs(ComponentName(context.packageName, LaunchHostService::class.java.name))
-        .daemon(false).tag(key).processNameSuffix(helperName(key)).debuggable(BuildConfig.DEBUG).version(BuildConfig.VERSION_CODE)
+        /* A daemon, so it outlives a crash of the app long enough to clean up (LaunchHostService.watchCaller). */
+        .daemon(true).tag(key).processNameSuffix(helperName(key)).debuggable(BuildConfig.DEBUG).version(BuildConfig.VERSION_CODE)
     private val bound = CountDownLatch(1)
-    private var didBind = false
+    @Volatile private var didBind = false
+    /** Shared by launchers of one key: a release still running aside must end before the next helper binds. */
+    private val keyLock: Any = keyLocks.getOrPut(key) { Any() }
+    /** Set by [release]: a bind still under way then would leave a helper nobody owns. */
+    private var released = false
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             host = binder?.takeIf { it.pingBinder() }?.let(ILaunchHost.Stub::asInterface)
@@ -47,13 +53,12 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     private var receiver: BroadcastReceiver? = null
 
     /** Connects via Shizuku if available, else root. Blocks up to a few seconds; false if neither works. */
-    fun connect(): Boolean {
-        if (CaptureMethods.shizukuAvailable()) return connectShizuku()
-        return connectRoot()
+    fun connect(): Boolean = synchronized(keyLock) {
+        if (CaptureMethods.shizukuAvailable()) connectShizuku() else connectRoot()
     }
 
     private fun connectShizuku(): Boolean {
-        runCatching { Shizuku.bindUserService(args, connection); didBind = true }
+        runCatching { synchronized(this) { if (released) return false; Shizuku.bindUserService(args, connection); didBind = true } }
             .onFailure { Log.w(TAG, "Shizuku bind failed", it); return false }
         return bound.await(8, TimeUnit.SECONDS) && host != null
     }
@@ -80,12 +85,19 @@ class AppLauncher(private val context: Context, key: String = "launch") {
         val apk = context.applicationInfo.sourceDir
         val cmd = "CLASSPATH='$apk' app_process / ${LaunchMain::class.java.name} ${context.packageName} $nonce"
         suProcess = runCatching { ProcessBuilder("su", "-c", cmd).start() }
-            .onFailure { Log.w(TAG, "su launch failed", it) }.getOrNull() ?: return false
+            .onFailure { Log.w(TAG, "su launch failed", it) }.getOrNull() ?: return false.also { rootGone() }
         suProcess?.let { p ->
             Thread { runCatching { p.errorStream.bufferedReader().forEachLine { if (BuildConfig.DEBUG) Log.d(TAG, "su: $it") } } }
                 .apply { isDaemon = true }.start()
         }
-        return got.await(8, TimeUnit.SECONDS) && host != null
+        if (got.await(8, TimeUnit.SECONDS) && host != null) return true
+        // su refused or gone (root removed, AARE denied): stop offering what needs it until root is allowed again.
+        suProcess?.takeIf { !it.isAlive && it.exitValue() != 0 }?.let { rootGone() }
+        return false
+    }
+
+    private fun rootGone() {
+        if (!CaptureMethods.shizukuAvailable()) Settings(context).rootAudio = false
     }
 
     val connected: Boolean get() = host != null
@@ -148,7 +160,11 @@ class AppLauncher(private val context: Context, key: String = "launch") {
 
     fun stopMirror() { runCatching { host?.stopMirror() } }
 
-    fun release() {
+    /** [release] off the calling thread: the helper's stop (display, focus hand-back) can take a while. */
+    fun releaseAside() = Thread { release() }.apply { isDaemon = true }.start()
+
+    fun release() = synchronized(keyLock) {
+        synchronized(this) { released = true }
         runCatching { host?.stop() }
         // The root helper otherwise keeps running on its looper, a display of the mirror included.
         if (suProcess != null) runCatching { host?.destroy() }
@@ -161,6 +177,7 @@ class AppLauncher(private val context: Context, key: String = "launch") {
     }
 
     companion object {
+        private val keyLocks = java.util.concurrent.ConcurrentHashMap<String, Any>()
         private const val TAG = "AareAppLauncher"
 
         /** In place of a package for [start]: the phone's own desktop, its home screen and any app, at the car screen's size. */

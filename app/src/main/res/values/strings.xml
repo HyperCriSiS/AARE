@@ -6,6 +6,8 @@
     <string name="phone_mode_desktop">Own screen</string>
     <string name="phone_mode_mirror_hint">The phone\'s own screen, turned to landscape while it shows in the car, touched live. Apps that only run upright stay a strip in the middle.</string>
     <string name="phone_mode_desktop_hint">Parked, a screen of its own at the car screen\'s size, with Android\'s desktop and taskbar: apps run there in landscape, and the phone keeps showing what it showed.</string>
+    <string name="phone_toggle_locked_title">Usable while locked</string>
+    <string name="phone_toggle_locked_subtitle">The car shows and controls the phone even while it is locked. Anyone in the car can then use your phone.</string>
     <string name="phone_toggle_off_title">Phone display off</string>
     <string name="phone_toggle_off_subtitle">Its panel stays dark while the car shows it (Android 15 or newer). The power key turns it back on.</string>
     <string name="video_toggle_landscape_title">Videos in full screen right away</string>
@@ -390,6 +392,10 @@
     <string name="app_place_overview">App overview</string>
     <string name="app_place_off">Not in the car</string>
     <string name="app_full_title">The whole app</string>
+    <string name="app_video_title">Shown as</string>
+    <string name="app_video_auto">Automatic</string>
+    <string name="app_video_list">List</string>
+    <string name="app_video_subtitle">Parked: AARE\'s list, or the app itself on the car screen with its video. Automatic shows the app when it lists nothing for AARE. The camera button in the car chooses too.</string>
     <string name="app_full_subtitle">Parked or in passenger mode, the app\'s own screen, keyboard included, instead of AARE\'s view of it. While driving, AARE\'s view.</string>
     <string name="standalone_search">Search apps</string>
     <string name="standalone_need_root">Needs root or Shizuku. Set one up in Audio settings, then come back.</string>

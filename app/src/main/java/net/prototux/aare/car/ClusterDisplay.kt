@@ -44,8 +44,11 @@ class ClusterDisplay(private val context: Context, private val runtime: CarRunti
         CarSession.videoCandidates(configs, preferred, MediaCodecType.MEDIA_CODEC_VIDEO_H264_BP, TAG)
             .minByOrNull { CarSession.resolution(configs[it].codecResolution).second } ?: 0
 
+    @Volatile private var stopped = false
+
     override fun onVideoStart(index: Int, config: VideoConfiguration) {
-        main.post { runCatching { start(config) }.onFailure { Log.w(TAG, "cluster video", it) } }
+        // Not after the session's teardown stopped the cluster: nothing would release it then.
+        main.post { if (!stopped) runCatching { start(config) }.onFailure { Log.w(TAG, "cluster video", it) } }
     }
 
     override fun onVideoFocus(projected: Boolean) {
@@ -106,6 +109,7 @@ class ClusterDisplay(private val context: Context, private val runtime: CarRunti
     }
 
     fun stop() {
+        stopped = true
         display?.release(); display = null
         encoder?.stop(); encoder = null
     }

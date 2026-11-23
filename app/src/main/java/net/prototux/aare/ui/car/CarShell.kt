@@ -319,19 +319,22 @@ private fun Rail(state: CarUiState, actions: CarActions, horizontal: Boolean, ar
 }
 
 /** What a side rail has room for besides the clock, bell, menu and mic, from [sideRailFit]. */
-internal data class SideRailFit(val recentSlots: Int, val status: Boolean, val settings: Boolean)
+internal data class SideRailFit(val recentSlots: Int, val status: Boolean, val settings: Boolean, val phone: Boolean = true)
 
 /**
  * Fits the side rail to its [height] inside the padding. Everything takes about 534 dp (clock and
  * bell 72, phone status and weather 54, the four apps 276, menu and mic 132), so on shorter screens
  * the phone status and weather go first, then Settings (the launcher has it); below that the apps
- * scroll. Dropping items rather than shrinking them keeps every button its full size.
+ * scroll, and below 411 dp Phone goes too (#269: it was cut off; calls still show their card, and
+ * the launcher and the steering wheel's call button open it). Dropping items rather than shrinking them keeps every button its full size.
  */
 internal fun sideRailFit(height: Dp) = SideRailFit(
     // A recent app when one more button (64 dp and its gap) fits besides everything else.
     recentSlots = if (height >= 602.dp) 1 else 0,
     status = height >= 534.dp,
     settings = height >= 480.dp,
+    // Clock and bell 72, navigation, media and Phone 207, menu and mic 132.
+    phone = height >= 411.dp,
 )
 
 /** The space between the rail's icons: the one set on the phone, in the car screen's pixels, or the standard one. */
@@ -362,7 +365,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     val tighterBar = tightBar && area.width < 640.dp
     // Picked on the phone: those, all of them, scrolling when they don't fit.
     val picked = state.railAppIds.mapNotNull(state::app)
-    val apps: @Composable (Int, Boolean) -> Unit = auto@{ recentSlots, withSettings ->
+    val apps: @Composable (Int, Boolean, Boolean) -> Unit = auto@{ recentSlots, withSettings, withPhone ->
         if (picked.isNotEmpty()) {
             picked.forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app), hold(app)) { actions.openApp(app) } }
             return@auto
@@ -370,7 +373,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
         RailApp(nav, Icons.Rounded.Map, on(nav), nav?.let(hold)) { nav?.let(actions::openApp) ?: actions.openLauncher() }
         RailApp(media, Icons.Rounded.MusicNote, on(media), media?.let(hold)) { media?.let(actions::openApp) ?: actions.openLauncher() }
         recent.take(recentSlots).forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app), hold(app)) { actions.openApp(app) } }
-        phone?.let { RailApp(it, Icons.Rounded.Call, on(it), hold(it)) { actions.openApp(it) } }
+        phone?.takeIf { withPhone }?.let { RailApp(it, Icons.Rounded.Call, on(it), hold(it)) { actions.openApp(it) } }
         settings?.takeIf { withSettings }?.let { RailApp(it, Icons.Rounded.Settings, on(it), hold(it)) { actions.openApp(it) } }
     }
     // Held: the shortcuts picked on the phone, if any.
@@ -395,7 +398,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(railGap(state, bottom = true))) { apps(if (tightBar) 0 else 2, !tighterBar) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(railGap(state, bottom = true))) { apps(if (tightBar) 0 else 2, !tighterBar, true) }
             }
             if (state.driverOnRight) driverEnd() else status()
         }
@@ -422,7 +425,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
                     Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(railGap(state, bottom = false)),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                ) { apps(fit.recentSlots, fit.settings) }
+                ) { apps(fit.recentSlots, fit.settings, fit.phone) }
             }
             menu()
             Spacer(Modifier.height(4.dp))

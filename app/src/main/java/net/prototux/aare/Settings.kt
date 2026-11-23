@@ -31,6 +31,11 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("skip_mic_setup", false)
         set(v) = prefs.edit { putBoolean("skip_mic_setup", v) }
 
+    /** Send the video's SPS/PPS only once, not again before every key frame: some head units then show no picture. */
+    var videoHeadersOnce: Boolean
+        get() = prefs.getBoolean("video_headers_once", false)
+        set(v) = prefs.edit { putBoolean("video_headers_once", v) }
+
     /** Also accept head units from the network (TCP 5277, no authentication). Switched off again after one session if [headUnitServerLanOnce]. */
     var headUnitServerLan: Boolean
         get() = prefs.getBoolean("hu_server_lan", false)

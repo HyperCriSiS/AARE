@@ -507,6 +507,8 @@
     <string name="troubleshooting_log_subtitle">Führt ein kurzes Protokoll jeder Verbindung. Aus: Es wird nichts geschrieben.</string>
     <string name="vehicles_skip_mic_setup_title">Mikrofon-Einrichtung überspringen</string>
     <string name="vehicles_skip_mic_setup_subtitle">Einschalten, wenn Ton läuft, das Auto aber nie das Bild zeigt. Manche älteren Autoradios lehnen diese Nachricht ab und bleiben dann auf ihrem eigenen Bildschirm. Gilt ab der nächsten Verbindung.</string>
+    <string name="vehicles_video_headers_once_title">Video-Kopfdaten nur einmal senden</string>
+    <string name="vehicles_video_headers_once_subtitle">Einschalten, wenn das Auto den Ton abspielt, aber kein Bild zeigt, auch mit „Mikrofon-Einrichtung überspringen“. Die Beschreibung des Videostroms (SPS/PPS) geht dann nur am Anfang raus statt vor jedem Schlüsselbild. Manche Autoradios können das sonst nicht dekodieren. Gilt ab der nächsten Verbindung.</string>
     <string name="vehicles_malformed_at">vehicles.json hat einen Fehler in Zeile %1$d, Spalte %2$d (%3$s): Die Regeln darin werden ignoriert.</string>
     <string name="vehicles_malformed">vehicles.json kann nicht verwendet werden (%1$s): Die Regeln darin werden ignoriert.</string>
     <string name="setup_toggle_force_h264_title">H.264-Video erzwingen</string>

@@ -136,6 +136,8 @@
     <string name="troubleshooting_log_subtitle">Keep a short log of each connection. Off, nothing is written.</string>
     <string name="vehicles_skip_mic_setup_title">Skip microphone setup</string>
     <string name="vehicles_skip_mic_setup_subtitle">Try this when audio plays but the car never shows the picture. Some older head units refuse this message and then stay on their own screen. Takes effect at the next connection.</string>
+    <string name="vehicles_video_headers_once_title">Send video headers only once</string>
+    <string name="vehicles_video_headers_once_subtitle">Try this when the car plays the sound but shows no picture, also with \"Skip microphone setup\". The stream description (SPS/PPS) then goes out only at the start instead of before every key frame, which some head units can\'t decode. Takes effect at the next connection.</string>
     <string name="vehicles_malformed_at">vehicles.json has an error at line %1$d, column %2$d (%3$s): its rules are ignored.</string>
     <string name="vehicles_malformed">vehicles.json can\'t be used (%1$s): its rules are ignored.</string>
     <string name="setup_tagline">Open-source car projection</string>

@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Kon het certificaat niet downloaden: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Draadloos verbinden…</string>
     <string name="notif_status_not_connected">Niet verbonden</string>
+    <string name="notif_status_reconnecting">Verbinding met de auto verloren, opnieuw verbinden (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · schermopname-toestemming voor autoaudio wordt behouden (Stoppen trekt deze in)</string>
     <string name="notif_cert_changed_title">Certificaat van head unit gewijzigd</string>
     <string name="notif_new_head_unit_title">Nieuwe head unit</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Oproep actief</string>
     <string name="phone_action_hang_up">Oproep beëindigen</string>
     <string name="phone_keypad_delete">Verwijderen</string>
+    <string name="voip_mic_title">%1$s kan de microfoon niet gebruiken</string>
+    <string name="voip_mic_car_text">De ander hoort je niet. Sta het toe op de telefoon: zie de melding</string>
+    <string name="voip_mic_notification_text">Gesprekken vanuit de auto via %1$s hebben de microfoonmachtiging nodig. Tik om de instellingen te openen</string>
+    <string name="voip_call_failed_title">Bellen via %1$s is niet gelukt</string>
+    <string name="voip_call_failed_text">Open hem op de telefoon om te bellen</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Opladen</string>
     <string name="phone_incoming_call">Inkomende oproep</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Versnellingsmeter</string>
     <string name="car_data_gyroscope">Gyroscoop</string>
     <string name="car_data_dtc">Foutcodes</string>
+    <string name="car_data_dtc_unknown">Onbekend</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Fabrikantspecifieke aandrijflijncode</string>
+    <string name="car_data_dtc_manufacturer_chassis">Fabrikantspecifieke chassiscode</string>
+    <string name="car_data_dtc_manufacturer_body">Fabrikantspecifieke carrosseriecode</string>
+    <string name="car_data_dtc_manufacturer_network">Fabrikantspecifieke netwerkcode</string>
     <string name="car_data_app_label">Autogegevens</string>
     <string name="car_data_show_in_car_title">Weergeven op het autoscherm</string>
     <string name="car_data_show_in_car_subtitle">Voeg een diagnose-app toe in de auto voor deze livegegevens</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Regels geladen: %1$d</string>
     <string name="vehicles_import">Bestand importeren…</string>
     <string name="vehicles_template">Sjabloon schrijven</string>
+    <string name="vehicles_malformed_at">vehicles.json bevat een fout op regel %1$d, kolom %2$d (%3$s): de regels erin worden genegeerd.</string>
+    <string name="vehicles_malformed">vehicles.json kan niet worden gebruikt (%1$s): de regels erin worden genegeerd.</string>
     <string name="setup_toggle_force_h264_title">H.264-video forceren</string>
     <string name="setup_toggle_force_h264_subtitle">Standaard gebruikt AARE de beste codec die auto en telefoon gemeen hebben (H.265…). Schakel dit in als het beeld in de auto hapert.</string>
     <!-- newly translated strings -->
@@ -493,4 +506,24 @@
     <string name="carapp_error_stopped">%1$s is gestopt</string>
     <string name="carapp_error_google_only">%1$s accepteert alleen Google\'s Android Auto. Het moet AARE toestaan (zie de app-lijst op de telefoon).</string>
     <string name="carapp_error_cant_start">%1$s kon niet starten: %2$s</string>
+    <string name="shizuku_setup_title">Verleen AAREs machtigingen met Shizuku</string>
+    <string name="shizuku_setup_subtitle">Één tik verleent wat nog ontbreekt, zonder het eigen dialoogvenster van elke machtiging: microfoon, locatie, contacten, oproepenlijst, agenda, telefoongesprekken, apparaten in de buurt (Bluetooth, Wi-Fi), lokaal netwerk, meldingen en meldingstoegang</string>
+    <string name="shizuku_setup_working">Wordt verleend…</string>
+    <string name="shizuku_setup_result_title">Verleend met Shizuku</string>
+    <string name="shizuku_setup_nothing_to_grant">Alles was al verleend.</string>
+    <string name="shizuku_setup_not_granted">Niet verleend: %1$s</string>
+    <string name="shizuku_setup_notification_access">Meldingstoegang</string>
+    <string name="shizuku_setup_helper_failed">Shizuku\'s helper is niet gestart. Controleer of Shizuku draait en AARE toestaat.</string>
+    <string name="aa_section_title">Googles Android Auto</string>
+    <string name="aa_state_enabled">Geïnstalleerd en ingeschakeld: wanneer een auto verbindt, kan Android deze aan Android Auto geven in plaats van AARE, of vragen welke app te gebruiken.</string>
+    <string name="aa_state_disabled">Uitgeschakeld: Android Auto neemt de auto niet over. De gegevens blijven bewaard.</string>
+    <string name="aa_action_disable">Voorkom dat Android Auto de auto overneemt</string>
+    <string name="aa_action_enable">Android Auto opnieuw inschakelen</string>
+    <string name="aa_working">Bezig…</string>
+    <string name="aa_needs_shizuku">Via Shizuku (draait en staat AARE toe), of handmatig in de app-info van Android Auto.</string>
+    <string name="aa_app_info">App-info van Android Auto</string>
+    <string name="aa_failed">Mislukt: %1$s</string>
+    <string name="aa_confirm_title">Android Auto uitschakelen?</string>
+    <string name="aa_confirm_text">AARE schakelt Googles Android Auto voor deze gebruiker uit via Shizuku (pm disable-user). Het stopt met draaien, verdwijnt uit de app-lijst en reageert niet meer wanneer een auto verbindt, zodat de auto altijd naar AARE gaat.\n\nEr wordt niets verwijderd en de gegevens blijven bewaard. Auto\'s, apps of functies die Googles Android Auto nodig hebben, werken niet totdat u het hier met de knop opnieuw inschakelt.</string>
+    <string name="aa_confirm_action">Uitschakelen</string>
 </resources>

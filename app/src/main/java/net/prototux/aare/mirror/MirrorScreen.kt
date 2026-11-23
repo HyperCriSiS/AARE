@@ -52,8 +52,9 @@ import net.prototux.aare.service.ProjectionService
 @Composable
 internal fun MirrorScreen(runtime: CarRuntime, driving: Boolean, modifier: Modifier) {
     val context = LocalContext.current
-    val locked = rememberKeyguardLocked()
     val settings = remember { Settings(context) }
+    // Unless chosen otherwise, a locked phone isn't shown or driven from the car.
+    val locked = rememberKeyguardLocked() && !settings.phoneScreenWhenLocked
     // Shizuku or root: touches go to the phone live, and it can turn to landscape or show a desktop of its own.
     val helper = remember { AppLauncher.available(context) }
     // Parked, as chosen: a desktop of the phone's own at the car screen's size, instead of its mirror.
@@ -154,6 +155,7 @@ private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
     val context = LocalContext.current
     val launcher = remember { AppLauncher(context, "desktop") }
     var started by remember { mutableStateOf(false) }
+    var failed by remember { mutableStateOf(false) }
     DisposableEffect(Unit) {
         val back: () -> Boolean = {
             val t = android.os.SystemClock.uptimeMillis()
@@ -164,14 +166,15 @@ private fun PhoneDesktop(runtime: CarRuntime, modifier: Modifier) {
         runtime.setScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
         onDispose {
             runtime.clearScreenBack(CarRuntime.PHONE_SCREEN_ID, back)
-            launcher.release()
+            launcher.releaseAside()
         }
     }
     Box(modifier.background(Color.Black)) {
-        HostedAppSurface(launcher, AppLauncher.PHONE_DESKTOP, runtime.densityDpi, Modifier.fillMaxSize()) { started = it }
+        HostedAppSurface(launcher, AppLauncher.PHONE_DESKTOP, runtime.densityDpi, Modifier.fillMaxSize()) { started = it; failed = !it }
         // Kept awake: untouched, the phone would lock, and the desktop pause with it. Put back when the helper stops.
         LaunchedEffect(started) { if (started) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = false, awake = true, panelOff = false) } }
-        if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
+        if (failed) Placeholder(stringResource(R.string.standalone_failed), loading = false)
+        else if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
     }
 }
 
@@ -191,6 +194,11 @@ internal fun rememberKeyguardLocked(): Boolean {
         ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         locked = keyguard.isKeyguardLocked
         onDispose { context.unregisterReceiver(receiver) }
+    }
+    // Also looked at while locked: an unlock without a broadcast (a trusted device, the lock screen
+    // dismissed while the screen stayed on) would otherwise leave it locked here for good.
+    LaunchedEffect(locked) {
+        while (locked) { delay(LOCK_POLL_MS); locked = keyguard.isKeyguardLocked }
     }
     return locked
 }
@@ -294,3 +302,6 @@ private const val FRONT_POLL_MS = 2_000L
 
 /** Whether the paused phone screen asks for the accessibility service: not with a [helper], which tells the app in front itself. */
 internal fun asksForAccessibility(helper: Boolean, service: Boolean) = !helper && !service
+
+/** How often a locked phone is looked at again, in case it was unlocked without a broadcast. */
+private const val LOCK_POLL_MS = 1_000L

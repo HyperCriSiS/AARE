@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -124,7 +125,8 @@ private fun Pane(
                 }
             },
     ) {
-        state.app(appId)?.let { appContent(it, Modifier.fillMaxSize()) }
+        // Keyed by the app: replacing a pane's app must not hand the old app's movable screen to the new one.
+        state.app(appId)?.let { key(it.id) { appContent(it, Modifier.fillMaxSize()) } }
     }
 }
 

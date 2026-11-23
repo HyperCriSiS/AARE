@@ -119,13 +119,16 @@ class Cert:
             flag = f"  ** expires in {left} days **"
         else:
             flag = f"  ({left} days left)"
+        # A date openssl printed in a form the parser missed is None.
+        valid = (f"{self.not_before:%Y-%m-%d} -> {self.not_after:%Y-%m-%d}"
+                 if self.not_before and self.not_after else "unknown")
         lines = [
             f"--- {self.org()} — {'self-signed root' if self.root else 'leaf'}  [{origin}]",
             f"    subject  : {self.subject}",
             f"    issuer   : {self.issuer}",
             f"    serial   : {self.serial}",
             f"    sha256   : {':'.join(self.sha256[i:i+2] for i in range(0, 64, 2))}",
-            f"    valid    : {self.not_before:%Y-%m-%d} -> {self.not_after:%Y-%m-%d}{flag}",
+            f"    valid    : {valid}{flag}",
         ]
         return "\n".join(lines)
 

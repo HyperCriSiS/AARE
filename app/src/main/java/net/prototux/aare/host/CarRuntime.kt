@@ -341,9 +341,9 @@ class CarRuntime(
             "rail_spacing_px" -> main.post { ui.railSpacing = settings.railSpacing }
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu",
-            "standalone_apps", "standalone_app_pkgs", "browser", "full_apps" -> main.post { refreshApps() }
+            "standalone_apps", "standalone_app_pkgs", "browser", "full_apps", "car_data_app" -> main.post { refreshApps() }
             // Switched from the car's settings: show or drop them now, not at the next refresh.
-            "video_apps" -> main.post { videoApps = settings.videoApps }
+            "video_apps", "video_apps_off" -> main.post { videoApps = settings.videoApps; videoAppsOff = settings.videoAppsOff }
             // Cards switched on or off: also fetch what they show now (the weather, the agenda).
             "dashboard_cards", "show_weather" -> main.post {
                 applyScreenSettings()
@@ -355,6 +355,9 @@ class CarRuntime(
 
     /** [Settings.videoApps], kept current for the car screen. */
     private var videoApps by mutableStateOf(settings.videoApps)
+    private var videoAppsOff by mutableStateOf(settings.videoAppsOff)
+    /** Automatic apps that listed nothing this session: shown as themselves. */
+    private val autoVideoApps = androidx.compose.runtime.mutableStateListOf<String>()
 
     /** The weather and calendar refresh loop, restarted when either is switched on or off. */
     private var dashboardInfo: Job? = null
@@ -549,7 +552,8 @@ class CarRuntime(
     fun stopNavigation(): CarAppEntry? {
         navigatingApp?.let { c -> c.stopNavigation(); return idOf(c)?.let(ui::app) }
         val maps = (settings.navigationApp?.let { pkg -> ui.apps.firstOrNull { it.packageName == pkg } } ?: ui.app(ui.activeNavAppId))
-            ?.takeIf { it.kind == CarAppKind.STANDALONE } ?: return null
+            // Only Google Maps ends its route this way; for another phone app it would claim an end that didn't happen.
+            ?.takeIf { it.kind == CarAppKind.STANDALONE && it.packageName == "com.google.android.apps.maps" } ?: return null
         ui.navigationRequest = maps.packageName to "geo:0,0"
         actions.openApp(maps)
         return maps
@@ -658,8 +662,13 @@ class CarRuntime(
     private var noticeSeq = 0L
 
     /** Opens [packageName]'s app on the car screen, as a tap on its notification does; null if the car screen has none. */
-    fun opener(packageName: String): (() -> Unit)? =
-        ui.apps.firstOrNull { it.packageName == packageName }?.let { app -> { actions.openApp(app) } }
+    fun opener(packageName: String, intent: android.app.PendingIntent? = null, done: () -> Unit = {}): (() -> Unit)? =
+        ui.apps.firstOrNull { it.packageName == packageName }?.let { app -> {
+            // The app itself on the car screen: on what the tap opens there (the conversation), not its start.
+            if (intent != null && app.kind == CarAppKind.MESSAGING && fullApp(packageName in settings.fullApps)) ui.openRequest = packageName to intent
+            actions.openApp(app)
+            done()
+        } }
 
     /** Keeps a notification (a message) for the notification centre. */
     fun remember(title: String, text: String, icon: Bitmap?, actions: List<Pair<String, () -> Unit>>, open: (() -> Unit)? = null) {
@@ -787,6 +796,9 @@ class CarRuntime(
      */
     private val screenBacks = HashMap<String, () -> Boolean>()
 
+    /** The media app whose video was put full screen: it goes back to full screen when its video is rebuilt. */
+    var fullScreenVideo by mutableStateOf<String?>(null)
+
     fun setScreenBack(appId: String, back: () -> Boolean) { screenBacks[appId] = back }
 
     /** Drops [back] unless the app's next screen already installed its own. */
@@ -835,9 +847,17 @@ class CarRuntime(
                             CarAppKind.MEDIA -> {
                                 val m = mediaApps.firstOrNull { it.packageName == app.packageName }
                                 // Parked: the app itself, its video, can take the art's place (the camera button, per app).
-                                val toggleVideo = { val p = app.packageName; settings.videoApps = if (p in videoApps) videoApps - p else videoApps + p }
-                                val video = if (phoneScreenAllowed && !ui.drivingRestricted) {
-                                    PhoneVideoSlot(app.packageName in videoApps, toggleVideo) { v, p -> PhoneVideo(this, app.id, app.packageName, v, onCover = toggleVideo, player = p) }
+                                val p = app.packageName
+                                val shown = p in videoApps || (p !in videoAppsOff && p in autoVideoApps)
+                                // The camera button chooses for good: the app or AARE's list, no longer automatic.
+                                val toggleVideo = {
+                                    if (shown) { settings.videoApps = videoApps - p; settings.videoAppsOff = videoAppsOff + p }
+                                    else { settings.videoAppsOff = videoAppsOff - p; settings.videoApps = videoApps + p }
+                                }
+                                // The video is the app on the helper's display: no camera button without Shizuku or root.
+                                val video = if (phoneScreenAllowed && !ui.drivingRestricted && AppLauncher.available(context)) {
+                                    PhoneVideoSlot(shown, toggleVideo, { v, pi -> PhoneVideo(this, app.id, p, v, onCover = toggleVideo, player = pi) },
+                                        auto = p !in videoApps && p !in videoAppsOff, showAuto = { if (p !in autoVideoApps) autoVideoApps += p })
                                 } else null
                                 if (m != null) CompositionLocalProvider(LocalPhoneVideo provides video) { media.Screen(m, ui.drivingRestricted, mod) }
                             }

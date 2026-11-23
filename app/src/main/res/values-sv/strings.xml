@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Det gick inte att ladda ner certifikatet: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Ansluter trådlöst…</string>
     <string name="notif_status_not_connected">Inte ansluten</string>
+    <string name="notif_status_reconnecting">Anslutningen till bilen bröts, ansluter igen (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · behåller medgivandet för skärminspelning för billjud (Stopp släpper det)</string>
     <string name="notif_cert_changed_title">Head units certifikat ändrat</string>
     <string name="notif_new_head_unit_title">Ny head unit</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Samtal pågår</string>
     <string name="phone_action_hang_up">Lägg på</string>
     <string name="phone_keypad_delete">Ta bort</string>
+    <string name="voip_mic_title">%1$s kan inte använda mikrofonen</string>
+    <string name="voip_mic_car_text">Den andra parten hör dig inte. Tillåt det på telefonen: se aviseringen</string>
+    <string name="voip_mic_notification_text">Samtal från bilen via %1$s behöver dess mikrofonbehörighet. Tryck för att öppna dess inställningar</string>
+    <string name="voip_call_failed_title">Kunde inte ringa via %1$s</string>
+    <string name="voip_call_failed_text">Öppna den på telefonen för att ringa</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Laddar</string>
     <string name="phone_incoming_call">Inkommande samtal</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Accelerometer</string>
     <string name="car_data_gyroscope">Gyroskop</string>
     <string name="car_data_dtc">Felkoder</string>
+    <string name="car_data_dtc_unknown">Okänd</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Tillverkarspecifik drivlinekod</string>
+    <string name="car_data_dtc_manufacturer_chassis">Tillverkarspecifik chassikod</string>
+    <string name="car_data_dtc_manufacturer_body">Tillverkarspecifik karosserikod</string>
+    <string name="car_data_dtc_manufacturer_network">Tillverkarspecifik nätverkskod</string>
     <string name="car_data_app_label">Bildata</string>
     <string name="car_data_show_in_car_title">Visa på bilens skärm</string>
     <string name="car_data_show_in_car_subtitle">Lägg till en diagnosapp i bilen för den här livedatan</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Inlästa regler: %1$d</string>
     <string name="vehicles_import">Importera fil…</string>
     <string name="vehicles_template">Skriv mall</string>
+    <string name="vehicles_malformed_at">vehicles.json har ett fel på rad %1$d, kolumn %2$d (%3$s): dess regler ignoreras.</string>
+    <string name="vehicles_malformed">vehicles.json kan inte användas (%1$s): dess regler ignoreras.</string>
     <string name="setup_toggle_force_h264_title">Tvinga H.264-video</string>
     <string name="setup_toggle_force_h264_subtitle">Som standard använder AARE den bästa kodeken som bilen och telefonen har gemensamt (H.265…). Slå på om bilens bild är förvrängd.</string>
     <!-- i18n/new-strings: added 2026-11-09 -->
@@ -493,4 +506,24 @@
     <string name="carapp_error_stopped">%1$s stoppades</string>
     <string name="carapp_error_google_only">%1$s accepterar endast Googles Android Auto. Den måste tillåta AARE (se applistan på telefonen).</string>
     <string name="carapp_error_cant_start">%1$s kunde inte starta: %2$s</string>
+    <string name="shizuku_setup_title">Ge AARE behörigheter med Shizuku</string>
+    <string name="shizuku_setup_subtitle">Ett tryck ger det som fortfarande saknas, utan varje behörighets egen dialog: mikrofon, plats, kontakter, samtalslogg, kalender, telefonsamtal, enheter i närheten (Bluetooth, Wi-Fi), lokalt nätverk, aviseringar och aviseringsåtkomst</string>
+    <string name="shizuku_setup_working">Ger behörighet…</string>
+    <string name="shizuku_setup_result_title">Gett med Shizuku</string>
+    <string name="shizuku_setup_nothing_to_grant">Allt var redan gett.</string>
+    <string name="shizuku_setup_not_granted">Inte gett: %1$s</string>
+    <string name="shizuku_setup_notification_access">Aviseringsåtkomst</string>
+    <string name="shizuku_setup_helper_failed">Shizukus hjälpare startade inte. Kontrollera att Shizuku körs och tillåter AARE.</string>
+    <string name="aa_section_title">Googles Android Auto</string>
+    <string name="aa_state_enabled">Installerad och aktiverad: när en bil ansluter kan Android ge den till Android Auto istället för AARE, eller fråga vilken app som ska användas.</string>
+    <string name="aa_state_disabled">Inaktiverad: Android Auto tar inte bilen. Dess data bevaras.</string>
+    <string name="aa_action_disable">Hindra Android Auto från att ta bilen</string>
+    <string name="aa_action_enable">Aktivera Android Auto igen</string>
+    <string name="aa_working">Arbetar…</string>
+    <string name="aa_needs_shizuku">Via Shizuku (körs och tillåter AARE), eller manuellt i Android Autos appinfo.</string>
+    <string name="aa_app_info">Android Autos appinfo</string>
+    <string name="aa_failed">Fungerade inte: %1$s</string>
+    <string name="aa_confirm_title">Inaktivera Android Auto?</string>
+    <string name="aa_confirm_text">AARE inaktiverar Googles Android Auto för denna användare via Shizuku (pm disable-user). Den slutar köra, försvinner från applistan och svarar inte längre när en bil ansluter, så bilen går alltid till AARE.\n\nInget avinstalleras och dess data bevaras. Bilar, appar eller funktioner som behöver Googles Android Auto fungerar inte förrän du aktiverar den igen med knappen här.</string>
+    <string name="aa_confirm_action">Inaktivera</string>
 </resources>

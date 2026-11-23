@@ -63,6 +63,8 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
     // one of its own, laid out as on a tablet so the map keeps most of the small card.
     val launcher = remember(packageName) { AppLauncher(context, (if (card) "card-" else "launch-") + packageName) }
     var started by remember(packageName) { mutableStateOf(false) }
+    // The helper didn't connect or the launch failed: said so instead of a spinner that never ends.
+    var failed by remember(packageName) { mutableStateOf(false) }
     // Voice sessions started here: each opens a fresh chat, so the car links' memory starts afresh.
     var voiceStarts by remember(packageName) { mutableIntStateOf(0) }
 
@@ -82,13 +84,14 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
             // Nor a navigation: opened later by hand, the app would start that old route over the driver's own.
             // Not by the map card: leaving it is how the request reaches the app full screen.
             if (!card && runtime.ui.navigationRequest?.first == packageName) runtime.ui.navigationRequest = null
-            launcher.release()
+            if (!card && runtime.ui.openRequest?.first == packageName) runtime.ui.openRequest = null
+            launcher.releaseAside()
         }
     }
 
     Box(modifier.background(Color.Black)) {
         if (!driving) {
-            HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = card) { started = it }
+            HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = card) { started = it; failed = !it }
             // The voice button: the assistant opens straight into its voice mode, where it has one.
             LaunchedEffect(started, runtime.ui.assistantVoice) {
                 if (started && runtime.ui.assistantVoice == packageName) try {
@@ -109,6 +112,12 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
                 // Cleared only once done: the request is this effect's key, and clearing it cancels the effect.
                 try { withContext(Dispatchers.IO) { launcher.openLink(request.second, packageName) } }
                 finally { if (runtime.ui.navigationRequest == request) runtime.ui.navigationRequest = null }
+            }
+            // A notification tapped for this app: what the tap opens (the conversation), once it runs.
+            LaunchedEffect(started, runtime.ui.openRequest) {
+                val request = runtime.ui.openRequest?.takeIf { started && !card && it.first == packageName } ?: return@LaunchedEffect
+                try { withContext(Dispatchers.IO) { launcher.openPending(request.second) } }
+                finally { if (runtime.ui.openRequest == request) runtime.ui.openRequest = null }
             }
             // The assistant's car links, read off the car screen and run here: MacroDroid and the phone's own
             // tools only see the phone's display, not this one. Links already in the chat when it shows stay put.
@@ -154,7 +163,8 @@ internal fun StandaloneAppScreen(runtime: CarRuntime, driving: Boolean, packageN
                     delay(CAR_LINK_POLL_MS)
                 }
             }
-            if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
+            if (failed) Placeholder(stringResource(R.string.standalone_failed), loading = false)
+            else if (!started) Placeholder(stringResource(R.string.standalone_starting), loading = true)
         } else {
             // Driving, a voice request isn't kept for later: it would open voice mode unasked once parked.
             LaunchedEffect(Unit) { if (runtime.ui.assistantVoice == packageName) runtime.ui.assistantVoice = null }
@@ -185,7 +195,7 @@ internal fun HostedAppSurface(launcher: AppLauncher, packageName: String, dpi: I
                             Thread {
                                 // Already running (the kept assistant): only moved onto this surface.
                                 if (launcher.connected) { launcher.resize(surface, w, h, dpiFor(w, h)); onStarted(true) }
-                                else if (launcher.connect()) onStarted(launcher.start(surface, w, h, dpiFor(w, h), packageName, Settings(ctx).standaloneKeepScreenAwake) >= 0)
+                                else onStarted(launcher.connect() && launcher.start(surface, w, h, dpiFor(w, h), packageName, Settings(ctx).standaloneKeepScreenAwake) >= 0)
                             }.apply { isDaemon = true }.start()
                         }
                         override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {

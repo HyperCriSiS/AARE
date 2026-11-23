@@ -60,7 +60,14 @@ import net.prototux.aare.media.Placeholder
  * (its media session's, or null), [shown] says whether it takes the art's place, [toggle] switches
  * between the two.
  */
-class PhoneVideoSlot(val shown: Boolean, val toggle: () -> Unit, val content: @Composable (Modifier, PendingIntent?) -> Unit)
+class PhoneVideoSlot(
+    val shown: Boolean,
+    val toggle: () -> Unit,
+    val content: @Composable (Modifier, PendingIntent?) -> Unit,
+    /** Neither chosen: shown by itself when the app lists nothing, through [showAuto]. */
+    val auto: Boolean = false,
+    val showAuto: () -> Unit = {},
+)
 
 /** The [PhoneVideoSlot] for media apps; null while driving or where the phone screen can't show. */
 val LocalPhoneVideo = compositionLocalOf<PhoneVideoSlot?> { null }
@@ -94,14 +101,15 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         }
     }
     // Gone (driving, another screen): so are its full-screen copy and its display.
-    DisposableEffect(launcher) { onDispose { full?.value = null; launcher.release() } }
+    DisposableEffect(launcher) { onDispose { full?.value = null; launcher.releaseAside() } }
     // Players (WizeStream, NewPipe) go full screen by the phone's own orientation; upright they
     // offer "toggle orientation" for it. Put back when the helper stops (release() above).
     LaunchedEffect(started) {
         if (started == true && Settings(context).videoLandscape) withContext(Dispatchers.IO) { launcher.phoneScreen(landscape = true, awake = false, panelOff = false) }
     }
     // Back from the car (or the car screen preview) goes to the app; without it, to the cover. Back on
-    // the player's first screen closes it: with no app left, the cover again, not an empty picture.
+    // the player's first screen closes it: with no app left, the dashboard, not an empty picture. Not
+    // the cover: that would switch this app to AARE's list for good.
     val cover by rememberUpdatedState(onCover)
     val scope = rememberCoroutineScope()
     DisposableEffect(appId) {
@@ -112,7 +120,7 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
                 launcher.key(t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK)
                 scope.launch {
                     delay(BACK_SETTLE_MS)
-                    if (!withContext(Dispatchers.IO) { launcher.hasApp() }) cover()
+                    if (!withContext(Dispatchers.IO) { launcher.hasApp() }) runtime.actions.goHome()
                 }
             } else cover()
             true
@@ -124,15 +132,19 @@ internal fun PhoneVideo(runtime: CarRuntime, appId: String, packageName: String,
         Placeholder(stringResource(R.string.standalone_need_root), loading = false, icon = Icons.Rounded.PhoneAndroid, modifier = modifier.background(Color.Black))
         return
     }
+    val enterFull = {
+        runtime.fullScreenVideo = appId
+        full?.value = {
+            VideoButtons(Modifier.fillMaxSize(), buttons = {
+                CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { runtime.fullScreenVideo = null; full?.value = null })
+            }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
+        }
+    }
+    // Rebuilt (the car's own screen over it a moment): full screen again, as it was left.
+    LaunchedEffect(Unit) { if (runtime.fullScreenVideo == appId && full != null && full.value == null) enterFull() }
     VideoButtons(modifier, buttons = {
-        CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = onCover)
-        if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = {
-            full.value = {
-                VideoButtons(Modifier.fillMaxSize(), buttons = {
-                    CircleButton(Icons.Rounded.FullscreenExit, stringResource(R.string.video_exit_full_screen), onClick = { full.value = null })
-                }) { HostedAppSurface(launcher, packageName, runtime.densityDpi, Modifier.fillMaxSize(), tablet = true) }
-            }
-        })
+        CircleButton(Icons.Rounded.Image, stringResource(R.string.media_action_show_art), onClick = { runtime.fullScreenVideo = null; onCover() })
+        if (full != null) CircleButton(Icons.Rounded.Fullscreen, stringResource(R.string.video_full_screen), onClick = enterFull)
     }) video@{
         // Full screen, the one display moves onto the copy over everything.
         if (full?.value != null) return@video

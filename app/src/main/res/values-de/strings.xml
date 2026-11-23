@@ -6,6 +6,8 @@
     <string name="phone_mode_desktop">Eigener Bildschirm</string>
     <string name="phone_mode_mirror_hint">Der Bildschirm des Telefons selbst, ins Querformat gedreht, solange er im Auto angezeigt wird, live bedienbar. Apps, die nur hochkant laufen, bleiben ein Streifen in der Mitte.</string>
     <string name="phone_mode_desktop_hint">Beim Parken ein eigener Bildschirm in der Größe des Autobildschirms, mit Androids Desktop und Taskleiste: Apps laufen dort quer, und das Telefon zeigt weiter, was es zeigte.</string>
+    <string name="phone_toggle_locked_title">Auch gesperrt bedienbar</string>
+    <string name="phone_toggle_locked_subtitle">Das Auto zeigt und bedient das Handy auch, wenn es gesperrt ist. Dann kann jeder im Auto dein Handy benutzen.</string>
     <string name="phone_toggle_off_title">Handy-Display aus</string>
     <string name="phone_toggle_off_subtitle">Das Panel bleibt dunkel, solange das Auto den Bildschirm zeigt (ab Android 15). Die Ein-Taste schaltet es wieder ein.</string>
     <string name="video_toggle_landscape_title">Videos sofort im Vollbild</string>
@@ -279,6 +281,7 @@
     <string name="notif_cert_download_failed">Das Zertifikat konnte nicht heruntergeladen werden: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Kabellose Verbindung wird aufgebaut…</string>
     <string name="notif_status_not_connected">Nicht verbunden</string>
+    <string name="notif_status_reconnecting">Verbindung zum Auto verloren, Verbindung wird erneut aufgebaut (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · Zustimmung zur Bildschirmaufnahme für Autoaudio wird beibehalten (Stopp gibt sie frei)</string>
     <string name="notif_cert_changed_title">Zertifikat der Head Unit geändert</string>
     <string name="notif_new_head_unit_title">Neue Head Unit</string>
@@ -374,6 +377,11 @@
     <string name="phone_call_in_progress">Anruf läuft</string>
     <string name="phone_action_hang_up">Auflegen</string>
     <string name="phone_keypad_delete">Löschen</string>
+    <string name="voip_mic_title">%1$s kann das Mikrofon nicht verwenden</string>
+    <string name="voip_mic_car_text">Die Gegenseite hört Sie nicht. Erlauben Sie es auf dem Telefon: siehe Benachrichtigung</string>
+    <string name="voip_mic_notification_text">Anrufe aus dem Auto über %1$s brauchen dessen Mikrofonberechtigung. Tippen, um die Einstellungen zu öffnen</string>
+    <string name="voip_call_failed_title">Anruf über %1$s nicht möglich</string>
+    <string name="voip_call_failed_text">Zum Anrufen auf dem Telefon öffnen</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Lädt</string>
     <string name="phone_incoming_call">Eingehender Anruf</string>
@@ -411,6 +419,10 @@
     <string name="app_place_overview">App-Übersicht</string>
     <string name="app_place_off">Nicht im Auto</string>
     <string name="app_full_title">Ganze App</string>
+    <string name="app_video_title">Anzeige</string>
+    <string name="app_video_auto">Automatisch</string>
+    <string name="app_video_list">Liste</string>
+    <string name="app_video_subtitle">Im Stand die Liste von AARE oder die App selbst samt Video auf dem Auto-Bildschirm. Automatisch zeigt die App, wenn sie AARE nichts auflistet. Auch der Kamera-Knopf im Auto legt das fest.</string>
     <string name="app_full_subtitle">Im Stand oder im Beifahrermodus der eigene Bildschirm der App samt Tastatur statt der Ansicht von AARE. Während der Fahrt die Ansicht von AARE.</string>
     <string name="standalone_search">Apps suchen</string>
     <string name="standalone_need_root">Benötigt root oder Shizuku. Richten Sie eins davon auf der Seite Autoaudio ein und kommen Sie dann zurück.</string>
@@ -477,6 +489,11 @@
     <string name="car_data_accelerometer">Beschleunigungssensor</string>
     <string name="car_data_gyroscope">Gyroskop</string>
     <string name="car_data_dtc">Fehlercodes</string>
+    <string name="car_data_dtc_unknown">Unbekannt</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Herstellerspezifischer Antriebsstrang-Code</string>
+    <string name="car_data_dtc_manufacturer_chassis">Herstellerspezifischer Fahrwerk-Code</string>
+    <string name="car_data_dtc_manufacturer_body">Herstellerspezifischer Karosserie-Code</string>
+    <string name="car_data_dtc_manufacturer_network">Herstellerspezifischer Netzwerk-Code</string>
     <string name="car_data_app_label">Fahrzeugdaten</string>
     <string name="car_data_show_in_car_title">Auf dem Autobildschirm anzeigen</string>
     <string name="car_data_show_in_car_subtitle">Fügen Sie im Auto eine Diagnose-App für diese Live-Daten hinzu</string>
@@ -492,6 +509,8 @@
     <string name="vehicles_skip_mic_setup_subtitle">Einschalten, wenn Ton läuft, das Auto aber nie das Bild zeigt. Manche älteren Autoradios lehnen diese Nachricht ab und bleiben dann auf ihrem eigenen Bildschirm. Gilt ab der nächsten Verbindung.</string>
     <string name="vehicles_video_headers_once_title">Video-Kopfdaten nur einmal senden</string>
     <string name="vehicles_video_headers_once_subtitle">Einschalten, wenn das Auto den Ton abspielt, aber kein Bild zeigt, auch mit „Mikrofon-Einrichtung überspringen“. Die Beschreibung des Videostroms (SPS/PPS) geht dann nur am Anfang raus statt vor jedem Schlüsselbild. Manche Autoradios können das sonst nicht dekodieren. Gilt ab der nächsten Verbindung.</string>
+    <string name="vehicles_malformed_at">vehicles.json hat einen Fehler in Zeile %1$d, Spalte %2$d (%3$s): Die Regeln darin werden ignoriert.</string>
+    <string name="vehicles_malformed">vehicles.json kann nicht verwendet werden (%1$s): Die Regeln darin werden ignoriert.</string>
     <string name="setup_toggle_force_h264_title">H.264-Video erzwingen</string>
     <string name="setup_toggle_force_h264_subtitle">Standardmäßig verwendet AARE den besten Codec, den Auto und Telefon gemeinsam unterstützen (H.265…). Aktivieren Sie dies, wenn das Bild im Auto ruckelt oder gestört ist.</string>
     <string name="common_ok">OK</string>
@@ -589,4 +608,24 @@
     <string name="car_link_playing">Es läuft %1$s, %2$s.</string>
     <string name="car_link_next_turn">Als Nächstes: %1$s.</string>
     <string name="car_link_battery">Handy-Akku %1$d Prozent.</string>
+    <string name="shizuku_setup_title">AAREs Berechtigungen mit Shizuku gewähren</string>
+    <string name="shizuku_setup_subtitle">Ein Tippen gewährt, was noch fehlt, ohne den eigenen Dialog jeder Berechtigung: Mikrofon, Standort, Kontakte, Anrufliste, Kalender, Telefonanrufe, Geräte in der Nähe (Bluetooth, Wi-Fi), lokales Netzwerk, Benachrichtigungen und Benachrichtigungszugriff</string>
+    <string name="shizuku_setup_working">Wird gewährt…</string>
+    <string name="shizuku_setup_result_title">Mit Shizuku gewährt</string>
+    <string name="shizuku_setup_nothing_to_grant">Alles war bereits gewährt.</string>
+    <string name="shizuku_setup_not_granted">Nicht gewährt: %1$s</string>
+    <string name="shizuku_setup_notification_access">Benachrichtigungszugriff</string>
+    <string name="shizuku_setup_helper_failed">Shizukus Helfer ist nicht gestartet. Prüfen Sie, dass Shizuku läuft und AARE erlaubt.</string>
+    <string name="aa_section_title">Googles Android Auto</string>
+    <string name="aa_state_enabled">Installiert und aktiviert: Wenn sich ein Auto verbindet, kann Android es Android Auto statt AARE geben oder fragen, welche App genutzt werden soll.</string>
+    <string name="aa_state_disabled">Deaktiviert: Android Auto übernimmt das Auto nicht. Seine Daten bleiben erhalten.</string>
+    <string name="aa_action_disable">Android Auto daran hindern, das Auto zu übernehmen</string>
+    <string name="aa_action_enable">Android Auto wieder aktivieren</string>
+    <string name="aa_working">Wird ausgeführt…</string>
+    <string name="aa_needs_shizuku">Über Shizuku (läuft und erlaubt AARE), oder manuell in Android Autos App-Info.</string>
+    <string name="aa_app_info">Android Autos App-Info</string>
+    <string name="aa_failed">Fehlgeschlagen: %1$s</string>
+    <string name="aa_confirm_title">Android Auto deaktivieren?</string>
+    <string name="aa_confirm_text">AARE deaktiviert Googles Android Auto für diesen Benutzer über Shizuku (pm disable-user). Es läuft dann nicht mehr, verschwindet aus der App-Liste und reagiert nicht mehr, wenn sich ein Auto verbindet, sodass das Auto immer zu AARE kommt.\n\nEs wird nichts deinstalliert, und seine Daten bleiben erhalten. Autos, Apps oder Funktionen, die Googles Android Auto benötigen, funktionieren erst wieder, wenn Sie es hier mit der Schaltfläche erneut aktivieren.</string>
+    <string name="aa_confirm_action">Deaktivieren</string>
 </resources>

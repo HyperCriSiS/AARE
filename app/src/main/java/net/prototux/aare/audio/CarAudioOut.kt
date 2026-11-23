@@ -93,6 +93,7 @@ class CarAudioOut(
         val chunk = chunkBytes(rate, channels)
         val buf = ByteArray(10 + chunk)
         var lastSound = 0L
+        var askedAt = 0L
         playing = false
         var frames = 0L
         // Timestamps on the video's clock (the encoder stamps System.nanoTime), as Android Auto does,
@@ -127,6 +128,7 @@ class CarAudioOut(
                 val hold = holdOpen()
                 if (!playing && (lastSound == now || hold)) {
                     focus.request(true)
+                    askedAt = now
                     playing = true
                 } else if (playing && !hold && now - lastSound > SILENCE_MS) {
                     noteDropped()
@@ -140,7 +142,12 @@ class CarAudioOut(
                 if (!playing) continue
                 if (!channel.started) {
                     // Keep the sound until the car grants focus, then open the stream.
-                    if (!focus.granted) { queue(ts); continue }
+                    if (!focus.granted) {
+                        // Held open through silence, playing never restarts: sound the car took
+                        // focus from (a transient loss it never hands back) asks again here.
+                        if (askAgain(lastSound == now, now, askedAt)) { focus.request(true); askedAt = now }
+                        queue(ts); continue
+                    }
                     channel.startPlayback()
                     if (!channel.started) { queue(ts); continue }
                     startedAtMs = now; maxQueued = queued.size; focusDropped = 0; underflowsAtStart = channel.underflows
@@ -253,6 +260,11 @@ class CarAudioOut(
         private const val UNDERFLOW_HOLD_MS = 30_000L
         /** A head unit's end-of-stream underflow lands within this long of us stopping: not a real gap. */
         private const val IGNORE_UNDERFLOW_AFTER_STOP_MS = 1_000L
+        /** How often sound without focus asks the car again. */
+        const val REASK_MS = 5_000L
+
+        /** Whether sound waiting for focus asks the car again: only while it sounds, and not too often. */
+        fun askAgain(sounding: Boolean, nowMs: Long, askedAtMs: Long): Boolean = sounding && nowMs - askedAtMs >= REASK_MS
 
         /**
          * Bytes per audio message, as Android Auto sends them: 2048 samples at 44.1 or 48 kHz, 1024

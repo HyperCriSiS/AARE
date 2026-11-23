@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Varmenteen lataus epäonnistui: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Yhdistetään langattomasti…</string>
     <string name="notif_status_not_connected">Ei yhdistetty</string>
+    <string name="notif_status_reconnecting">Yhteys autoon katkesi, yhdistetään uudelleen (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · säilyttää näytön kaappausluvan auton äänille (Pysäytä vapauttaa sen)</string>
     <string name="notif_cert_changed_title">Soittolaitteen varmenne vaihtui</string>
     <string name="notif_new_head_unit_title">Uusi soittolaite</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Puhelu käynnissä</string>
     <string name="phone_action_hang_up">Katkaise</string>
     <string name="phone_keypad_delete">Poista</string>
+    <string name="voip_mic_title">%1$s ei voi käyttää mikrofonia</string>
+    <string name="voip_mic_car_text">Toinen osapuoli ei kuule sinua. Salli se puhelimessa: katso ilmoitus</string>
+    <string name="voip_mic_notification_text">Puhelut autosta sovelluksella %1$s tarvitsevat sen mikrofonioikeuden. Avaa sen asetukset napauttamalla</string>
+    <string name="voip_call_failed_title">Soitto sovelluksella %1$s epäonnistui</string>
+    <string name="voip_call_failed_text">Soita avaamalla se puhelimessa</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Latautuu</string>
     <string name="phone_incoming_call">Saapuva puhelu</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Kiihtyvyysanturi</string>
     <string name="car_data_gyroscope">Gyroskooppi</string>
     <string name="car_data_dtc">Vikakoodit</string>
+    <string name="car_data_dtc_unknown">Tuntematon</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Valmistajakohtainen voimansiirron koodi</string>
+    <string name="car_data_dtc_manufacturer_chassis">Valmistajakohtainen alustan koodi</string>
+    <string name="car_data_dtc_manufacturer_body">Valmistajakohtainen korin koodi</string>
+    <string name="car_data_dtc_manufacturer_network">Valmistajakohtainen verkon koodi</string>
     <string name="car_data_app_label">Auton tiedot</string>
     <string name="car_data_show_in_car_title">Näytä auton näytöllä</string>
     <string name="car_data_show_in_car_subtitle">Lisää autoon diagnostiikkasovellus näitä reaaliaikaisia tietoja varten</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Ladattuja sääntöjä: %1$d</string>
     <string name="vehicles_import">Tuo tiedosto…</string>
     <string name="vehicles_template">Kirjoita malli</string>
+    <string name="vehicles_malformed_at">vehicles.json-tiedostossa on virhe rivillä %1$d, sarakkeessa %2$d (%3$s): sen säännöt ohitetaan.</string>
+    <string name="vehicles_malformed">vehicles.json-tiedostoa ei voi käyttää (%1$s): sen säännöt ohitetaan.</string>
     <string name="setup_toggle_force_h264_title">Pakota H.264-video</string>
     <string name="setup_toggle_force_h264_subtitle">AARE käyttää oletusarvoisesti parasta koodekkia, jonka auto ja puhelin jakavat (H.265…). Ota käyttöön, jos auton kuva on häiriöinen.</string>
     <string name="common_ok">OK</string>
@@ -492,4 +505,24 @@
     <string name="carapp_error_stopped">%1$s pysähtyi</string>
     <string name="carapp_error_google_only">%1$s hyväksyy vain Googlen Android Auton. Sen täytyy sallia AARE (katso sovellusluettelo puhelimesta).</string>
     <string name="carapp_error_cant_start">%1$s ei voinut käynnistyä: %2$s</string>
+    <string name="shizuku_setup_title">Myönnä AAREn käyttöoikeudet Shizukulla</string>
+    <string name="shizuku_setup_subtitle">Yksi napautus myöntää sen, mikä puuttuu vielä, ilman kunkin käyttöoikeuden omaa valintaikkunaa: mikrofoni, sijainti, yhteystiedot, puhelulokit, kalenteri, puhelut, lähellä olevat laitteet (Bluetooth, Wi-Fi), paikallinen verkko, ilmoitukset ja ilmoitusten käyttöoikeus</string>
+    <string name="shizuku_setup_working">Myönnetään…</string>
+    <string name="shizuku_setup_result_title">Myönnetty Shizukulla</string>
+    <string name="shizuku_setup_nothing_to_grant">Kaikki oli jo myönnetty.</string>
+    <string name="shizuku_setup_not_granted">Ei myönnetty: %1$s</string>
+    <string name="shizuku_setup_notification_access">Ilmoitusten käyttöoikeus</string>
+    <string name="shizuku_setup_helper_failed">Shizukun apuohjelma ei käynnistynyt. Tarkista, että Shizuku on käynnissä ja sallii AAREn.</string>
+    <string name="aa_section_title">Googlen Android Auto</string>
+    <string name="aa_state_enabled">Asennettu ja käytössä: kun auto yhdistetään, Android voi antaa sen Android Autolle AAREn sijaan tai kysyä, mitä sovellusta käytetään.</string>
+    <string name="aa_state_disabled">Pois käytöstä: Android Auto ei ota autoa. Sen tiedot säilyvät.</string>
+    <string name="aa_action_disable">Estä Android Autoa ottamasta autoa</string>
+    <string name="aa_action_enable">Ota Android Auto käyttöön uudelleen</string>
+    <string name="aa_working">Käsitellään…</string>
+    <string name="aa_needs_shizuku">Shizukun kautta (käynnissä ja sallii AAREn), tai käsin Android Auton sovellustiedoissa.</string>
+    <string name="aa_app_info">Android Auton sovellustiedot</string>
+    <string name="aa_failed">Ei onnistunut: %1$s</string>
+    <string name="aa_confirm_title">Poistetaanko Android Auto käytöstä?</string>
+    <string name="aa_confirm_text">AARE poistaa Googlen Android Auton käytöstä tälle käyttäjälle Shizukun kautta (pm disable-user). Se lakkaa toimimasta, katoaa sovellusluettelosta eikä vastaa enää, kun auto yhdistetään, niin auto tulee aina AARElle.\n\nMitään ei poisteta, ja sen tiedot säilyvät. Autot, sovellukset tai ominaisuudet, jotka tarvitsevat Googlen Android Autoa, eivät toimi, ennen kuin otat sen käyttöön uudelleen tästä painikkeesta.</string>
+    <string name="aa_confirm_action">Poista käytöstä</string>
 </resources>

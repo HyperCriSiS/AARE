@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Não foi possível transferir o certificado: %1$s</string>
     <string name="notif_status_connecting_wirelessly">A ligar sem fios…</string>
     <string name="notif_status_not_connected">Não ligado</string>
+    <string name="notif_status_reconnecting">Ligação ao carro perdida, a voltar a ligar (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · a manter o consentimento de captura de ecrã para o áudio do carro (Parar liberta-o)</string>
     <string name="notif_cert_changed_title">Certificado da unidade principal alterado</string>
     <string name="notif_new_head_unit_title">Nova unidade principal</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Chamada em curso</string>
     <string name="phone_action_hang_up">Desligar</string>
     <string name="phone_keypad_delete">Eliminar</string>
+    <string name="voip_mic_title">%1$s não pode usar o microfone</string>
+    <string name="voip_mic_car_text">O outro lado não vai ouvi-lo. Permita no telemóvel: veja a notificação</string>
+    <string name="voip_mic_notification_text">As chamadas do carro através de %1$s precisam da permissão de microfone. Toque para abrir as definições</string>
+    <string name="voip_call_failed_title">Não foi possível ligar através de %1$s</string>
+    <string name="voip_call_failed_text">Abra-a no telemóvel para ligar</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">A carregar</string>
     <string name="phone_incoming_call">Chamada a receber</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Acelerómetro</string>
     <string name="car_data_gyroscope">Giroscópio</string>
     <string name="car_data_dtc">Códigos de avaria</string>
+    <string name="car_data_dtc_unknown">Desconhecido</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Código do grupo motopropulsor específico do fabricante</string>
+    <string name="car_data_dtc_manufacturer_chassis">Código do chassis específico do fabricante</string>
+    <string name="car_data_dtc_manufacturer_body">Código da carroçaria específico do fabricante</string>
+    <string name="car_data_dtc_manufacturer_network">Código de rede específico do fabricante</string>
     <string name="car_data_app_label">Dados do carro</string>
     <string name="car_data_show_in_car_title">Mostrar no ecrã do carro</string>
     <string name="car_data_show_in_car_subtitle">Adicione uma aplicação de diagnóstico no carro para estes dados em tempo real</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Regras carregadas: %1$d</string>
     <string name="vehicles_import">Importar ficheiro…</string>
     <string name="vehicles_template">Escrever modelo</string>
+    <string name="vehicles_malformed_at">O vehicles.json tem um erro na linha %1$d, coluna %2$d (%3$s): as suas regras são ignoradas.</string>
+    <string name="vehicles_malformed">O vehicles.json não pode ser usado (%1$s): as suas regras são ignoradas.</string>
     <string name="setup_toggle_force_h264_title">Forçar vídeo H.264</string>
     <string name="setup_toggle_force_h264_subtitle">Por predefinição, a AARE usa o melhor codec partilhado pelo carro e pelo telemóvel (H.265…). Ative se a imagem do carro estiver com falhas.</string>
     <string name="common_ok">OK</string>
@@ -492,4 +505,24 @@
     <string name="carapp_error_stopped">%1$s parou</string>
     <string name="carapp_error_google_only">%1$s apenas aceita o Android Auto da Google. É necessário permitir a AARE (veja a lista de aplicações no telemóvel).</string>
     <string name="carapp_error_cant_start">%1$s não conseguiu iniciar: %2$s</string>
+    <string name="shizuku_setup_title">Conceder as permissões da AARE com Shizuku</string>
+    <string name="shizuku_setup_subtitle">Um toque concede o que ainda falta, sem o diálogo próprio de cada permissão: microfone, localização, contactos, histórico de chamadas, calendário, chamadas telefónicas, dispositivos próximos (Bluetooth, Wi-Fi), rede local, notificações e acesso às notificações</string>
+    <string name="shizuku_setup_working">A conceder…</string>
+    <string name="shizuku_setup_result_title">Concedido com Shizuku</string>
+    <string name="shizuku_setup_nothing_to_grant">Já estava tudo concedido.</string>
+    <string name="shizuku_setup_not_granted">Não concedido: %1$s</string>
+    <string name="shizuku_setup_notification_access">Acesso às notificações</string>
+    <string name="shizuku_setup_helper_failed">O auxiliar do Shizuku não iniciou. Verifique se o Shizuku está em execução e permite a AARE.</string>
+    <string name="aa_section_title">Android Auto da Google</string>
+    <string name="aa_state_enabled">Instalado e ativado: quando um carro liga, o Android pode dá-lo ao Android Auto em vez de à AARE, ou perguntar qual aplicação usar.</string>
+    <string name="aa_state_disabled">Desativado: o Android Auto não assume o carro. Os seus dados são mantidos.</string>
+    <string name="aa_action_disable">Impedir o Android Auto de assumir o carro</string>
+    <string name="aa_action_enable">Ativar o Android Auto novamente</string>
+    <string name="aa_working">A processar…</string>
+    <string name="aa_needs_shizuku">Através do Shizuku (em execução e a permitir a AARE), ou manualmente nas informações da aplicação do Android Auto.</string>
+    <string name="aa_app_info">Informações da aplicação do Android Auto</string>
+    <string name="aa_failed">Não funcionou: %1$s</string>
+    <string name="aa_confirm_title">Desativar o Android Auto?</string>
+    <string name="aa_confirm_text">A AARE desativa o Android Auto da Google para este utilizador através do Shizuku (pm disable-user). Deixa de funcionar, desaparece da lista de aplicações e já não responde quando um carro liga, pelo que o carro vai sempre para a AARE.\n\nNada é desinstalado e os seus dados são mantidos. Carros, aplicações ou funcionalidades que precisem do Android Auto da Google não funcionarão até o ativar novamente com o botão aqui.</string>
+    <string name="aa_confirm_action">Desativar</string>
 </resources>

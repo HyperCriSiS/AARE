@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Nie udało się pobrać certyfikatu: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Łączenie bezprzewodowe…</string>
     <string name="notif_status_not_connected">Niepołączone</string>
+    <string name="notif_status_reconnecting">Utracono połączenie z samochodem, łączenie ponownie (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · zachowuje zgodę na przechwytywanie ekranu dla dźwięku w samochodzie (Zatrzymaj ją zwalnia)</string>
     <string name="notif_cert_changed_title">Certyfikat jednostki centralnej zmieniony</string>
     <string name="notif_new_head_unit_title">Nowa jednostka centralna</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Połączenie w toku</string>
     <string name="phone_action_hang_up">Zakończ</string>
     <string name="phone_keypad_delete">Usuń</string>
+    <string name="voip_mic_title">%1$s nie może używać mikrofonu</string>
+    <string name="voip_mic_car_text">Rozmówca cię nie usłyszy. Zezwól na to w telefonie: zobacz powiadomienie</string>
+    <string name="voip_mic_notification_text">Połączenia z auta przez %1$s wymagają jej uprawnienia do mikrofonu. Kliknij, aby otworzyć jej ustawienia</string>
+    <string name="voip_call_failed_title">Nie udało się zadzwonić przez %1$s</string>
+    <string name="voip_call_failed_text">Otwórz ją w telefonie, aby zadzwonić</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Ładowanie</string>
     <string name="phone_incoming_call">Połączenie przychodzące</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Akcelerometr</string>
     <string name="car_data_gyroscope">Żyroskop</string>
     <string name="car_data_dtc">Kody usterek</string>
+    <string name="car_data_dtc_unknown">Nieznany</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Kod układu napędowego specyficzny dla producenta</string>
+    <string name="car_data_dtc_manufacturer_chassis">Kod podwozia specyficzny dla producenta</string>
+    <string name="car_data_dtc_manufacturer_body">Kod nadwozia specyficzny dla producenta</string>
+    <string name="car_data_dtc_manufacturer_network">Kod sieci specyficzny dla producenta</string>
     <string name="car_data_app_label">Dane samochodu</string>
     <string name="car_data_show_in_car_title">Wyświetlaj na ekranie samochodu</string>
     <string name="car_data_show_in_car_subtitle">Dodaj aplikację diagnostyczną w samochodzie dla tych danych na żywo</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Wczytane reguły: %1$d</string>
     <string name="vehicles_import">Importuj plik…</string>
     <string name="vehicles_template">Zapisz szablon</string>
+    <string name="vehicles_malformed_at">vehicles.json zawiera błąd w wierszu %1$d, kolumnie %2$d (%3$s): jego reguły są ignorowane.</string>
+    <string name="vehicles_malformed">Nie można użyć pliku vehicles.json (%1$s): jego reguły są ignorowane.</string>
     <string name="setup_toggle_force_h264_title">Wymuś wideo H.264</string>
     <string name="setup_toggle_force_h264_subtitle">Domyślnie AARE używa najlepszego kodeka wspólnego dla samochodu i telefonu (H.265…). Włącz, jeśli obraz w samochodzie się zacina lub jest zniekształcony.</string>
     <!-- newly translated strings -->
@@ -493,4 +506,24 @@
     <string name="carapp_error_stopped">Zatrzymano %1$s</string>
     <string name="carapp_error_google_only">%1$s przyjmuje tylko Android Auto od Google. Musi zezwolić AARE (zobacz listę aplikacji na telefonie).</string>
     <string name="carapp_error_cant_start">Nie udało się uruchomić %1$s: %2$s</string>
+    <string name="shizuku_setup_title">Przyznaj uprawnienia AARE za pomocą Shizuku</string>
+    <string name="shizuku_setup_subtitle">Jedno dotknięcie przyznaje to, czego wciąż brakuje, bez osobnego okna każdego uprawnienia: mikrofon, lokalizacja, kontakty, dziennik połączeń, kalendarz, połączenia telefoniczne, urządzenia w pobliżu (Bluetooth, Wi-Fi), sieć lokalna, powiadomienia i dostęp do powiadomień</string>
+    <string name="shizuku_setup_working">Przyznawanie…</string>
+    <string name="shizuku_setup_result_title">Przyznano za pomocą Shizuku</string>
+    <string name="shizuku_setup_nothing_to_grant">Wszystko było już przyznane.</string>
+    <string name="shizuku_setup_not_granted">Nie przyznano: %1$s</string>
+    <string name="shizuku_setup_notification_access">Dostęp do powiadomień</string>
+    <string name="shizuku_setup_helper_failed">Pomocnik Shizuku nie uruchomił się. Sprawdź, czy Shizuku działa i zezwala AARE.</string>
+    <string name="aa_section_title">Android Auto od Google</string>
+    <string name="aa_state_enabled">Zainstalowane i włączone: gdy samochód się połączy, Android może przekazać go Android Auto zamiast AARE lub zapytać, której aplikacji użyć.</string>
+    <string name="aa_state_disabled">Wyłączone: Android Auto nie przejmuje samochodu. Jego dane są zachowane.</string>
+    <string name="aa_action_disable">Powstrzymaj Android Auto przed przejęciem samochodu</string>
+    <string name="aa_action_enable">Włącz Android Auto ponownie</string>
+    <string name="aa_working">Przetwarzanie…</string>
+    <string name="aa_needs_shizuku">Przez Shizuku (działające i zezwalające AARE), albo ręcznie w informacjach o aplikacji Android Auto.</string>
+    <string name="aa_app_info">Informacje o aplikacji Android Auto</string>
+    <string name="aa_failed">Nie powiodło się: %1$s</string>
+    <string name="aa_confirm_title">Wyłączyć Android Auto?</string>
+    <string name="aa_confirm_text">AARE wyłącza Android Auto od Google dla tego użytkownika za pomocą Shizuku (pm disable-user). Przestaje działać, zniknie z listy aplikacji i nie będzie już odpowiadać, gdy połączy się samochód, więc samochód zawsze trafi do AARE.\n\nNic nie zostaje odinstalowane, a jego dane są zachowane. Samochody, aplikacje lub funkcje wymagające Android Auto od Google nie będą działać, dopóki nie włączysz go ponownie przyciskiem tutaj.</string>
+    <string name="aa_confirm_action">Wyłącz</string>
 </resources>

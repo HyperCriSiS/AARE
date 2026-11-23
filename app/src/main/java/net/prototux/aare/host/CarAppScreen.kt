@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
@@ -209,7 +210,10 @@ private class ConnectionTemplateHost(val conn: CarAppConnection, val runtime: Ca
             key(constraints.maxWidth, constraints.maxHeight) {
                 val owner = remember { Any() }
                 AndroidView(
-                    modifier = Modifier.fillMaxSize(),
+                    // Clipped: up to Android 10 a SurfaceView punches its hole by clearing the whole canvas
+                    // clip, which without this erases everything drawn before it (a bar on the left, the
+                    // background), leaving it black.
+                    modifier = Modifier.fillMaxSize().clipToBounds(),
                     factory = { ctx ->
                         SurfaceView(ctx).apply {
                             holder.addCallback(object : SurfaceHolder.Callback {

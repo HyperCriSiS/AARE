@@ -198,7 +198,12 @@ class CarSession(
         listener.onStatus(this, context.getString(R.string.notif_status_connecting_to, transport.name))
     }
 
-    fun stop() = aap.stop()
+    fun stop() {
+        // The service releases the media hub right after this, before the close runs teardown: pause now,
+        // or music fed to the car carries on from the phone's speaker.
+        pauseIfFeedingCar(media, feedingCar = audioOuts.containsKey(AudioStreamType.AUDIO_STREAM_MEDIA))
+        aap.stop()
+    }
 
     /**
      * The session closed before the head unit's version request ever came in: this attempt never
@@ -207,6 +212,13 @@ class CarSession(
      * its own link was ready.
      */
     val closedBeforeVersionExchange: Boolean get() = aap.closedDuring == AapSession.State.VERSION
+
+    /** The protocol state the session was in when it closed. */
+    val closedDuring: AapSession.State get() = aap.closedDuring
+
+    /** Why the session failed; null when it ended with a bye-bye from either side (or is still running). */
+    @Volatile var closeError: Throwable? = null
+        private set
 
     /**
      * Asks the head unit to show its own UI (radio, vehicle settings), like Android Auto's "Exit".
@@ -295,6 +307,7 @@ class CarSession(
                         }
                     })
                     channels += bt
+                    bluetooth = bt
                     main.post { if (!closed) bluetoothPower = PhoneBluetoothPower(context) { announceAgain(bt) }.also { it.start() } }
                 }
             }
@@ -335,10 +348,12 @@ class CarSession(
     }
 
     override fun onRunning(session: AapSession) {
+        if (vehicleOverride?.pairAgainWhenRunning == true && bluetooth?.announceAgain() == true)
+            DiagLog.add("car bluetooth: announcing the phone again, session running (vehicles.json)")
         main.post {
             if (closed) return@post
             listener.onStatus(this, context.getString(R.string.notif_status_projecting_to, headUnitName))
-            navStatus?.let { navBridge = NavStatusBridge(it, { m, w, h -> turnImage(m, w, h) }, ::png) }
+            navStatus?.let { navBridge = NavStatusBridge(it, { m, w, h -> turnImage(m, w, h) }, ::png, turnIcons::png) }
             navBridge?.updatePhone(runtime.ui.phoneGuidance)
             // A route that started before the session was running still gets the focus.
             requestNavFocus()
@@ -347,7 +362,7 @@ class CarSession(
             net.prototux.aare.notify.CarNotificationListener.sink = { m ->
                 drivingMode.onMessage(m.key, m.group)
                 if ((!m.group || settings.groupMessages) && showsMessage(m.packageName, settings.mutedMessageApps, settings.hiddenApps)) {
-                    val open = runtime.opener(m.packageName)
+                    val open = runtime.opener(m.packageName, m.contentIntent, m.dismiss)
                     runtime.remember(m.title, m.text, m.icon, m.actions, open)
                     if (settings.messageBanners) runtime.notice(m.title, m.text, m.icon, 10_000, m.actions, message = true, open = open)
                     if (settings.readMessagesAloud) m.readAloud()
@@ -395,7 +410,8 @@ class CarSession(
         override fun onRecordingConfigChanged(configs: MutableList<AudioRecordingConfiguration>) {
             if (closed) return
             val recording = PhoneAppsMic.anyTakesOver(
-                configs.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
+                // AARE's own phone-mic fallback for a car app's assistant is not a phone app recording.
+                configs.filter { it.clientAudioSessionId != micRouter.phoneMicSession || micRouter.phoneMicSession == 0 }.map { PhoneRecording(-1, it.clientAudioSource, Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && it.isClientSilenced) },
                 emptySet(),
             )
             if (recordingPause.onRecording(recording, SystemClock.uptimeMillis()) == MicTakeover.Action.OPEN) {
@@ -482,6 +498,7 @@ class CarSession(
     } }
 
     override fun onClosed(session: AapSession, reason: String, error: Throwable?) {
+        closeError = error
         val rejected = session.certificateRefusal
         val refusal = session.pinRefusal
         main.post {
@@ -723,7 +740,8 @@ class CarSession(
                 // "focus previous" (not D-pad up/down, which is 2D spatial and wrong for a knob).
                 for (r in report.relativeEvent.dataList) {
                     val meta = if (r.delta < 0) KeyEvent.META_SHIFT_ON else 0
-                    repeat(kotlin.math.abs(r.delta)) {
+                    // Capped: a knob turns a few detents per report, a huge value from a faulty unit would flood the UI.
+                    repeat(kotlin.math.abs(r.delta).coerceAtMost(MAX_ROTARY_STEPS)) {
                         val t = SystemClock.uptimeMillis()
                         display?.dispatchKey(KeyEvent(t, t, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_TAB, 0, meta))
                         display?.dispatchKey(KeyEvent(t, t, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_TAB, 0, meta))
@@ -1018,6 +1036,7 @@ class CarSession(
     // ------------------------------------------------------------------ status to the head unit
 
     private var navBridge: NavStatusBridge? = null
+    private val turnIcons = TurnIcons()
     // Guarded by navLock: trips, phone guidance and onRunning come from different threads.
     private val navLock = Any()
     private var hostedGuiding = false
@@ -1071,16 +1090,14 @@ class CarSession(
                 // Not just the title: the art (often loaded after the rest), the artist or the
                 // duration can come in a later update of the same track. The art compares by
                 // content: a platform session hands out a new Bitmap on every update, and the
-                // JPEG must be made once per cover, not on every play, pause or seek.
+                // PNG must be made once per cover, not on every play, pause or seek (it's slower
+                // to encode than JPEG, which is no longer accepted here).
                 val track = listOf(p.title, p.artist, p.album, p.durationMs)
                 if (track != lastTrack || !sameArt(lastArt, p.art)) {
                     lastTrack = track
                     lastArt = p.art
                     val meta = fillMediaMetadata(MediaPlaybackMetadata.newBuilder(), p)
-                    p.art?.let { art ->
-                        val small = Bitmap.createScaledBitmap(art, 256, 256 * art.height / maxOf(1, art.width), true)
-                        meta.setAlbumArt(ByteString.copyFrom(ByteArrayOutputStream().also { small.compress(Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()))
-                    }
+                    p.art?.let { art -> meta.setAlbumArt(ByteString.copyFrom(CarImage.toCarPng(art))) }
                     ch.metadata(meta.build())
                 }
                 ch.status(MediaPlaybackStatus.newBuilder()
@@ -1132,6 +1149,9 @@ class CarSession(
         val m = Build.MODEL
         return if (m.startsWith(Build.MANUFACTURER, ignoreCase = true)) m else "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} $m"
     }
+
+    /** The car's Bluetooth service, to announce the phone again once the session runs (vehicles.json `pairAgainWhenRunning`). */
+    private var bluetooth: BluetoothChannel? = null
 
     /**
      * The phone's own Bluetooth MAC for the car's pairing handshake, or null if unknown. Prefer the
@@ -1199,6 +1219,8 @@ class CarSession(
         private const val STALL_CHECK_MS = 500L
         /** How often a paused resume looks again whether the phone's call or assistant answer ended. */
         private const val CALL_CHECK_MS = 1_000L
+        /** Detents taken from one rotary report; a real knob sends a handful. */
+        private const val MAX_ROTARY_STEPS = 64
         /** Encoder restarts allowed in [RESTART_WINDOW_MS], for this display and the cluster's. */
         internal const val MAX_RESTARTS = 3
         internal const val RESTART_WINDOW_MS = 10_000L

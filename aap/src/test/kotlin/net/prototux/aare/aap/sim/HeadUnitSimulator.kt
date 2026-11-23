@@ -91,10 +91,12 @@ class HeadUnitSimulator(
      * does, even the ones aasdk's definitions call required.
      */
     omitZeroFields: Boolean = false,
-    /** The protocol minor version the head unit announces (1.x). */
+    /** The protocol minor version the head unit announces. */
     private val protocolMinor: Int = 6,
     /** False: stays silent on video focus requests, like a car that waits for video first. */
     private val answerVideoFocus: Boolean = true,
+    /** The protocol major version the head unit announces. */
+    private val protocolMajor: Int = 1,
 ) {
     /** False when encoding like a proto3 head unit: fields set to 0 are not written. */
     private val writeZeros = !omitZeroFields
@@ -124,12 +126,16 @@ class HeadUnitSimulator(
     val pingsAnswered = AtomicInteger()
     val focusRequests = AtomicInteger()
     val sensorRequests = ConcurrentHashMap.newKeySet<SensorType>()
+    /** Every sensor request in arrival order: (type, min_update_period). */
+    val sensorRequestLog = java.util.concurrent.LinkedBlockingQueue<Pair<SensorType, Long>>()
     val firstVideoFrame = CountDownLatch(1)
     val byeBye = CountDownLatch(1)
     val closed = CountDownLatch(1)
     @Volatile var videoStart: Start? = null
     /** STOP messages on the video channel. */
     val videoStops = AtomicInteger()
+    /** Each media channel's session, from its latest START: its acks carry it, as a head unit's do. */
+    val sessionIds = ConcurrentHashMap<Int, Int>()
     @Volatile var error: Throwable? = null
     /** Video focus the phone reported, in order. */
     val focusNotifications = LinkedBlockingQueue<VideoFocusMode>()
@@ -145,11 +151,15 @@ class HeadUnitSimulator(
     @Volatile var authStatus = 0
     /** True plays a link that goes away in the middle of the TLS handshake (a cable pulled then). */
     @Volatile var hangUpInHandshake = false
+    /** The body of the phone's version response (major, minor, status: 16 bits each). */
+    @Volatile var versionResponse: ByteArray? = null
+    val versionAnswered = CountDownLatch(1)
 
     fun start() {
         Thread({
             try {
-                sendPlain(0, ControlMsg.VERSION_REQUEST, byteArrayOf(0, 1, 0, protocolMinor.toByte()))
+                sendPlain(0, ControlMsg.VERSION_REQUEST, byteArrayOf(
+                    (protocolMajor shr 8).toByte(), protocolMajor.toByte(), (protocolMinor shr 8).toByte(), protocolMinor.toByte()))
                 while (true) handle(reader.read())
             } catch (e: Throwable) {
                 if (byeBye.count > 0L) error = e
@@ -177,6 +187,7 @@ class HeadUnitSimulator(
             sensors -> if (m.id == SensorMsg.REQUEST) {
                 val req = SensorRequest.parseFrom(m.bodyBytes())
                 sensorRequests.add(req.type)
+                sensorRequestLog.add(req.type to req.minUpdatePeriod)
                 send(sensors, SensorMsg.RESPONSE, SensorResponse.newBuilder().apply { if (writeZeros) setStatus(MessageStatus.STATUS_SUCCESS) }.build())
                 val batch = SensorBatch.newBuilder()
                 when (req.type) {
@@ -197,6 +208,8 @@ class HeadUnitSimulator(
     private fun control(m: AapMessage) {
         when (m.id) {
             ControlMsg.VERSION_RESPONSE -> {
+                versionResponse = m.bodyBytes()
+                versionAnswered.countDown()
                 cryptor.beginHandshake()
                 sendPlain(0, ControlMsg.ENCAPSULATED_SSL, cryptor.handshake(ByteArray(0)))
             }
@@ -240,7 +253,11 @@ class HeadUnitSimulator(
         when (m.id) {
             MediaMsg.SETUP -> send(m.channel, MediaMsg.CONFIG, Config.newBuilder().setStatus(Config.Status.STATUS_READY)
                 .setMaxUnacked(maxUnacked).addConfigurationIndices(0).build())
-            MediaMsg.START -> if (m.channel == video) videoStart = Start.parseFrom(m.bodyBytes())
+            MediaMsg.START -> {
+                val start = Start.parseFrom(m.bodyBytes())
+                sessionIds[m.channel] = start.sessionId
+                if (m.channel == video) videoStart = start
+            }
             MediaMsg.STOP -> if (m.channel == video) videoStops.incrementAndGet()
             MediaMsg.VIDEO_FOCUS_REQUEST -> {
                 focusRequests.incrementAndGet()
@@ -263,7 +280,7 @@ class HeadUnitSimulator(
                 } else {
                     audioChunks.incrementAndGet()
                 }
-                val session = if (m.channel == video) videoStart?.sessionId ?: 0 else 0
+                val session = sessionIds[m.channel] ?: 0
                 // Like the VW Play behind its reverse camera: video arrives and is dropped unacked.
                 if (m.channel == video && dropVideoUnacked) { droppedUnacked.incrementAndGet(); return }
                 if (m.channel == video || ackAudio)
@@ -332,6 +349,11 @@ class HeadUnitSimulator(
     /** Asks the phone for a video focus mode, as some head units do. */
     fun requestFocus(mode: VideoFocusMode) = send(video, MediaMsg.VIDEO_FOCUS_REQUEST,
         VideoFocusRequestNotification.newBuilder().setMode(mode).build())
+
+    /** Sends an ack of the head unit's own making on a media channel. */
+    fun sendAck(channel: Int, sessionId: Int, count: Int? = null, receiveTimesNs: List<Long> = emptyList()) =
+        send(channel, MediaMsg.ACK, Ack.newBuilder().setSessionId(sessionId).apply { count?.let { setAck(it) } }
+            .addAllReceiveTimestampNs(receiveTimesNs).build())
 
     fun sayByeBye() = send(0, ControlMsg.BYEBYE_REQUEST, ByeByeRequest.newBuilder().setReason(ByeByeReason.USER_SELECTION).build())
 

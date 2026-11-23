@@ -237,6 +237,7 @@
     <string name="notif_cert_download_failed">无法下载证书：%1$s</string>
     <string name="notif_status_connecting_wirelessly">正在无线连接…</string>
     <string name="notif_status_not_connected">未连接</string>
+    <string name="notif_status_reconnecting">与车辆的连接已断开，正在重新连接（%1$d/%2$d）…</string>
     <string name="notif_keeping_consent_suffix">%1$s · 保留车载音频的屏幕录制授权（点击“停止”可释放）</string>
     <string name="notif_cert_changed_title">车机证书已更改</string>
     <string name="notif_new_head_unit_title">新车机</string>
@@ -327,6 +328,11 @@
     <string name="phone_call_in_progress">通话进行中</string>
     <string name="phone_action_hang_up">挂断</string>
     <string name="phone_keypad_delete">删除</string>
+    <string name="voip_mic_title">%1$s 无法使用麦克风</string>
+    <string name="voip_mic_car_text">对方将听不到你的声音。请在手机上允许：查看通知</string>
+    <string name="voip_mic_notification_text">从车机通过 %1$s 拨打电话需要其麦克风权限。点按以打开其设置</string>
+    <string name="voip_call_failed_title">无法通过 %1$s 拨打电话</string>
+    <string name="voip_call_failed_text">请在手机上打开该应用拨打</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">正在充电</string>
     <string name="phone_incoming_call">来电</string>
@@ -413,6 +419,11 @@
     <string name="car_data_accelerometer">加速度计</string>
     <string name="car_data_gyroscope">陀螺仪</string>
     <string name="car_data_dtc">故障码</string>
+    <string name="car_data_dtc_unknown">未知</string>
+    <string name="car_data_dtc_manufacturer_powertrain">制造商专用动力系统代码</string>
+    <string name="car_data_dtc_manufacturer_chassis">制造商专用底盘代码</string>
+    <string name="car_data_dtc_manufacturer_body">制造商专用车身代码</string>
+    <string name="car_data_dtc_manufacturer_network">制造商专用网络代码</string>
     <string name="car_data_app_label">车载数据</string>
     <string name="car_data_show_in_car_title">在车机屏幕上显示</string>
     <string name="car_data_show_in_car_subtitle">在车机中添加一个诊断应用来显示这些实时数据</string>
@@ -421,6 +432,8 @@
     <string name="vehicles_rule_count">已加载 %1$d 条规则</string>
     <string name="vehicles_import">导入文件…</string>
     <string name="vehicles_template">写入模板</string>
+    <string name="vehicles_malformed_at">vehicles.json 第 %1$d 行第 %2$d 列有错误（%3$s）：其中的规则会被忽略。</string>
+    <string name="vehicles_malformed">vehicles.json 无法使用（%1$s）：其中的规则会被忽略。</string>
     <string name="setup_toggle_force_h264_title">强制使用 H.264 视频</string>
     <string name="setup_toggle_force_h264_subtitle">AARE 默认使用车机和手机都支持的最佳编解码器（H.265…）。如果车机画面出现花屏，请开启此选项。</string>
     <string name="common_ok">OK</string>
@@ -476,4 +489,24 @@
     <string name="carapp_error_stopped">%1$s 已停止</string>
     <string name="carapp_error_google_only">%1$s 只接受 Google 的 Android Auto。需要允许 AARE（参见手机上的应用列表）。</string>
     <string name="carapp_error_cant_start">%1$s 无法启动：%2$s</string>
+    <string name="shizuku_setup_title">通过 Shizuku 授予 AARE 权限</string>
+    <string name="shizuku_setup_subtitle">一次点按即可授予仍缺失的权限，无需逐个弹窗确认：麦克风、位置、联系人、通话记录、日历、电话通话、附近设备（蓝牙、Wi-Fi）、本地网络、通知以及通知访问权限</string>
+    <string name="shizuku_setup_working">正在授予…</string>
+    <string name="shizuku_setup_result_title">已通过 Shizuku 授予</string>
+    <string name="shizuku_setup_nothing_to_grant">所有权限均已授予。</string>
+    <string name="shizuku_setup_not_granted">未授予：%1$s</string>
+    <string name="shizuku_setup_notification_access">通知访问权限</string>
+    <string name="shizuku_setup_helper_failed">Shizuku 的辅助程序未能启动。请检查 Shizuku 是否在运行并允许 AARE。</string>
+    <string name="aa_section_title">Google 的 Android Auto</string>
+    <string name="aa_state_enabled">已安装并已启用：车辆连接时，Android 可能会把它交给 Android Auto 而不是 AARE，或询问要使用哪个应用。</string>
+    <string name="aa_state_disabled">已停用：Android Auto 不会接管车辆。其数据会被保留。</string>
+    <string name="aa_action_disable">阻止 Android Auto 接管车辆</string>
+    <string name="aa_action_enable">重新启用 Android Auto</string>
+    <string name="aa_working">正在处理…</string>
+    <string name="aa_needs_shizuku">通过 Shizuku（正在运行并允许 AARE），或在 Android Auto 的应用信息中手动操作。</string>
+    <string name="aa_app_info">Android Auto 的应用信息</string>
+    <string name="aa_failed">未能成功：%1$s</string>
+    <string name="aa_confirm_title">停用 Android Auto？</string>
+    <string name="aa_confirm_text">AARE 会通过 Shizuku（pm disable-user）为此用户停用 Google 的 Android Auto。该应用将停止运行，从应用列表中消失，车辆连接时也不再响应，这样车辆会始终交给 AARE。\n\n不会卸载任何内容，其数据会被保留。需要 Google 的 Android Auto 的车辆、应用或功能将无法使用，直到你在此用按钮重新启用它。</string>
+    <string name="aa_confirm_action">停用</string>
 </resources>

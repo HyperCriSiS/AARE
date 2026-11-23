@@ -14,8 +14,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.ui.platform.LocalViewConfiguration
-import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -152,12 +150,13 @@ fun CarShell(
     // Closed by the car's Back key, and when something else takes the screen (a call, the assistant).
     BackHandler(enabled = paneChoice != null || shortcutsAt != null) { paneChoice = null; shortcutsAt = null }
     LaunchedEffect(state.screen) { paneChoice = null; shortcutsAt = null }
-    // A longer hold than the phone's before a long press counts: car touch screens report the lift late,
-    // and a plain tap on the rail opened the pane menu.
-    val base = LocalViewConfiguration.current
-    val viewConfiguration = remember(base) { object : ViewConfiguration by base { override val longPressTimeoutMillis = CAR_LONG_PRESS_MS } }
+    // Left alone, they close by themselves: nobody should have to reach for them while driving.
+    LaunchedEffect(paneChoice, shortcutsAt) {
+        if (paneChoice == null && shortcutsAt == null) return@LaunchedEffect
+        delay(MENU_TIMEOUT_MS); paneChoice = null; shortcutsAt = null
+    }
     val fullScreen = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
-    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus, LocalViewConfiguration provides viewConfiguration) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
+    CompositionLocalProvider(LocalFullScreen provides fullScreen, LocalRailMenus provides menus) { Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.fillMaxSize().then(modifier).onGloballyPositioned { origin = it.positionInRoot() }) {
             val portrait = maxHeight > maxWidth
             // The visible area, not LocalConfiguration: that is the whole codec frame, margins included.
@@ -268,11 +267,7 @@ internal fun ContentArea(
     // pane to the other) instead of being torn down and built again: the phone screen, a standalone
     // app and the browser would lose their picture, process or page. For the same reason app
     // screens and splits share one content key and don't cross-fade: a fade composes both at once.
-    val currentAppContent by rememberUpdatedState(appContent)
-    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
-    val appScreen: @Composable (CarAppEntry, Modifier) -> Unit = { app, mod ->
-        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
-    }
+    val appScreen = rememberAppScreens(state, appContent)
     AnimatedContent(
         targetState = state.screen,
         transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
@@ -301,6 +296,16 @@ internal fun ContentArea(
     }
 }
 
+/** Each app's screen as movable content, so it keeps its state between full screen and a pane (see [ContentArea]). */
+@Composable
+internal fun rememberAppScreens(state: CarUiState, appContent: @Composable (CarAppEntry, Modifier) -> Unit): @Composable (CarAppEntry, Modifier) -> Unit {
+    val currentAppContent by rememberUpdatedState(appContent)
+    val appScreens = remember { HashMap<String, @Composable (Modifier) -> Unit>() }
+    return { app, mod ->
+        appScreens.getOrPut(app.id) { movableContentOf { m: Modifier -> state.app(app.id)?.let { currentAppContent(it, m) } } }(mod)
+    }
+}
+
 // ---------------------------------------------------------------- rail
 
 /**
@@ -319,19 +324,22 @@ private fun Rail(state: CarUiState, actions: CarActions, horizontal: Boolean, ar
 }
 
 /** What a side rail has room for besides the clock, bell, menu and mic, from [sideRailFit]. */
-internal data class SideRailFit(val recentSlots: Int, val status: Boolean, val settings: Boolean)
+internal data class SideRailFit(val recentSlots: Int, val status: Boolean, val settings: Boolean, val phone: Boolean = true)
 
 /**
  * Fits the side rail to its [height] inside the padding. Everything takes about 534 dp (clock and
  * bell 72, phone status and weather 54, the four apps 276, menu and mic 132), so on shorter screens
  * the phone status and weather go first, then Settings (the launcher has it); below that the apps
- * scroll. Dropping items rather than shrinking them keeps every button its full size.
+ * scroll, and below 411 dp Phone goes too (#269: it was cut off; calls still show their card, and
+ * the launcher and the steering wheel's call button open it). Dropping items rather than shrinking them keeps every button its full size.
  */
 internal fun sideRailFit(height: Dp) = SideRailFit(
     // A recent app when one more button (64 dp and its gap) fits besides everything else.
     recentSlots = if (height >= 602.dp) 1 else 0,
     status = height >= 534.dp,
     settings = height >= 480.dp,
+    // Clock and bell 72, navigation, media and Phone 207, menu and mic 132.
+    phone = height >= 411.dp,
 )
 
 /** The space between the rail's icons: the one set on the phone, in the car screen's pixels, or the standard one. */
@@ -362,7 +370,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     val tighterBar = tightBar && area.width < 640.dp
     // Picked on the phone: those, all of them, scrolling when they don't fit.
     val picked = state.railAppIds.mapNotNull(state::app)
-    val apps: @Composable (Int, Boolean) -> Unit = auto@{ recentSlots, withSettings ->
+    val apps: @Composable (Int, Boolean, Boolean) -> Unit = auto@{ recentSlots, withSettings, withPhone ->
         if (picked.isNotEmpty()) {
             picked.forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app), hold(app)) { actions.openApp(app) } }
             return@auto
@@ -370,7 +378,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
         RailApp(nav, Icons.Rounded.Map, on(nav), nav?.let(hold)) { nav?.let(actions::openApp) ?: actions.openLauncher() }
         RailApp(media, Icons.Rounded.MusicNote, on(media), media?.let(hold)) { media?.let(actions::openApp) ?: actions.openLauncher() }
         recent.take(recentSlots).forEach { app -> RailApp(app, Icons.Rounded.Apps, on(app), hold(app)) { actions.openApp(app) } }
-        phone?.let { RailApp(it, Icons.Rounded.Call, on(it), hold(it)) { actions.openApp(it) } }
+        phone?.takeIf { withPhone }?.let { RailApp(it, Icons.Rounded.Call, on(it), hold(it)) { actions.openApp(it) } }
         settings?.takeIf { withSettings }?.let { RailApp(it, Icons.Rounded.Settings, on(it), hold(it)) { actions.openApp(it) } }
     }
     // Held: the shortcuts picked on the phone, if any.
@@ -395,7 +403,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
             } }
             if (state.driverOnRight) status() else driverEnd()
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(railGap(state, bottom = true))) { apps(if (tightBar) 0 else 2, !tighterBar) }
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(railGap(state, bottom = true))) { apps(if (tightBar) 0 else 2, !tighterBar, true) }
             }
             if (state.driverOnRight) driverEnd() else status()
         }
@@ -422,7 +430,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
                     Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(railGap(state, bottom = false)),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                ) { apps(fit.recentSlots, fit.settings) }
+                ) { apps(fit.recentSlots, fit.settings, fit.phone) }
             }
             menu()
             Spacer(Modifier.height(4.dp))
@@ -546,9 +554,6 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
         })
         .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
-
-/** How long a finger rests on the car screen before it is a long press (the phone's is 400 ms). */
-private const val CAR_LONG_PRESS_MS = 800L
 
 /**
  * A swipe of ([dx], [dy]) pixels: true to the left, false to the right, null when shorter than [min]
@@ -939,3 +944,6 @@ internal fun NoticeOverlay(state: CarUiState, actions: CarActions, modifier: Mod
         RoundIcon(Icons.Rounded.Close, stringResource(R.string.common_dismiss), filled = false) { actions.dismissNotice(notice) }
     }
 }
+
+/** How long the pane menu and the shortcuts stay open untouched. */
+private const val MENU_TIMEOUT_MS = 8_000L

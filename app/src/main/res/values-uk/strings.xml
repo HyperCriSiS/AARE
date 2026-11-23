@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Не вдалося завантажити сертифікат: %1$s</string>
     <string name="notif_status_connecting_wirelessly">Бездротове з\'єднання…</string>
     <string name="notif_status_not_connected">Не з\'єднано</string>
+    <string name="notif_status_reconnecting">З\'єднання з автомобілем втрачено, повторне підключення (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · зберігає згоду на захоплення екрана для звуку в автомобілі (Зупинити звільнить її)</string>
     <string name="notif_cert_changed_title">Сертифікат головного пристрою змінився</string>
     <string name="notif_new_head_unit_title">Новий головний пристрій</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Дзвінок триває</string>
     <string name="phone_action_hang_up">Завершити</string>
     <string name="phone_keypad_delete">Видалити</string>
+    <string name="voip_mic_title">%1$s не може використовувати мікрофон</string>
+    <string name="voip_mic_car_text">Співрозмовник вас не почує. Дозвольте це на телефоні: див. сповіщення</string>
+    <string name="voip_mic_notification_text">Дзвінкам з авто через %1$s потрібен дозвіл на мікрофон. Торкніться, щоб відкрити його налаштування</string>
+    <string name="voip_call_failed_title">Не вдалося зателефонувати через %1$s</string>
+    <string name="voip_call_failed_text">Відкрийте його на телефоні, щоб зателефонувати</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Заряджається</string>
     <string name="phone_incoming_call">Вхідний дзвінок</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Акселерометр</string>
     <string name="car_data_gyroscope">Гіроскоп</string>
     <string name="car_data_dtc">Коди несправностей</string>
+    <string name="car_data_dtc_unknown">Невідомо</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Код силового агрегату, визначений виробником</string>
+    <string name="car_data_dtc_manufacturer_chassis">Код шасі, визначений виробником</string>
+    <string name="car_data_dtc_manufacturer_body">Код кузова, визначений виробником</string>
+    <string name="car_data_dtc_manufacturer_network">Код мережі, визначений виробником</string>
     <string name="car_data_app_label">Дані автомобіля</string>
     <string name="car_data_show_in_car_title">Показувати на екрані автомобіля</string>
     <string name="car_data_show_in_car_subtitle">Додайте діагностичний застосунок в автомобілі для цих даних у реальному часі</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Завантажено правил: %1$d</string>
     <string name="vehicles_import">Імпортувати файл…</string>
     <string name="vehicles_template">Записати шаблон</string>
+    <string name="vehicles_malformed_at">У vehicles.json помилка в рядку %1$d, стовпці %2$d (%3$s): його правила ігноруються.</string>
+    <string name="vehicles_malformed">vehicles.json не можна використати (%1$s): його правила ігноруються.</string>
     <string name="setup_toggle_force_h264_title">Примусово використовувати відео H.264</string>
     <string name="setup_toggle_force_h264_subtitle">За замовчуванням AARE використовує найкращий кодек, який підтримують і автомобіль, і телефон (H.265…). Увімкніть, якщо зображення в автомобілі спотворене.</string>
     <string name="common_ok">OK</string>
@@ -492,4 +505,24 @@
     <string name="carapp_error_stopped">%1$s зупинився</string>
     <string name="carapp_error_google_only">%1$s приймає лише Android Auto від Google. Потрібно дозволити AARE (див. список застосунків на телефоні).</string>
     <string name="carapp_error_cant_start">Не вдалося запустити %1$s: %2$s</string>
+    <string name="shizuku_setup_title">Надати дозволи AARE через Shizuku</string>
+    <string name="shizuku_setup_subtitle">Один дотик надає те, чого ще не вистачає, без власного діалогу кожного дозволу: мікрофон, геолокація, контакти, журнал дзвінків, календар, телефонні дзвінки, пристрої поруч (Bluetooth, Wi-Fi), локальна мережа, сповіщення та доступ до сповіщень</string>
+    <string name="shizuku_setup_working">Надання…</string>
+    <string name="shizuku_setup_result_title">Надано через Shizuku</string>
+    <string name="shizuku_setup_nothing_to_grant">Усе вже було надано.</string>
+    <string name="shizuku_setup_not_granted">Не надано: %1$s</string>
+    <string name="shizuku_setup_notification_access">Доступ до сповіщень</string>
+    <string name="shizuku_setup_helper_failed">Допоміжний модуль Shizuku не запустився. Перевірте, що Shizuku працює і дозволяє AARE.</string>
+    <string name="aa_section_title">Android Auto від Google</string>
+    <string name="aa_state_enabled">Встановлено і увімкнено: коли автомобіль підключається, Android може передати його Android Auto замість AARE, або запитати, який застосунок використати.</string>
+    <string name="aa_state_disabled">Вимкнено: Android Auto не забирає автомобіль. Його дані зберігаються.</string>
+    <string name="aa_action_disable">Не дозволяти Android Auto забирати автомобіль</string>
+    <string name="aa_action_enable">Увімкнути Android Auto знову</string>
+    <string name="aa_working">Виконується…</string>
+    <string name="aa_needs_shizuku">Через Shizuku (працює і дозволяє AARE), або вручну в інформації про застосунок Android Auto.</string>
+    <string name="aa_app_info">Інформація про застосунок Android Auto</string>
+    <string name="aa_failed">Не вдалося: %1$s</string>
+    <string name="aa_confirm_title">Вимкнути Android Auto?</string>
+    <string name="aa_confirm_text">AARE вимикає Android Auto від Google для цього користувача через Shizuku (pm disable-user). Застосунок перестає працювати, зникає зі списку застосунків і більше не відповідає, коли підключається автомобіль, тож автомобіль завжди дістається AARE.\n\nНічого не видаляється, і його дані зберігаються. Автомобілі, застосунки чи функції, яким потрібен Android Auto від Google, не працюватимуть, доки ви знову не увімкнете його цією кнопкою.</string>
+    <string name="aa_confirm_action">Вимкнути</string>
 </resources>

@@ -35,6 +35,8 @@ object LaunchMain {
             val intent = Intent(ACTION_HOST).setPackage(appPackage).putExtra(EXTRA_BUNDLE, bundle).putExtra(EXTRA_NONCE, nonce)
             runCatching { ctx.sendBroadcast(intent) }.onFailure { Log.w(TAG, "could not hand the binder back", it) }
         }
+        // A launcher released while it waited for this binder never calls: no one else would end this helper.
+        android.os.Handler(Looper.getMainLooper()).postDelayed({ if (!service.watched) service.destroy() }, UNCLAIMED_MS)
         Looper.loop()
     }
 
@@ -50,4 +52,5 @@ object LaunchMain {
     const val EXTRA_BINDER = "host"
     const val EXTRA_NONCE = "nonce"
     private const val TAG = "AareLaunchMain"
+    private const val UNCLAIMED_MS = 30_000L
 }

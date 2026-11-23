@@ -246,6 +246,7 @@
     <string name="notif_cert_download_failed">Não foi possível transferir o certificado: %1$s</string>
     <string name="notif_status_connecting_wirelessly">A ligar sem fios…</string>
     <string name="notif_status_not_connected">Não ligado</string>
+    <string name="notif_status_reconnecting">Ligação ao carro perdida, a voltar a ligar (%1$d/%2$d)…</string>
     <string name="notif_keeping_consent_suffix">%1$s · a manter o consentimento de captura de ecrã para o áudio do carro (Parar liberta-o)</string>
     <string name="notif_cert_changed_title">Certificado da unidade principal alterado</string>
     <string name="notif_new_head_unit_title">Nova unidade principal</string>
@@ -341,6 +342,11 @@
     <string name="phone_call_in_progress">Chamada em curso</string>
     <string name="phone_action_hang_up">Desligar</string>
     <string name="phone_keypad_delete">Eliminar</string>
+    <string name="voip_mic_title">%1$s não pode usar o microfone</string>
+    <string name="voip_mic_car_text">O outro lado não vai ouvi-lo. Permita no telemóvel: veja a notificação</string>
+    <string name="voip_mic_notification_text">As chamadas do carro através de %1$s precisam da permissão de microfone. Toque para abrir as definições</string>
+    <string name="voip_call_failed_title">Não foi possível ligar através de %1$s</string>
+    <string name="voip_call_failed_text">Abra-a no telemóvel para ligar</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">A carregar</string>
     <string name="phone_incoming_call">Chamada a receber</string>
@@ -429,6 +435,11 @@
     <string name="car_data_accelerometer">Acelerómetro</string>
     <string name="car_data_gyroscope">Giroscópio</string>
     <string name="car_data_dtc">Códigos de avaria</string>
+    <string name="car_data_dtc_unknown">Desconhecido</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Código do grupo motopropulsor específico do fabricante</string>
+    <string name="car_data_dtc_manufacturer_chassis">Código do chassis específico do fabricante</string>
+    <string name="car_data_dtc_manufacturer_body">Código da carroçaria específico do fabricante</string>
+    <string name="car_data_dtc_manufacturer_network">Código de rede específico do fabricante</string>
     <string name="car_data_app_label">Dados do carro</string>
     <string name="car_data_show_in_car_title">Mostrar no ecrã do carro</string>
     <string name="car_data_show_in_car_subtitle">Adicione uma aplicação de diagnóstico no carro para estes dados em tempo real</string>
@@ -437,6 +448,8 @@
     <string name="vehicles_rule_count">Regras carregadas: %1$d</string>
     <string name="vehicles_import">Importar ficheiro…</string>
     <string name="vehicles_template">Escrever modelo</string>
+    <string name="vehicles_malformed_at">O vehicles.json tem um erro na linha %1$d, coluna %2$d (%3$s): as suas regras são ignoradas.</string>
+    <string name="vehicles_malformed">O vehicles.json não pode ser usado (%1$s): as suas regras são ignoradas.</string>
     <string name="setup_toggle_force_h264_title">Forçar vídeo H.264</string>
     <string name="setup_toggle_force_h264_subtitle">Por predefinição, a AARE usa o melhor codec partilhado pelo carro e pelo telemóvel (H.265…). Ative se a imagem do carro estiver com falhas.</string>
     <string name="common_ok">OK</string>

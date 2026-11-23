@@ -112,6 +112,8 @@ class CarSession(
     private val listener: Listener,
     /** Offer the phone screen to the car; false for the developer TCP server unless opted in, as its peer is unauthenticated. */
     mirror: Boolean = true,
+    /** Answer the version request with the head unit's own version (SessionOptions.echoHeadUnitVersion), for wireless adapters. */
+    echoHeadUnitVersion: Boolean = false,
 ) : AapSession.Callbacks {
 
     interface Listener {
@@ -130,7 +132,7 @@ class CarSession(
         deviceName = deviceName(), label = "Android", instanceId = settings.instanceId,
         smallIcon = icon(32), mediumIcon = icon(64), largeIcon = icon(128),
     ), this, net.prototux.aare.SessionAapLog.also { it.verbose = settings.verboseProtocolLog }, SessionOptions(sendPings = wireless, pins = PinnedHeadUnits(context), peerKey = peerKey, trustOnFirstUse = trustOnFirstUse,
-        clockNanos = SystemClock::elapsedRealtimeNanos))
+        clockNanos = SystemClock::elapsedRealtimeNanos, echoHeadUnitVersion = echoHeadUnitVersion))
 
     private var video: VideoChannel? = null
     private var mic: MicrophoneChannel? = null
@@ -223,6 +225,8 @@ class CarSession(
     /** Why the session failed; null when it ended with a bye-bye from either side (or is still running). */
     @Volatile var closeError: Throwable? = null
         private set
+    /** The head unit listed its services: the connection itself worked, whatever happens next. */
+    val reachedServiceDiscovery: Boolean get() = aap.discovery != null
 
     /**
      * Asks the head unit to show its own UI (radio, vehicle settings), like Android Auto's "Exit".

@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Дзвінок триває</string>
     <string name="phone_action_hang_up">Завершити</string>
     <string name="phone_keypad_delete">Видалити</string>
+    <string name="voip_mic_title">%1$s не може використовувати мікрофон</string>
+    <string name="voip_mic_car_text">Співрозмовник вас не почує. Дозвольте це на телефоні: див. сповіщення</string>
+    <string name="voip_mic_notification_text">Дзвінкам з авто через %1$s потрібен дозвіл на мікрофон. Торкніться, щоб відкрити його налаштування</string>
+    <string name="voip_call_failed_title">Не вдалося зателефонувати через %1$s</string>
+    <string name="voip_call_failed_text">Відкрийте його на телефоні, щоб зателефонувати</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Заряджається</string>
     <string name="phone_incoming_call">Вхідний дзвінок</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Акселерометр</string>
     <string name="car_data_gyroscope">Гіроскоп</string>
     <string name="car_data_dtc">Коди несправностей</string>
+    <string name="car_data_dtc_unknown">Невідомо</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Код силового агрегату, визначений виробником</string>
+    <string name="car_data_dtc_manufacturer_chassis">Код шасі, визначений виробником</string>
+    <string name="car_data_dtc_manufacturer_body">Код кузова, визначений виробником</string>
+    <string name="car_data_dtc_manufacturer_network">Код мережі, визначений виробником</string>
     <string name="car_data_app_label">Дані автомобіля</string>
     <string name="car_data_show_in_car_title">Показувати на екрані автомобіля</string>
     <string name="car_data_show_in_car_subtitle">Додайте діагностичний застосунок в автомобілі для цих даних у реальному часі</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">Завантажено правил: %1$d</string>
     <string name="vehicles_import">Імпортувати файл…</string>
     <string name="vehicles_template">Записати шаблон</string>
+    <string name="vehicles_malformed_at">У vehicles.json помилка в рядку %1$d, стовпці %2$d (%3$s): його правила ігноруються.</string>
+    <string name="vehicles_malformed">vehicles.json не можна використати (%1$s): його правила ігноруються.</string>
     <string name="setup_toggle_force_h264_title">Примусово використовувати відео H.264</string>
     <string name="setup_toggle_force_h264_subtitle">За замовчуванням AARE використовує найкращий кодек, який підтримують і автомобіль, і телефон (H.265…). Увімкніть, якщо зображення в автомобілі спотворене.</string>
     <string name="common_ok">OK</string>

@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Apel în curs</string>
     <string name="phone_action_hang_up">Închide</string>
     <string name="phone_keypad_delete">Șterge</string>
+    <string name="voip_mic_title">%1$s nu poate folosi microfonul</string>
+    <string name="voip_mic_car_text">Celălalt nu te va auzi. Permite pe telefon: vezi notificarea</string>
+    <string name="voip_mic_notification_text">Apelurile din mașină prin %1$s au nevoie de permisiunea pentru microfon. Atinge pentru a-i deschide setările</string>
+    <string name="voip_call_failed_title">Nu s-a putut apela prin %1$s</string>
+    <string name="voip_call_failed_text">Deschide-o pe telefon pentru a suna</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Se încarcă</string>
     <string name="phone_incoming_call">Apel primit</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Accelerometru</string>
     <string name="car_data_gyroscope">Giroscop</string>
     <string name="car_data_dtc">Coduri de eroare</string>
+    <string name="car_data_dtc_unknown">Necunoscut</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Cod de grup motopropulsor specific producătorului</string>
+    <string name="car_data_dtc_manufacturer_chassis">Cod de șasiu specific producătorului</string>
+    <string name="car_data_dtc_manufacturer_body">Cod de caroserie specific producătorului</string>
+    <string name="car_data_dtc_manufacturer_network">Cod de rețea specific producătorului</string>
     <string name="car_data_app_label">Date mașină</string>
     <string name="car_data_show_in_car_title">Arată pe ecranul mașinii</string>
     <string name="car_data_show_in_car_subtitle">Adaugă o aplicație de diagnoză în mașină pentru aceste date live</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">Reguli încărcate: %1$d</string>
     <string name="vehicles_import">Importă fișier…</string>
     <string name="vehicles_template">Scrie șablon</string>
+    <string name="vehicles_malformed_at">vehicles.json are o eroare la linia %1$d, coloana %2$d (%3$s): regulile sale sunt ignorate.</string>
+    <string name="vehicles_malformed">vehicles.json nu poate fi folosit (%1$s): regulile sale sunt ignorate.</string>
     <string name="setup_toggle_force_h264_title">Forțează video H.264</string>
     <string name="setup_toggle_force_h264_subtitle">Implicit, AARE folosește cel mai bun codec pe care mașina și telefonul îl au în comun (H.265…). Activează dacă imaginea din mașină are probleme.</string>
     <string name="common_ok">OK</string>

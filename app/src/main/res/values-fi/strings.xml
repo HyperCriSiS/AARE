@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Puhelu käynnissä</string>
     <string name="phone_action_hang_up">Katkaise</string>
     <string name="phone_keypad_delete">Poista</string>
+    <string name="voip_mic_title">%1$s ei voi käyttää mikrofonia</string>
+    <string name="voip_mic_car_text">Toinen osapuoli ei kuule sinua. Salli se puhelimessa: katso ilmoitus</string>
+    <string name="voip_mic_notification_text">Puhelut autosta sovelluksella %1$s tarvitsevat sen mikrofonioikeuden. Avaa sen asetukset napauttamalla</string>
+    <string name="voip_call_failed_title">Soitto sovelluksella %1$s epäonnistui</string>
+    <string name="voip_call_failed_text">Soita avaamalla se puhelimessa</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Latautuu</string>
     <string name="phone_incoming_call">Saapuva puhelu</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Kiihtyvyysanturi</string>
     <string name="car_data_gyroscope">Gyroskooppi</string>
     <string name="car_data_dtc">Vikakoodit</string>
+    <string name="car_data_dtc_unknown">Tuntematon</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Valmistajakohtainen voimansiirron koodi</string>
+    <string name="car_data_dtc_manufacturer_chassis">Valmistajakohtainen alustan koodi</string>
+    <string name="car_data_dtc_manufacturer_body">Valmistajakohtainen korin koodi</string>
+    <string name="car_data_dtc_manufacturer_network">Valmistajakohtainen verkon koodi</string>
     <string name="car_data_app_label">Auton tiedot</string>
     <string name="car_data_show_in_car_title">Näytä auton näytöllä</string>
     <string name="car_data_show_in_car_subtitle">Lisää autoon diagnostiikkasovellus näitä reaaliaikaisia tietoja varten</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">Ladattuja sääntöjä: %1$d</string>
     <string name="vehicles_import">Tuo tiedosto…</string>
     <string name="vehicles_template">Kirjoita malli</string>
+    <string name="vehicles_malformed_at">vehicles.json-tiedostossa on virhe rivillä %1$d, sarakkeessa %2$d (%3$s): sen säännöt ohitetaan.</string>
+    <string name="vehicles_malformed">vehicles.json-tiedostoa ei voi käyttää (%1$s): sen säännöt ohitetaan.</string>
     <string name="setup_toggle_force_h264_title">Pakota H.264-video</string>
     <string name="setup_toggle_force_h264_subtitle">AARE käyttää oletusarvoisesti parasta koodekkia, jonka auto ja puhelin jakavat (H.265…). Ota käyttöön, jos auton kuva on häiriöinen.</string>
     <string name="common_ok">OK</string>

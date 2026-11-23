@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Đang trong cuộc gọi</string>
     <string name="phone_action_hang_up">Kết thúc gọi</string>
     <string name="phone_keypad_delete">Xóa</string>
+    <string name="voip_mic_title">%1$s không thể dùng micrô</string>
+    <string name="voip_mic_car_text">Bên kia sẽ không nghe thấy bạn. Hãy cho phép trên điện thoại: xem thông báo</string>
+    <string name="voip_mic_notification_text">Cuộc gọi từ xe qua %1$s cần quyền micrô của ứng dụng. Nhấn để mở cài đặt</string>
+    <string name="voip_call_failed_title">Không thể gọi qua %1$s</string>
+    <string name="voip_call_failed_text">Hãy mở ứng dụng trên điện thoại để gọi</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Đang sạc</string>
     <string name="phone_incoming_call">Cuộc gọi đến</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Cảm biến gia tốc</string>
     <string name="car_data_gyroscope">Con quay hồi chuyển</string>
     <string name="car_data_dtc">Mã lỗi</string>
+    <string name="car_data_dtc_unknown">Không rõ</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Mã hệ truyền động riêng của nhà sản xuất</string>
+    <string name="car_data_dtc_manufacturer_chassis">Mã khung gầm riêng của nhà sản xuất</string>
+    <string name="car_data_dtc_manufacturer_body">Mã thân xe riêng của nhà sản xuất</string>
+    <string name="car_data_dtc_manufacturer_network">Mã mạng riêng của nhà sản xuất</string>
     <string name="car_data_app_label">Dữ liệu xe hơi</string>
     <string name="car_data_show_in_car_title">Hiện trên màn hình xe</string>
     <string name="car_data_show_in_car_subtitle">Thêm ứng dụng chẩn đoán trên xe cho dữ liệu trực tiếp này</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">Đã tải %1$d quy tắc</string>
     <string name="vehicles_import">Nhập file…</string>
     <string name="vehicles_template">Ghi tệp mẫu</string>
+    <string name="vehicles_malformed_at">vehicles.json có lỗi ở dòng %1$d, cột %2$d (%3$s): các quy tắc trong đó bị bỏ qua.</string>
+    <string name="vehicles_malformed">Không thể dùng vehicles.json (%1$s): các quy tắc trong đó bị bỏ qua.</string>
     <string name="setup_toggle_force_h264_title">Buộc dùng video H.264</string>
     <string name="setup_toggle_force_h264_subtitle">Theo mặc định, AARE sử dụng codec tốt nhất mà xe và điện thoại đều hỗ trợ (H.265…). Bật tùy chọn này nếu hình ảnh trên xe bị lỗi.</string>
     <string name="common_ok">OK</string>

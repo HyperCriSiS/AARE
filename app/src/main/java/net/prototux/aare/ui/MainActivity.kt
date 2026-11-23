@@ -181,6 +181,7 @@ import net.prototux.aare.launch.AppLauncher
 import net.prototux.aare.car.CarData
 import net.prototux.aare.service.ProjectionService
 import net.prototux.aare.ui.car.DashCard
+import net.prototux.aare.ui.car.dtcText
 import net.prototux.aare.ui.car.DashboardCardsEditor
 import net.prototux.aare.ui.car.StyleChoices
 import net.prototux.aare.ui.car.WALLPAPER_NAMES
@@ -560,6 +561,9 @@ private fun ConnectionSettings(settings: Settings, refresh: Int) {
     // Read here, not in the Section's lambda, so coming back from Developer options re-checks it.
     @Suppress("UNUSED_EXPRESSION") refresh
     val mockAllowed = PhoneLocationFeed.allowed(ctx)
+    // Opt-in: only the user can grant it, in the app's settings (Location > Allow all the time).
+    val backgroundLocation = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+        ctx.checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Section(stringResource(R.string.setup_section_connecting)) {
             Toggle(stringResource(R.string.setup_toggle_wireless_title), stringResource(R.string.setup_toggle_wireless_subtitle), wireless) { wireless = it; settings.wireless = it; if (it) ProjectionService.probeWireless(ctx) }
@@ -594,6 +598,10 @@ private fun ConnectionSettings(settings: Settings, refresh: Int) {
             }
             if (carGps) Check(stringResource(R.string.setup_check_mock_location_title), stringResource(R.string.setup_check_mock_location_subtitle), mockAllowed) {
                 ctx.startSafely(Intent(AndroidSettings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS), appDetails(ctx))
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Check(stringResource(R.string.setup_check_background_location_title), stringResource(R.string.setup_check_background_location_subtitle),
+                    backgroundLocation) { ctx.startSafely(appDetails(ctx)) }
             }
         }
         Section(stringResource(R.string.setup_section_video)) {
@@ -1802,7 +1810,7 @@ private fun CarDataCard() {
         DataRow(stringResource(R.string.car_data_toll), yesNo(car.tollCardPresent?.value))
         DataRow(stringResource(R.string.car_data_accelerometer), car.accelerometer?.let { a -> xyz(a.value) }?.let { "$it m/s²" })
         DataRow(stringResource(R.string.car_data_gyroscope), car.gyroscope?.let { g -> xyz(g.value) }?.let { "$it rad/s" })
-        DataRow(stringResource(R.string.car_data_dtc), car.diagnostics?.value?.takeIf { it.isNotEmpty() }?.joinToString(" ") { "%02x".format(it) })
+        DataRow(stringResource(R.string.car_data_dtc), dtcText(car.diagnostics?.value))
     }
 }
 
@@ -1841,12 +1849,14 @@ private fun VehicleOverridesCard() {
     val ctx = LocalContext.current
     val file = remember { net.prototux.aare.car.VehicleOverrides.file(ctx) }
     var count by remember { mutableIntStateOf(net.prototux.aare.car.VehicleOverrides.ruleCount(ctx)) }
+    var problem by remember { mutableStateOf(net.prototux.aare.car.VehicleOverrides.problem(ctx)) }
     val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         runCatching {
             ctx.contentResolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } }
         }.onFailure { Toast.makeText(ctx, it.message, Toast.LENGTH_SHORT).show() }
         count = net.prototux.aare.car.VehicleOverrides.ruleCount(ctx)
+        problem = net.prototux.aare.car.VehicleOverrides.problem(ctx)
     }
     Section(stringResource(R.string.vehicles_section_title)) {
         Text(stringResource(R.string.vehicles_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1860,6 +1870,13 @@ private fun VehicleOverridesCard() {
         }
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.vehicles_rule_count, count), style = MaterialTheme.typography.bodyMedium)
+        problem?.let { p ->
+            Text(
+                if (p.line != null && p.column != null) stringResource(R.string.vehicles_malformed_at, p.line, p.column, p.reason)
+                else stringResource(R.string.vehicles_malformed, p.reason),
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+            )
+        }
         Text(file.absolutePath, style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
         Row {
@@ -1868,6 +1885,7 @@ private fun VehicleOverridesCard() {
                 runCatching { file.parentFile?.mkdirs(); file.writeText(net.prototux.aare.car.VehicleOverrides.template()) }
                     .onFailure { Toast.makeText(ctx, it.message, Toast.LENGTH_SHORT).show() }
                 count = net.prototux.aare.car.VehicleOverrides.ruleCount(ctx)
+                problem = net.prototux.aare.car.VehicleOverrides.problem(ctx)
                 Toast.makeText(ctx, file.absolutePath, Toast.LENGTH_LONG).show()
             }) { Text(stringResource(R.string.vehicles_template)) }
         }
@@ -1928,6 +1946,7 @@ private fun LicenceLine() {
 }
 
 /** The About page: what AARE is, links to the project, and everyone who helped build it. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AboutScreen() {
     val ctx = LocalContext.current
@@ -1936,7 +1955,7 @@ private fun AboutScreen() {
     }
     Spacer(Modifier.height(16.dp))
     Section(stringResource(R.string.about_section_links_title)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Pill(stringResource(R.string.about_link_repository), Icons.Rounded.Code) {
                 ctx.startSafely(Intent(Intent.ACTION_VIEW, Uri.parse(AboutLinks.REPOSITORY)))
             }

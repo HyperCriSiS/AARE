@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Llamada en curso</string>
     <string name="phone_action_hang_up">Colgar</string>
     <string name="phone_keypad_delete">Eliminar</string>
+    <string name="voip_mic_title">%1$s no puede usar el micrófono</string>
+    <string name="voip_mic_car_text">La otra persona no te oirá. Permítelo en el teléfono: mira la notificación</string>
+    <string name="voip_mic_notification_text">Las llamadas desde el coche a través de %1$s necesitan su permiso de micrófono. Toca para abrir sus ajustes</string>
+    <string name="voip_call_failed_title">No se pudo llamar a través de %1$s</string>
+    <string name="voip_call_failed_text">Ábrela en el teléfono para llamar</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Cargando</string>
     <string name="phone_incoming_call">Llamada entrante</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Acelerómetro</string>
     <string name="car_data_gyroscope">Giroscopio</string>
     <string name="car_data_dtc">Códigos de avería</string>
+    <string name="car_data_dtc_unknown">Desconocido</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Código de tren motriz específico del fabricante</string>
+    <string name="car_data_dtc_manufacturer_chassis">Código de chasis específico del fabricante</string>
+    <string name="car_data_dtc_manufacturer_body">Código de carrocería específico del fabricante</string>
+    <string name="car_data_dtc_manufacturer_network">Código de red específico del fabricante</string>
     <string name="car_data_app_label">Datos del coche</string>
     <string name="car_data_show_in_car_title">Mostrar en la pantalla del coche</string>
     <string name="car_data_show_in_car_subtitle">Añade una app de diagnóstico en el coche para estos datos en vivo</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">%1$d regla(s) cargada(s)</string>
     <string name="vehicles_import">Importar archivo…</string>
     <string name="vehicles_template">Escribir plantilla</string>
+    <string name="vehicles_malformed_at">vehicles.json tiene un error en la línea %1$d, columna %2$d (%3$s): sus reglas se ignoran.</string>
+    <string name="vehicles_malformed">vehicles.json no se puede usar (%1$s): sus reglas se ignoran.</string>
     <string name="setup_toggle_force_h264_title">Forzar vídeo H.264</string>
     <string name="setup_toggle_force_h264_subtitle">De forma predeterminada, AARE usa el mejor códec que el coche y el teléfono tienen en común (H.265…). Actívalo si la imagen del coche se ve con fallos.</string>
     <string name="common_ok">OK</string>

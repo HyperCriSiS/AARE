@@ -379,6 +379,11 @@
     <string name="phone_call_in_progress">Anruf läuft</string>
     <string name="phone_action_hang_up">Auflegen</string>
     <string name="phone_keypad_delete">Löschen</string>
+    <string name="voip_mic_title">%1$s kann das Mikrofon nicht verwenden</string>
+    <string name="voip_mic_car_text">Die Gegenseite hört Sie nicht. Erlauben Sie es auf dem Telefon: siehe Benachrichtigung</string>
+    <string name="voip_mic_notification_text">Anrufe aus dem Auto über %1$s brauchen dessen Mikrofonberechtigung. Tippen, um die Einstellungen zu öffnen</string>
+    <string name="voip_call_failed_title">Anruf über %1$s nicht möglich</string>
+    <string name="voip_call_failed_text">Zum Anrufen auf dem Telefon öffnen</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Lädt</string>
     <string name="phone_incoming_call">Eingehender Anruf</string>
@@ -486,6 +491,11 @@
     <string name="car_data_accelerometer">Beschleunigungssensor</string>
     <string name="car_data_gyroscope">Gyroskop</string>
     <string name="car_data_dtc">Fehlercodes</string>
+    <string name="car_data_dtc_unknown">Unbekannt</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Herstellerspezifischer Antriebsstrang-Code</string>
+    <string name="car_data_dtc_manufacturer_chassis">Herstellerspezifischer Fahrwerk-Code</string>
+    <string name="car_data_dtc_manufacturer_body">Herstellerspezifischer Karosserie-Code</string>
+    <string name="car_data_dtc_manufacturer_network">Herstellerspezifischer Netzwerk-Code</string>
     <string name="car_data_app_label">Fahrzeugdaten</string>
     <string name="car_data_show_in_car_title">Auf dem Autobildschirm anzeigen</string>
     <string name="car_data_show_in_car_subtitle">Fügen Sie im Auto eine Diagnose-App für diese Live-Daten hinzu</string>
@@ -499,6 +509,8 @@
     <string name="troubleshooting_log_subtitle">Führt ein kurzes Protokoll jeder Verbindung. Aus: Es wird nichts geschrieben.</string>
     <string name="vehicles_skip_mic_setup_title">Mikrofon-Einrichtung überspringen</string>
     <string name="vehicles_skip_mic_setup_subtitle">Einschalten, wenn Ton läuft, das Auto aber nie das Bild zeigt. Manche älteren Autoradios lehnen diese Nachricht ab und bleiben dann auf ihrem eigenen Bildschirm. Gilt ab der nächsten Verbindung.</string>
+    <string name="vehicles_malformed_at">vehicles.json hat einen Fehler in Zeile %1$d, Spalte %2$d (%3$s): Die Regeln darin werden ignoriert.</string>
+    <string name="vehicles_malformed">vehicles.json kann nicht verwendet werden (%1$s): Die Regeln darin werden ignoriert.</string>
     <string name="setup_toggle_force_h264_title">H.264-Video erzwingen</string>
     <string name="setup_toggle_force_h264_subtitle">Standardmäßig verwendet AARE den besten Codec, den Auto und Telefon gemeinsam unterstützen (H.265…). Aktivieren Sie dies, wenn das Bild im Auto ruckelt oder gestört ist.</string>
     <string name="common_ok">OK</string>

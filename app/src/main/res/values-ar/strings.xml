@@ -328,6 +328,11 @@
     <string name="phone_call_in_progress">مكالمة جارية</string>
     <string name="phone_action_hang_up">إنهاء المكالمة</string>
     <string name="phone_keypad_delete">حذف</string>
+    <string name="voip_mic_title">لا يمكن لـ %1$s استخدام الميكروفون</string>
+    <string name="voip_mic_car_text">لن يسمعك الطرف الآخر. اسمح بذلك على الهاتف: راجع الإشعار</string>
+    <string name="voip_mic_notification_text">تحتاج المكالمات من السيارة عبر %1$s إلى إذن الميكروفون. انقر لفتح إعداداته</string>
+    <string name="voip_call_failed_title">تعذّر الاتصال عبر %1$s</string>
+    <string name="voip_call_failed_text">افتحه على الهاتف للاتصال</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">قيد الشحن</string>
     <string name="phone_incoming_call">مكالمة واردة</string>
@@ -414,6 +419,11 @@
     <string name="car_data_accelerometer">مقياس التسارع</string>
     <string name="car_data_gyroscope">الجيروسكوب</string>
     <string name="car_data_dtc">أكواد الأعطال</string>
+    <string name="car_data_dtc_unknown">غير معروف</string>
+    <string name="car_data_dtc_manufacturer_powertrain">كود خاص بالشركة المصنّعة لمجموعة نقل الحركة</string>
+    <string name="car_data_dtc_manufacturer_chassis">كود خاص بالشركة المصنّعة للهيكل</string>
+    <string name="car_data_dtc_manufacturer_body">كود خاص بالشركة المصنّعة لجسم السيارة</string>
+    <string name="car_data_dtc_manufacturer_network">كود خاص بالشركة المصنّعة للشبكة</string>
     <string name="car_data_app_label">بيانات السيارة</string>
     <string name="car_data_show_in_car_title">إظهار على شاشة السيارة</string>
     <string name="car_data_show_in_car_subtitle">أضف تطبيق تشخيص في السيارة لرؤية هذه البيانات المباشرة</string>
@@ -422,6 +432,8 @@
     <string name="vehicles_rule_count">القواعد المحمّلة: %1$d</string>
     <string name="vehicles_import">استيراد ملف…</string>
     <string name="vehicles_template">كتابة نموذج</string>
+    <string name="vehicles_malformed_at">يحتوي vehicles.json على خطأ في السطر %1$d، العمود %2$d (%3$s): يتم تجاهل قواعده.</string>
+    <string name="vehicles_malformed">لا يمكن استخدام vehicles.json (%1$s): يتم تجاهل قواعده.</string>
     <string name="setup_toggle_force_h264_title">فرض ترميز H.264 للفيديو</string>
     <string name="setup_toggle_force_h264_subtitle">بشكل افتراضي، يستخدم AARE أفضل ترميز مشترك بين السيارة والهاتف (H.265…). فعّل هذا الخيار إذا كانت صورة السيارة بها تشويش.</string>
     <string name="common_ok">OK</string>

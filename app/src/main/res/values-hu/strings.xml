@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Folyamatban lévő hívás</string>
     <string name="phone_action_hang_up">Hívás befejezése</string>
     <string name="phone_keypad_delete">Törlés</string>
+    <string name="voip_mic_title">A(z) %1$s nem használhatja a mikrofont</string>
+    <string name="voip_mic_car_text">A másik fél nem fog hallani. Engedélyezd a telefonon: lásd az értesítést</string>
+    <string name="voip_mic_notification_text">Az autóból a(z) %1$s alkalmazáson át indított hívásokhoz mikrofonengedély kell. Koppints a beállításai megnyitásához</string>
+    <string name="voip_call_failed_title">Nem sikerült hívni ezen keresztül: %1$s</string>
+    <string name="voip_call_failed_text">A híváshoz nyisd meg a telefonon</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Töltés</string>
     <string name="phone_incoming_call">Bejövő hívás</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Gyorsulásmérő</string>
     <string name="car_data_gyroscope">Giroszkóp</string>
     <string name="car_data_dtc">Hibakódok</string>
+    <string name="car_data_dtc_unknown">Ismeretlen</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Gyártóspecifikus hajtáslánc-kód</string>
+    <string name="car_data_dtc_manufacturer_chassis">Gyártóspecifikus futómű-kód</string>
+    <string name="car_data_dtc_manufacturer_body">Gyártóspecifikus karosszéria-kód</string>
+    <string name="car_data_dtc_manufacturer_network">Gyártóspecifikus hálózati kód</string>
     <string name="car_data_app_label">Autó adatai</string>
     <string name="car_data_show_in_car_title">Megjelenítés az autó képernyőjén</string>
     <string name="car_data_show_in_car_subtitle">Adj hozzá egy diagnosztikai alkalmazást az autóban ehhez az élő adathoz</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">%1$d szabály betöltve</string>
     <string name="vehicles_import">Fájl importálása…</string>
     <string name="vehicles_template">Sablon írása</string>
+    <string name="vehicles_malformed_at">A vehicles.json hibás a(z) %1$d. sor %2$d. oszlopában (%3$s): a szabályai figyelmen kívül maradnak.</string>
+    <string name="vehicles_malformed">A vehicles.json nem használható (%1$s): a szabályai figyelmen kívül maradnak.</string>
     <string name="setup_toggle_force_h264_title">H.264 videó kényszerítése</string>
     <string name="setup_toggle_force_h264_subtitle">Alapértelmezés szerint az AARE a legjobb, az autó és a telefon által is támogatott kodeket használja (H.265…). Kapcsolja be, ha az autó képe akadozik.</string>
     <!-- newly translated strings -->

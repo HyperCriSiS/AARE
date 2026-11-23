@@ -328,6 +328,11 @@
     <string name="phone_call_in_progress">通话进行中</string>
     <string name="phone_action_hang_up">挂断</string>
     <string name="phone_keypad_delete">删除</string>
+    <string name="voip_mic_title">%1$s 无法使用麦克风</string>
+    <string name="voip_mic_car_text">对方将听不到你的声音。请在手机上允许：查看通知</string>
+    <string name="voip_mic_notification_text">从车机通过 %1$s 拨打电话需要其麦克风权限。点按以打开其设置</string>
+    <string name="voip_call_failed_title">无法通过 %1$s 拨打电话</string>
+    <string name="voip_call_failed_text">请在手机上打开该应用拨打</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">正在充电</string>
     <string name="phone_incoming_call">来电</string>
@@ -414,6 +419,11 @@
     <string name="car_data_accelerometer">加速度计</string>
     <string name="car_data_gyroscope">陀螺仪</string>
     <string name="car_data_dtc">故障码</string>
+    <string name="car_data_dtc_unknown">未知</string>
+    <string name="car_data_dtc_manufacturer_powertrain">制造商专用动力系统代码</string>
+    <string name="car_data_dtc_manufacturer_chassis">制造商专用底盘代码</string>
+    <string name="car_data_dtc_manufacturer_body">制造商专用车身代码</string>
+    <string name="car_data_dtc_manufacturer_network">制造商专用网络代码</string>
     <string name="car_data_app_label">车载数据</string>
     <string name="car_data_show_in_car_title">在车机屏幕上显示</string>
     <string name="car_data_show_in_car_subtitle">在车机中添加一个诊断应用来显示这些实时数据</string>
@@ -422,6 +432,8 @@
     <string name="vehicles_rule_count">已加载 %1$d 条规则</string>
     <string name="vehicles_import">导入文件…</string>
     <string name="vehicles_template">写入模板</string>
+    <string name="vehicles_malformed_at">vehicles.json 第 %1$d 行第 %2$d 列有错误（%3$s）：其中的规则会被忽略。</string>
+    <string name="vehicles_malformed">vehicles.json 无法使用（%1$s）：其中的规则会被忽略。</string>
     <string name="setup_toggle_force_h264_title">强制使用 H.264 视频</string>
     <string name="setup_toggle_force_h264_subtitle">AARE 默认使用车机和手机都支持的最佳编解码器（H.265…）。如果车机画面出现花屏，请开启此选项。</string>
     <string name="common_ok">OK</string>

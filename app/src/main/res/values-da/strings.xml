@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Opkald i gang</string>
     <string name="phone_action_hang_up">Læg på</string>
     <string name="phone_keypad_delete">Slet</string>
+    <string name="voip_mic_title">%1$s kan ikke bruge mikrofonen</string>
+    <string name="voip_mic_car_text">Den anden part kan ikke høre dig. Tillad det på telefonen: se notifikationen</string>
+    <string name="voip_mic_notification_text">Opkald fra bilen via %1$s kræver dens mikrofontilladelse. Tryk for at åbne dens indstillinger</string>
+    <string name="voip_call_failed_title">Kunne ikke ringe via %1$s</string>
+    <string name="voip_call_failed_text">Åbn den på telefonen for at ringe</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Oplader</string>
     <string name="phone_incoming_call">Indgående opkald</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Accelerometer</string>
     <string name="car_data_gyroscope">Gyroskop</string>
     <string name="car_data_dtc">Fejlkoder</string>
+    <string name="car_data_dtc_unknown">Ukendt</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Producentspecifik drivlinjekode</string>
+    <string name="car_data_dtc_manufacturer_chassis">Producentspecifik chassiskode</string>
+    <string name="car_data_dtc_manufacturer_body">Producentspecifik karrosserikode</string>
+    <string name="car_data_dtc_manufacturer_network">Producentspecifik netværkskode</string>
     <string name="car_data_app_label">Bildata</string>
     <string name="car_data_show_in_car_title">Vis på bilskærmen</string>
     <string name="car_data_show_in_car_subtitle">Tilføj en diagnoseapp i bilen for at se disse livedata</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">%1$d regel(ler) indlæst</string>
     <string name="vehicles_import">Importer fil…</string>
     <string name="vehicles_template">Skriv skabelon</string>
+    <string name="vehicles_malformed_at">vehicles.json har en fejl i linje %1$d, kolonne %2$d (%3$s): dens regler ignoreres.</string>
+    <string name="vehicles_malformed">vehicles.json kan ikke bruges (%1$s): dens regler ignoreres.</string>
     <string name="setup_toggle_force_h264_title">Gennemtving H.264-video</string>
     <string name="setup_toggle_force_h264_subtitle">Som standard bruger AARE den bedste codec, som bilen og telefonen har til fælles (H.265…). Slå til, hvis bilens billede er forvrænget.</string>
     <!-- common / setup / updates / audio / media / car app errors -->

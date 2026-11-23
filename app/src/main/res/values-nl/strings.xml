@@ -342,6 +342,11 @@
     <string name="phone_call_in_progress">Oproep actief</string>
     <string name="phone_action_hang_up">Oproep beëindigen</string>
     <string name="phone_keypad_delete">Verwijderen</string>
+    <string name="voip_mic_title">%1$s kan de microfoon niet gebruiken</string>
+    <string name="voip_mic_car_text">De ander hoort je niet. Sta het toe op de telefoon: zie de melding</string>
+    <string name="voip_mic_notification_text">Gesprekken vanuit de auto via %1$s hebben de microfoonmachtiging nodig. Tik om de instellingen te openen</string>
+    <string name="voip_call_failed_title">Bellen via %1$s is niet gelukt</string>
+    <string name="voip_call_failed_text">Open hem op de telefoon om te bellen</string>
     <string name="phone_status_wifi">Wi-Fi</string>
     <string name="phone_status_charging">Opladen</string>
     <string name="phone_incoming_call">Inkomende oproep</string>
@@ -430,6 +435,11 @@
     <string name="car_data_accelerometer">Versnellingsmeter</string>
     <string name="car_data_gyroscope">Gyroscoop</string>
     <string name="car_data_dtc">Foutcodes</string>
+    <string name="car_data_dtc_unknown">Onbekend</string>
+    <string name="car_data_dtc_manufacturer_powertrain">Fabrikantspecifieke aandrijflijncode</string>
+    <string name="car_data_dtc_manufacturer_chassis">Fabrikantspecifieke chassiscode</string>
+    <string name="car_data_dtc_manufacturer_body">Fabrikantspecifieke carrosseriecode</string>
+    <string name="car_data_dtc_manufacturer_network">Fabrikantspecifieke netwerkcode</string>
     <string name="car_data_app_label">Autogegevens</string>
     <string name="car_data_show_in_car_title">Weergeven op het autoscherm</string>
     <string name="car_data_show_in_car_subtitle">Voeg een diagnose-app toe in de auto voor deze livegegevens</string>
@@ -438,6 +448,8 @@
     <string name="vehicles_rule_count">Regels geladen: %1$d</string>
     <string name="vehicles_import">Bestand importeren…</string>
     <string name="vehicles_template">Sjabloon schrijven</string>
+    <string name="vehicles_malformed_at">vehicles.json bevat een fout op regel %1$d, kolom %2$d (%3$s): de regels erin worden genegeerd.</string>
+    <string name="vehicles_malformed">vehicles.json kan niet worden gebruikt (%1$s): de regels erin worden genegeerd.</string>
     <string name="setup_toggle_force_h264_title">H.264-video forceren</string>
     <string name="setup_toggle_force_h264_subtitle">Standaard gebruikt AARE de beste codec die auto en telefoon gemeen hebben (H.265…). Schakel dit in als het beeld in de auto hapert.</string>
     <!-- newly translated strings -->

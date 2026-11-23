@@ -1,6 +1,7 @@
 package net.prototux.aare.aap
 
 import aap_protobuf.service.ServiceOuterClass.Service
+import aap_protobuf.service.control.message.ByeByeReasonOuterClass.ByeByeReason
 import aap_protobuf.service.control.message.ChannelOpenResponseOuterClass.ChannelOpenResponse
 import aap_protobuf.service.inputsource.InputSourceServiceOuterClass.InputSourceService
 import aap_protobuf.shared.MessageStatusOuterClass.MessageStatus
@@ -29,6 +30,16 @@ class ControlMessagesTest {
     }
 
     @Test
+    fun wirelessTurnedOffReasonFollowsTheHeadUnitVersion() {
+        assertEquals(ByeByeReason.USER_SELECTION, AapSession.wirelessDisabledReason(null))
+        assertEquals(ByeByeReason.USER_SELECTION, AapSession.wirelessDisabledReason(1 to 7))
+        assertEquals(ByeByeReason.USER_SELECTION, AapSession.wirelessDisabledReason(4 to 4))
+        assertEquals(ByeByeReason.WIRELESS_PROJECTION_DISABLED, AapSession.wirelessDisabledReason(4 to 5))
+        assertEquals(ByeByeReason.WIRELESS_PROJECTION_DISABLED, AapSession.wirelessDisabledReason(5 to 0))
+        assertEquals(ByeByeReason.WIRELESS_PROJECTION_DISABLED, AapSession.wirelessDisabledReason(6 to 1))
+    }
+
+    @Test
     fun sessionConfigurationBits() {
         val chrome = UiChrome(1 or 4)
         assertTrue(chrome.hideClock)
@@ -43,13 +54,20 @@ class ControlMessagesTest {
     fun serviceUpdateChangesOnlyTheTouchpadSensitivity() {
         fun input(pad: InputSourceService.TouchPad) = Service.newBuilder().setId(6)
             .setInputSourceService(InputSourceService.newBuilder().addTouchpad(pad)).build()
+        val updates = mutableListOf<InputSourceService.TouchPad>()
         val channel = InputChannel(input(InputSourceService.TouchPad.newBuilder().setWidth(800).setHeight(400).setSensitivity(2).build()),
-            object : InputChannel.Listener { override fun onInput(report: aap_protobuf.service.inputsource.message.InputReportOuterClass.InputReport) {} })
+            object : InputChannel.Listener {
+                override fun onInput(report: aap_protobuf.service.inputsource.message.InputReportOuterClass.InputReport) {}
+                override fun onTouchPadUpdate(pad: InputSourceService.TouchPad) { updates += pad }
+            })
         channel.onServiceUpdate(input(InputSourceService.TouchPad.newBuilder().setWidth(10).setHeight(10).setSensitivity(5).build()))
         assertEquals(5, channel.touchPad!!.sensitivity)
         assertEquals(800, channel.touchPad!!.width)
-        // An update without a sensitivity leaves it alone.
+        // The listener hears of it, with the whole updated pad.
+        assertEquals(listOf(channel.touchPad), updates)
+        // An update without a sensitivity leaves it alone, and isn't passed on.
         channel.onServiceUpdate(input(InputSourceService.TouchPad.newBuilder().setWidth(10).build()))
         assertEquals(5, channel.touchPad!!.sensitivity)
+        assertEquals(1, updates.size)
     }
 }

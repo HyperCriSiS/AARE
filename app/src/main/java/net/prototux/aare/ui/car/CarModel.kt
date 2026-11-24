@@ -10,7 +10,6 @@ import androidx.compose.runtime.setValue
 import net.prototux.aare.car.CarChrome
 import net.prototux.aare.car.NextEvent
 import net.prototux.aare.car.Weather
-import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.theme.AareTheme
 
@@ -28,6 +27,8 @@ class CarAppEntry(
     val label: String,
     val icon: Bitmap?,
     val kind: CarAppKind,
+    /** A phone app hosted on the car screen that is a navigation app (isNavigationApp). */
+    val phoneNavigation: Boolean = false,
 )
 
 /** The rail's standard space between its icons, in dp: a bottom bar has more room sideways. */
@@ -38,7 +39,7 @@ fun railGapPx(bottom: Boolean, dpi: Int) = (railGapDp(bottom) * dpi + 80) / 160
 
 /** Whether [this] can fill the map card: a car navigation app, or a phone navigation app (Google Maps) hosted on its own display. */
 val CarAppEntry.isNavigation: Boolean
-    get() = kind == CarAppKind.NAVIGATION || (kind == CarAppKind.STANDALONE && packageName in KNOWN_NAVIGATION)
+    get() = kind == CarAppKind.NAVIGATION || (kind == CarAppKind.STANDALONE && phoneNavigation)
 
 @Stable
 class NowPlaying(

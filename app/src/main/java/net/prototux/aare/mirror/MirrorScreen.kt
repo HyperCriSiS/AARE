@@ -264,6 +264,15 @@ private fun replay(context: android.content.Context, viewW: Int, viewH: Int, poi
     else touch.tap(mapped.first().first, mapped.first().second)
 }
 
+/** Whether an app is a navigation app: one of [KNOWN_NAVIGATION], or one in the maps category (OsmAnd, Organic Maps...). */
+internal fun isNavigationApp(packageName: String, category: Int) =
+    packageName in KNOWN_NAVIGATION || category == android.content.pm.ApplicationInfo.CATEGORY_MAPS
+
+/** The navigation apps installed on the phone ([isNavigationApp]). */
+internal fun installedNavigation(pm: android.content.pm.PackageManager): List<String> =
+    runCatching { pm.getInstalledApplications(0) }.getOrDefault(emptyList())
+        .filter { isNavigationApp(it.packageName, it.category) }.map { it.packageName }
+
 /**
  * Navigation apps that can't be hosted, recognised even before they post guidance: while driving,
  * the phone screen shows only these (or the app guiding). Many have no Android Auto support, or

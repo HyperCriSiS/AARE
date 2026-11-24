@@ -116,6 +116,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -157,6 +159,8 @@ import net.prototux.aare.UpdateChecker
 import net.prototux.aare.audio.CaptureMethod
 import net.prototux.aare.audio.CaptureMethods
 import net.prototux.aare.audio.CarMicForApps
+import net.prototux.aare.car.CarKeyAction
+import net.prototux.aare.car.carKeyLabel
 import net.prototux.aare.car.DrivingMode
 import net.prototux.aare.car.PhoneLocationFeed
 import net.prototux.aare.cert.CertificateDownload
@@ -299,6 +303,7 @@ private fun Home() {
                             item { VehicleOverridesCard() }
                             item { BackupCard() }
                             item { LogCard() }
+                            item { CarButtonsCard(settings) }
                         }
                         Page.ABOUT -> item { AboutScreen() }
                     }
@@ -2078,6 +2083,43 @@ private fun LogCard() {
                 }) { Text(stringResource(android.R.string.copy)) }
                 TextButton(onClick = { save.launch("aare-log.txt") }) { Text(stringResource(R.string.setup_log_save)) }
                 TextButton(onClick = { DiagLog.clear() }) { Text(stringResource(R.string.common_clear)) }
+            }
+        }
+    }
+}
+
+private const val CAR_BUTTON_DEFAULT = "default"
+
+/** Lets the user remap a key the car has sent (CarSession.onKey) to one of AARE's own actions. */
+@Composable
+private fun CarButtonsCard(settings: Settings) {
+    val seen = remember { settings.carKeysSeen }
+    var map by remember { mutableStateOf(settings.carKeyMap) }
+    val options = listOf(CAR_BUTTON_DEFAULT to stringResource(R.string.setup_car_button_default)) +
+        CarKeyAction.entries.map { it.id to stringResource(it.labelRes) }
+    Section(stringResource(R.string.setup_section_car_buttons)) {
+        Text(stringResource(R.string.setup_car_buttons_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (seen.isEmpty()) {
+            Text(stringResource(R.string.setup_car_buttons_empty), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+        }
+        // One row per key, its action in a menu: eleven choices don't fit a segmented row on a phone.
+        seen.map { (code, name) -> code to carKeyLabel(code, name) }.sortedBy { it.second }.forEach { (code, label) ->
+            var open by remember { mutableStateOf(false) }
+            val current = map[code] ?: CAR_BUTTON_DEFAULT
+            Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Box {
+                    TextButton(onClick = { open = true }) { Text(options.first { it.first == current }.second) }
+                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                        options.forEach { (value, text) ->
+                            DropdownMenuItem(text = { Text(text) }, onClick = {
+                                open = false
+                                map = if (value == CAR_BUTTON_DEFAULT) map - code else map + (code to value)
+                                settings.carKeyMap = map
+                            })
+                        }
+                    }
+                }
             }
         }
     }

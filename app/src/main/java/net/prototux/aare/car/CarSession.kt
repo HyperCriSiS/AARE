@@ -1346,7 +1346,7 @@ class CarSession(
         callSpeaker?.stop(); callSpeaker = null
         bluetoothPower?.stop(); bluetoothPower = null
         locationFeed.close()
-        if (settings.locationOffAfterCar) locationSwitch.stop()
+        if (settings.locationOffAfterCar) locationSwitch.stop(always = settings.locationOffAlways)
         drivingMode.stop()
         cluster?.stop()
         phoneAppsMic?.stop(); phoneAppsMic = null

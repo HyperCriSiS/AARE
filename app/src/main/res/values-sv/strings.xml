@@ -95,6 +95,8 @@
     <string name="setup_choice_bottom">Nederkant</string>
     <string name="setup_toggle_dark_bar_title">Mörkt fält</string>
     <string name="setup_toggle_dark_bar_subtitle">Håll fältet mörkt även med dagfärger</string>
+    <string name="setup_toggle_compact_rail_title">Kompakt fält</string>
+    <string name="setup_toggle_compact_rail_subtitle">Ett smalare fält, med mindre ikoner och tätare avstånd</string>
     <string name="setup_section_dashboard">Instrumentpanel</string>
     <string name="dash_cards_title">Kort</string>
     <string name="dash_cards_hint">Det första kortet får mest plats; de andra fyller resten av skärmen. Ett kort utan något att visa lämnar sin plats till nästa.</string>

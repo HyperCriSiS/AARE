@@ -80,6 +80,7 @@ import net.prototux.aare.ui.car.StandaloneAppScreen
 import net.prototux.aare.ui.theme.CarTheme
 import net.prototux.aare.ui.theme.CarThemes
 import net.prototux.aare.ui.theme.LocalCarDimens
+import net.prototux.aare.ui.theme.compactRail
 import net.prototux.aare.ui.theme.forPhone
 import net.prototux.aare.ui.theme.withAccent
 
@@ -348,6 +349,7 @@ class CarRuntime(
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
             // Each tap on the phone: the rail's spacing at once, not with a reload of the app list.
             "rail_spacing_px" -> main.post { ui.railSpacing = settings.railSpacing }
+            "compact_rail" -> main.post { ui.compactRail = settings.compactRail }
             // Apps shown or hidden from the phone: update the car's app list now.
             "hidden_apps", "phone_screen", "assistant_pkg", "app_order", "rail_apps", "shortcut_apps", "launcher_hides_pinned", "pane_swipe", "pane_menu",
             "standalone_apps", "standalone_app_pkgs", "browser", "full_apps", "car_data_app" -> main.post { refreshApps() }
@@ -502,6 +504,7 @@ class CarRuntime(
         ui.launcherHidesPinned = settings.launcherHidesPinned
         ui.paneSwipe = settings.paneSwipe
         ui.railSpacing = settings.railSpacing
+        ui.compactRail = settings.compactRail
         ui.paneMenu = settings.paneMenu
         // An app gone from a pane would leave it blank.
         ui.screen = ui.screen.withoutApps { id -> entries.none { it.id == id } }
@@ -848,7 +851,7 @@ class CarRuntime(
     fun Root(modifier: Modifier = Modifier) {
         val mediaApps by media.apps.collectAsState()
         CarTheme(night = ui.night, theme = ui.theme) {
-            CompositionLocalProvider(LocalCarDimens provides LocalCarDimens.current) {
+            CompositionLocalProvider(LocalCarDimens provides LocalCarDimens.current.let { if (ui.compactRail) it.compactRail() else it }) {
                 CarShell(
                     state = ui,
                     actions = actions,

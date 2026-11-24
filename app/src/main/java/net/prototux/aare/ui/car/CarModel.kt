@@ -217,6 +217,8 @@ class CarUiState {
     var launcherHidesPinned by mutableStateOf(false)
     /** The space between the rail's icons in the car screen's pixels, negative drawing them closer; null for the standard space. */
     var railSpacing by mutableStateOf<Int?>(null)
+    /** A narrower rail with smaller icons (a setting; CarDimens.compactRail). */
+    var compactRail by mutableStateOf(false)
     /** A sideways swipe on an app in the rail or launcher opens it in that side's pane. */
     var paneSwipe by mutableStateOf(true)
     /** A long press on an app in the rail or launcher offers the panes. */

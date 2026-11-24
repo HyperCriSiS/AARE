@@ -485,6 +485,11 @@ class Settings(context: Context) {
         get() = prefs.getString("shortcut_apps", null)?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()
         set(v) = prefs.edit { putString("shortcut_apps", v.joinToString("\n")) }
 
+    /** A narrower rail, with smaller icons and tighter margins. */
+    var compactRail: Boolean
+        get() = prefs.getBoolean("compact_rail", false)
+        set(v) = prefs.edit { putBoolean("compact_rail", v) }
+
     /** The space between the icons in the car's rail, in the car screen's pixels, below 0 drawing them closer; null for the standard space. */
     var railSpacing: Int?
         get() = if (prefs.contains("rail_spacing_px")) prefs.getInt("rail_spacing_px", 0) else null

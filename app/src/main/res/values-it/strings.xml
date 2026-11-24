@@ -95,6 +95,8 @@
     <string name="setup_choice_bottom">In basso</string>
     <string name="setup_toggle_dark_bar_title">Barra scura</string>
     <string name="setup_toggle_dark_bar_subtitle">Mantieni la barra scura anche con i colori diurni</string>
+    <string name="setup_toggle_compact_rail_title">Barra compatta</string>
+    <string name="setup_toggle_compact_rail_subtitle">Una barra più stretta, con icone più piccole e spaziature ridotte</string>
     <string name="setup_section_dashboard">Dashboard</string>
     <string name="dash_cards_title">Schede</string>
     <string name="dash_cards_hint">La prima scheda ha più spazio; le altre riempiono il resto dello schermo. Una scheda senza nulla da mostrare lascia il posto alla successiva.</string>

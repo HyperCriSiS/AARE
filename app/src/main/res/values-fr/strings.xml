@@ -95,6 +95,8 @@
     <string name="setup_choice_bottom">Bas</string>
     <string name="setup_toggle_dark_bar_title">Barre sombre</string>
     <string name="setup_toggle_dark_bar_subtitle">Garder la barre sombre même avec les couleurs de jour</string>
+    <string name="setup_toggle_compact_rail_title">Barre compacte</string>
+    <string name="setup_toggle_compact_rail_subtitle">Une barre plus étroite, avec des icônes plus petites et un espacement réduit</string>
     <string name="setup_section_dashboard">Tableau de bord</string>
     <string name="dash_cards_title">Cartes</string>
     <string name="dash_cards_hint">La première carte a le plus de place ; les autres remplissent le reste de l\'écran. Une carte sans rien à montrer laisse sa place à la suivante.</string>

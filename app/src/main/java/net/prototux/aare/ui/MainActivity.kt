@@ -925,6 +925,7 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
     var accent by remember { mutableStateOf(settings.carAccent) }
     var rail by remember { mutableStateOf(settings.railPosition) }
     var spacing by remember { mutableStateOf(settings.railSpacing) }
+    var compactRail by remember { mutableStateOf(settings.compactRail) }
     var chrome by remember { mutableStateOf(settings.carChrome) }
     var phoneScreen by remember { mutableStateOf(settings.phoneScreen) }
     var darkBar by remember { mutableStateOf(settings.darkBar) }
@@ -979,6 +980,9 @@ private fun CarScreenSettings(settings: Settings, refresh: Int) {
                 OutlinedButton(onClick = { spacing = px + 1; settings.railSpacing = spacing }, enabled = px < 60) { Text("+") }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = { spacing = null; settings.railSpacing = null }, enabled = spacing != null) { Text(stringResource(R.string.setup_spacing_reset)) }
+            }
+            Toggle(stringResource(R.string.setup_toggle_compact_rail_title), stringResource(R.string.setup_toggle_compact_rail_subtitle), compactRail) {
+                compactRail = it; settings.compactRail = it
             }
             Choices(stringResource(R.string.setup_choice_status_items), listOf(Settings.CHROME_AUTO to stringResource(R.string.setup_choice_status_items_auto), Settings.CHROME_SHOW to stringResource(R.string.setup_choice_status_items_show), Settings.CHROME_HIDE to stringResource(R.string.setup_choice_status_items_hide)), chrome) {
                 chrome = it; settings.carChrome = it

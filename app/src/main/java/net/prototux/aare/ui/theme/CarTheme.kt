@@ -38,6 +38,21 @@ data class CarDimens(
     val gutter: Dp = 8.dp,
     val cardRadius: Dp = 28.dp,
     val iconSize: Dp = 36.dp,
+    /** An app's icon on the rail. */
+    val railAppIcon: Dp = 44.dp,
+    /** The rail's margin at its two ends. */
+    val railPadding: Dp = 14.dp,
+)
+
+/**
+ * The compact rail (a setting): a narrower rail with smaller icons and tighter margins. The tap
+ * area ([CarDimens.railButton]) keeps its size, so the icons are as easy to hit while driving.
+ */
+fun CarDimens.compactRail() = copy(
+    railWidth = minOf(railWidth, railButton + 4.dp),
+    railIcon = railIcon * 0.78f,
+    railAppIcon = railAppIcon * 0.78f,
+    railPadding = 8.dp,
 )
 
 val LocalCarDimens = staticCompositionLocalOf { CarDimens() }

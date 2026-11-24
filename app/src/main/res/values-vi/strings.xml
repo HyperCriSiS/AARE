@@ -95,6 +95,8 @@
     <string name="setup_choice_bottom">Dưới</string>
     <string name="setup_toggle_dark_bar_title">Thanh tối</string>
     <string name="setup_toggle_dark_bar_subtitle">Giữ thanh màu tối ngay cả khi dùng màu ban ngày</string>
+    <string name="setup_toggle_compact_rail_title">Thanh công cụ thu gọn</string>
+    <string name="setup_toggle_compact_rail_subtitle">Thanh hẹp hơn, biểu tượng nhỏ hơn và khoảng cách gọn hơn</string>
     <string name="setup_section_dashboard">Bảng điều khiển</string>
     <string name="dash_cards_title">Thẻ</string>
     <string name="dash_cards_hint">Thẻ đầu tiên có nhiều chỗ nhất; các thẻ khác lấp phần còn lại của màn hình. Thẻ không có gì để hiển thị sẽ nhường chỗ cho thẻ tiếp theo.</string>

@@ -394,7 +394,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     val phoneStatus = rememberPhoneStatus()
     if (horizontal) {
         Row(
-            Modifier.fillMaxWidth().height(d.railWidth).background(container).padding(horizontal = 16.dp),
+            Modifier.fillMaxWidth().height(d.railWidth).background(container).padding(horizontal = d.railPadding + 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val driverEnd: @Composable () -> Unit = { Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -416,7 +416,7 @@ private fun RailContent(state: CarUiState, actions: CarActions, horizontal: Bool
     } else {
         val fit = sideRailFit(area.height - 24.dp)
         Column(
-            Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = 12.dp),
+            Modifier.fillMaxHeight().width(d.railWidth).background(container).padding(vertical = d.railPadding - 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Short on room: only the clock stays, the rest (and the network icons) give up their place.
@@ -502,7 +502,7 @@ private fun RailApp(app: CarAppEntry?, fallback: ImageVector, selected: Boolean,
         Modifier.size(d.railButton).clip(MaterialTheme.shapes.medium).background(ring).carFocusHighlight(MaterialTheme.shapes.medium).railClick(pane, onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Image(app.icon.asImageBitmap(), app.label, Modifier.size(44.dp).clip(LocalCarTheme.current.appIcon), colorFilter = appIconFilter())
+        Image(app.icon.asImageBitmap(), app.label, Modifier.size(d.railAppIcon).clip(LocalCarTheme.current.appIcon), colorFilter = appIconFilter())
     }
 }
 

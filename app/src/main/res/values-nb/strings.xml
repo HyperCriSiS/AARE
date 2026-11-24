@@ -95,6 +95,8 @@
     <string name="setup_choice_bottom">Nederst</string>
     <string name="setup_toggle_dark_bar_title">Mørk stolpe</string>
     <string name="setup_toggle_dark_bar_subtitle">Hold stolpen mørk selv med dagfarger</string>
+    <string name="setup_toggle_compact_rail_title">Kompakt stolpe</string>
+    <string name="setup_toggle_compact_rail_subtitle">En smalere stolpe, med mindre ikoner og tettere avstand</string>
     <string name="setup_section_dashboard">Dashbord</string>
     <string name="dash_cards_title">Kort</string>
     <string name="dash_cards_hint">Det første kortet får mest plass; de andre fyller resten av skjermen. Et kort uten noe å vise gir plassen sin til det neste.</string>

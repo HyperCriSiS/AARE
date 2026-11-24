@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -89,7 +90,7 @@ internal fun SplitPane(
                 .pointerInput(width, f) {
                     detectHorizontalDragGestures(
                         onDragStart = { drag = f },
-                        onDragEnd = { drag?.let(actions::releaseDivider); drag = null },
+                        onDragEnd = { drag?.let { actions.releaseDivider(splitRest(it, with(density) { width.toDp().value })) }; drag = null },
                         onDragCancel = { drag = null },
                     ) { change, dx ->
                         change.consume()
@@ -97,6 +98,18 @@ internal fun SplitPane(
                     }
                 },
         )
+        // Closing without dragging (a rotary knob, a hurried tap): the pane touched last stays.
+        val close = stringResource(R.string.car_split_close)
+        Box(
+            Modifier.offset { IntOffset((center - grab / 2).roundToInt(), 0) }.padding(top = 8.dp).size(GRAB).clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .clickable(onClickLabel = close) { actions.releaseDivider(if (state.splitActiveLeft) 1f else 0f) }
+                .semantics { contentDescription = close },
+            contentAlignment = Alignment.Center,
+        ) {
+            androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Close, null,
+                tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
+        }
     }
 }
 

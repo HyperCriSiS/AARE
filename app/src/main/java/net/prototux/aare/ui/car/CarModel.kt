@@ -112,6 +112,20 @@ fun CarScreen.withoutApps(gone: (String) -> Boolean): CarScreen = when {
 }
 
 /** The screen once the divider is released at [fraction] (the left pane's share of the width). */
+/** The narrowest a pane rests at, in dp: narrower, an app has no room to be used. */
+const val SPLIT_MIN_PANE_DP = 240f
+
+/**
+ * Where the divider rests once let go at [fraction] of a [widthDp] wide split: within [SPLIT_SNAP]
+ * of an edge it stays there (that pane closes, [snapSplit]); otherwise no pane is narrower than
+ * [SPLIT_MIN_PANE_DP].
+ */
+fun splitRest(fraction: Float, widthDp: Float): Float {
+    if (fraction < SPLIT_SNAP || fraction > 1 - SPLIT_SNAP) return fraction
+    val min = (SPLIT_MIN_PANE_DP / widthDp).coerceAtMost(0.5f)
+    return fraction.coerceIn(min, 1 - min)
+}
+
 fun snapSplit(split: CarScreen.Split, fraction: Float): CarScreen = when {
     fraction < SPLIT_SNAP -> CarScreen.App(split.right)
     fraction > 1 - SPLIT_SNAP -> CarScreen.App(split.left)

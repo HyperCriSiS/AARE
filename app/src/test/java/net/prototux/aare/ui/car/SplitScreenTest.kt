@@ -63,4 +63,16 @@ class SplitScreenTest {
         assertFalse(split.shows("phone"))
         assertFalse(CarScreen.Dashboard.shows("maps"))
     }
+
+    @Test
+    fun aPaneRestsNoNarrowerThanItsMinimumUnlessItCloses() {
+        // 1165 dp wide (the MBUX screen): 240 dp is about a fifth.
+        assertEquals(240f / 1165f, splitRest(0.15f, 1165f), 0.001f)
+        assertEquals(1 - 240f / 1165f, splitRest(0.85f, 1165f), 0.001f)
+        assertEquals(0.4f, splitRest(0.4f, 1165f), 0.001f)
+        // Near an edge it stays there, so that pane closes.
+        assertEquals(0.05f, splitRest(0.05f, 1165f), 0.001f)
+        // Too narrow for two minimum panes: the middle.
+        assertEquals(0.5f, splitRest(0.3f, 400f), 0.001f)
+    }
 }

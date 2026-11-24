@@ -558,7 +558,8 @@ private fun Modifier.railClick(pane: RailPane?, onClick: () -> Unit): Modifier =
                 }
             }
         })
-        .combinedClickable(onClick = onClick, onLongClick = pane?.choose?.let { choose -> { choose(center) } })
+        .combinedClickable(onClick = onClick, onLongClickLabel = pane?.choose?.let { stringResource(R.string.car_split_open_beside) },
+            onLongClick = pane?.choose?.let { choose -> { choose(center) } })
 }
 
 /**

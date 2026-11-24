@@ -1,11 +1,12 @@
 package net.prototux.aare.ui.car
 
+import net.prototux.aare.host.runsWhileDriving
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class IsNavigationTest {
-    private fun entry(pkg: String, kind: CarAppKind) = CarAppEntry("id", pkg, "label", null, kind)
+    private fun entry(pkg: String, kind: CarAppKind) = CarAppEntry("id", pkg, "label", null, kind, phoneNavigation = runsWhileDriving(pkg))
 
     @Test
     fun aCarNavigationAppFillsTheMapCard() {

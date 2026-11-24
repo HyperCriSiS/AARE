@@ -1,5 +1,7 @@
 package net.prototux.aare.host
 
+import android.content.pm.ApplicationInfo
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -44,13 +46,13 @@ import net.prototux.aare.car.DashboardInfo
 import net.prototux.aare.media.MediaHub
 import net.prototux.aare.mirror.LocalPhoneVideo
 import net.prototux.aare.mirror.MirrorScreen
+import net.prototux.aare.mirror.installedNavigation
+import net.prototux.aare.mirror.isNavigationApp
 import net.prototux.aare.mirror.PhoneVideo
 import net.prototux.aare.mirror.PhoneVideoSlot
-import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import net.prototux.aare.notify.CarNotificationListener
 import net.prototux.aare.notify.MessagingScreen
 import net.prototux.aare.launch.AppLauncher
-import net.prototux.aare.mirror.KNOWN_NAVIGATION
 import net.prototux.aare.notify.PhoneGuidance
 import net.prototux.aare.ui.car.BrowserScreen
 import net.prototux.aare.ui.car.CarActions
@@ -464,13 +466,14 @@ class CarRuntime(
         // and the assistant picked in AARE when it has no car app, so the voice button opens it there.
         if (AppLauncher.available(context)) {
             val taken = entries.mapTo(HashSet()) { it.packageName }
+            val navigation = installedNavigation(context.packageManager)
             // Navigation apps with no car app AARE can host (Google Maps) are there as phone apps without being picked.
-            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken, KNOWN_NAVIGATION)) {
+            for (pkg in standalonePackages(settings.standaloneApps, settings.standaloneAppPackages, settings.assistantPackage, taken, navigation)) {
                 if (pkg in hidden) continue
                 val info = runCatching { context.packageManager.getApplicationInfo(pkg, 0) }.getOrNull() ?: continue
                 val label = context.packageManager.getApplicationLabel(info).toString()
                 val icon = runCatching { context.packageManager.getApplicationIcon(info).toBitmap(128, 128) }.getOrNull()
-                entries += CarAppEntry(standaloneId(pkg), pkg, label, icon, CarAppKind.STANDALONE)
+                entries += CarAppEntry(standaloneId(pkg), pkg, label, icon, CarAppKind.STANDALONE, phoneNavigation = runsWhileDriving(pkg, info.category))
             }
         }
         if (settings.browser) {
@@ -873,7 +876,7 @@ class CarRuntime(
                                 else MessagingScreen(app, ui.drivingRestricted, this, mod)
                             CarAppKind.PHONE_SCREEN -> MirrorScreen(this, ui.drivingRestricted, mod)
                             // A navigation app (Google Maps, Waze) keeps running while driving, as on the phone screen.
-                            CarAppKind.STANDALONE -> StandaloneAppScreen(this, ui.drivingRestricted && !runsWhileDriving(app.packageName), app.packageName, mod)
+                            CarAppKind.STANDALONE -> StandaloneAppScreen(this, ui.drivingRestricted && !app.isNavigation, app.packageName, mod)
                             CarAppKind.BROWSER -> BrowserScreen(this, ui.drivingRestricted, settings.browserUrl, mod)
                             CarAppKind.CAR_DATA -> CarDataScreen(mod)
                             CarAppKind.PHONE -> {
@@ -934,8 +937,8 @@ class CarRuntime(
 /** Whether a messaging app or the phone app shows as the phone's own app: [chosen] in AARE, parked, and with a [helper] (Shizuku or root). */
 internal fun showsFullApp(chosen: Boolean, driving: Boolean, helper: Boolean) = chosen && !driving && helper
 
-/** Whether a phone app hosted on the car screen keeps running while driving: only known navigation apps. */
-internal fun runsWhileDriving(packageName: String) = packageName in KNOWN_NAVIGATION
+/** Whether a phone app hosted on the car screen keeps running while driving: only navigation apps ([isNavigationApp]). */
+internal fun runsWhileDriving(packageName: String, category: Int = ApplicationInfo.CATEGORY_UNDEFINED) = isNavigationApp(packageName, category)
 
 /**
  * The phone apps hosted on the car screen: those allowed on the phone when [enabled], and the

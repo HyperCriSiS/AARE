@@ -175,7 +175,7 @@ import net.prototux.aare.host.CarLinks
 import net.prototux.aare.host.CarRuntime
 import net.prototux.aare.host.PhoneApp
 import net.prototux.aare.host.UnsupportedCarApp
-import net.prototux.aare.mirror.KNOWN_NAVIGATION
+import net.prototux.aare.mirror.installedNavigation
 import net.prototux.aare.mirror.MirrorTouchService
 import androidx.core.graphics.drawable.toBitmap
 import net.prototux.aare.launch.AppLauncher
@@ -1354,7 +1354,7 @@ private fun rememberAppsPage(settings: Settings): AppsPage {
             // they can go on the rail. Any other app, those whose Android Auto side only Google's Android Auto can show
             // included, is a phone app once picked below, so the list of apps AARE can't show goes.
             val pm = ctx.packageManager
-            val hosted = if (!page.launcherAvailable) emptyList() else KNOWN_NAVIGATION.filter { it !in carPkgs }.mapNotNull { pkg ->
+            val hosted = if (!page.launcherAvailable) emptyList() else installedNavigation(pm).filter { it !in carPkgs }.mapNotNull { pkg ->
                 runCatching { pm.getApplicationInfo(pkg, 0) }.getOrNull()?.let { info ->
                     PhoneApp(pkg, pm.getApplicationLabel(info).toString(), runCatching { pm.getApplicationIcon(info).toBitmap(96, 96) }.getOrNull())
                 }
@@ -1735,7 +1735,7 @@ private fun NavigationAppCard(settings: Settings) {
         val car = CarAppCatalog.query(ctx).filter { it.isNavigation }.map { Triple(it.packageName, it.label, true) }
         val pm = ctx.packageManager
         // A phone navigation app shows on the car screen only with Shizuku or root.
-        val phone = if (!AppLauncher.available(ctx)) emptyList() else KNOWN_NAVIGATION.filter { pkg -> car.none { it.first == pkg } }.mapNotNull { pkg ->
+        val phone = if (!AppLauncher.available(ctx)) emptyList() else installedNavigation(pm).filter { pkg -> car.none { it.first == pkg } }.mapNotNull { pkg ->
             runCatching { Triple(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString(), false) }.getOrNull()
         }
         car + phone.sortedBy { it.second.lowercase() }

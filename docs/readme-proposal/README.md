@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../fastlane/metadata/android/en-US/images/icon.png" alt="AARE icon" width="112">
+  <img src="icon.svg" alt="AARE icon" width="140">
 </p>
 
 # AARE
@@ -102,15 +102,12 @@ to stay up to date. AARE also tells you on its home screen when a new release is
 also has the Magisk module (rooted phones, see [Car audio](#car-audio); deprecated, removed in the
 next release) and the desktop head unit.
 
-<details>
-<summary>Release signing key</summary>
+**Release signing key**
 
 Releases are signed with AARE's release key, SHA-256
 `63:EF:0D:E1:DB:2C:09:BB:7F:B2:5C:E7:EA:4A:DC:35:38:AF:42:3B:88:52:78:B5:9D:F2:88:9C:7F:18:28:6F`.
 Builds you make yourself are signed with your own debug key, so switching between the two needs
 an uninstall first.
-
-</details>
 
 ### What you need
 
@@ -352,8 +349,7 @@ AARE is not affiliated with Google or Apple.
 | Messaging apps | `<uses name="notification"/>` in `automotive_app_desc`, and the default SMS app | yes, from their notifications |
 | Google Maps, Waze and other apps on Google's private car interface | Android Auto only | with root ([below](#running-the-apps-google-locks-to-android-auto-rooted-phones)) |
 
-<details>
-<summary>Google Maps, Waze and other apps AARE can't show: what makes up for it</summary>
+**Google Maps, Waze and other apps AARE can't show: what makes up for it**
 
 Some apps, Google Maps and Waze among them, draw their car screen through an undocumented
 interface that only Google's Android Auto app can host, and they check that the host is Google's.
@@ -365,8 +361,6 @@ the reason. Without root, two things make up for it:
   arrival time on the dashboard and on the car's instrument cluster. Their voice prompts reach
   the car through the phone's Bluetooth link.
 - **The phone screen** (below), which shows navigation apps even while driving.
-
-</details>
 
 ### Phone screen, browser, phone apps and car data
 
@@ -498,8 +492,7 @@ Some cars keep playing the phone's **Bluetooth** audio while in Android Auto mod
 Land Cruiser in [Tested on real head units](#tested-on-real-head-units) does). With those, none
 of the above is needed: pair the phone with the car and leave *Car audio* unset.
 
-<details>
-<summary>Samsung Galaxy / One UI: <i>Separate app sound</i></summary>
+**Samsung Galaxy / One UI: <i>Separate app sound</i>**
 
 **Samsung Galaxy / One UI:** *Settings → Sounds and vibration → Separate app sound* can route
 chosen navigation or media apps directly to a paired **vehicle Bluetooth audio device**. A Galaxy
@@ -508,8 +501,6 @@ Bluetooth output**, not proof that AARE captures navigation voice or sends it ov
 channel; it also does not verify simultaneous official Android Auto plus AARE projection.
 See [Samsung Separate app sound and Bluetooth](../../docs/samsung-separate-app-sound.md) for the
 setup, caveats and the scoped field report.
-
-</details>
 
 <a name="compatibility"></a>
 ## 🚗 Compatibility
@@ -577,8 +568,7 @@ certificate ([one tap](#aa-key-extraction)).
 
 </details>
 
-<details>
-<summary>Open-source head units: openauto/Crankshaft, Open Headunit, LIVI and aa-proxy-rs</summary>
+**Open-source head units: openauto/Crankshaft, Open Headunit, LIVI and aa-proxy-rs**
 
 **Open-source head units:** openauto/Crankshaft, Open Headunit (formerly Headunit Revived), LIVI
 and aa-proxy-rs accept AARE's own certificate. A user reports AARE working well with Open
@@ -590,8 +580,6 @@ Headunit 4.0.0 over wireless (Bluetooth + Wi-Fi, no dongle), AARE connects and p
 map mode until double-tapped ([#316](https://github.com/prototux/AARE/issues/316)), Waze only
 showed up on an older build (5.9.5.4, not 5.27), and VRadio only connects when started from the
 phone first.
-
-</details>
 
 If you try AARE on another head unit, please
 [open an issue](https://github.com/prototux/AARE/issues/new/choose) or a pull request to add it
@@ -642,8 +630,7 @@ What's implemented, and how far it has been tried.
 
 </details>
 
-<details>
-<summary>What's not planned, and why</summary>
+**What's not planned, and why**
 
 **Not planned** (rare, or redundant with what AARE draws itself):
 
@@ -655,8 +642,6 @@ What's implemented, and how far it has been tried.
 | Native media browser service | Same: media apps are browsed on AARE's own screen. |
 | User switch, connected-devices list, service discovery update | Only matter with several phones in the car or channels changing during a connection. |
 | Audio kept open with silence | AARE closes the car's audio stream after a few seconds of silence and reopens it when sound comes back, like Android Auto does for navigation prompts. |
-
-</details>
 
 ### Testing without a car: the desktop head unit
 
@@ -876,8 +861,7 @@ connection (`adb logcat | grep -i aare`).
 
 Before sending a pull request, run `./build.sh :aap:test` and build the app.
 
-<details>
-<summary>The developer log without adb, and the knob and D-pad rule</summary>
+**The developer log without adb, and the knob and D-pad rule**
 
 Without adb, turn on *Developer mode* in *Advanced*: AARE then copies what it logs to text
 files in `Android/data/net.prototux.aare/files/debug` (Android 11 and later; on Android 8-10 in its
@@ -888,8 +872,6 @@ developer mode off deletes the files.
 Every car-screen control must be reachable, highlighted and usable by a knob or D-pad, not just by
 touch (`Modifier.carClickable` in `ui/car/CarFocus.kt`); a gesture (drag, swipe) needs a key path
 too, or stays touch-only with a reason in `CarScreenReachabilityCheckTest`'s allowlist.
-
-</details>
 
 <a name="troubleshooting"></a>
 ## 🩺 Troubleshooting
@@ -912,16 +894,13 @@ traffic into the VPN and the connection times out. Then change the VPN's range, 
 unit's network from the VPN (most VPN apps have a setting for local network access). USB isn't
 affected.
 
-<details>
-<summary>VPN apps that keep every app inside the VPN (WireGuard by default)</summary>
+**VPN apps that keep every app inside the VPN (WireGuard by default)**
 
 Some VPN apps (WireGuard by default) don't let apps use any other network than the VPN at all.
 Then Android refuses AARE the car's Wi-Fi, whatever the address ranges, and the connection log says
 the phone's VPN doesn't let AARE use the car's Wi-Fi. Excluding the head unit's range doesn't help
 there: exclude AARE itself in the VPN app instead (its excluded or split-tunnel apps; in WireGuard,
 edit the tunnel and pick AARE under *Excluded applications*), or turn the VPN off.
-
-</details>
 
 <a name="support"></a>
 ## 💬 Support
@@ -950,8 +929,7 @@ that came with it:
 
 and for the first test of AARE in a real car.
 
-<details>
-<summary>Code fixes and docs</summary>
+**Code fixes and docs**
 
 Code fixes and docs from [@s-ratashnyuk](https://github.com/s-ratashnyuk) (zero-panel touch
 mapping, the map pinch gesture, standalone apps during screen sleep),
@@ -982,10 +960,7 @@ video from media apps, the assistant on the car screen and its car links), along
 Shizuku audio priority, car keys in the connection log, Recents after a phone app, a fresh USB
 link replacing a stale retry, and the screen-capture consent kept.
 
-</details>
-
-<details>
-<summary>Head-unit reports, ideas and tips</summary>
+**Head-unit reports, ideas and tips**
 
 Head-unit reports from [@Shane11r](https://github.com/Shane11r),
 [@dani203](https://github.com/dani203), [@pgwipeout](https://github.com/pgwipeout),
@@ -1023,8 +998,6 @@ locked, #329), [@JVKeller](https://github.com/JVKeller) (the knob/D-pad check, #
 [@burtshulman](https://github.com/burtshulman) (Android 6 and 7, discussion #314). And tips from
 [@teccheck](https://github.com/teccheck) (the `adb root` audio grant) and
 [@JVKeller](https://github.com/JVKeller) (the screen-capture appops grant).
-
-</details>
 
 <a name="license"></a>
 ## 📄 License

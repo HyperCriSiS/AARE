@@ -62,9 +62,10 @@ internal fun ClassicShell(
         Box(Modifier.fillMaxSize().then(modifier)) {
             Column(Modifier.fillMaxSize()) {
                 Row(Modifier.fillMaxWidth().height(40.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    if (state.chrome.clock) Clock()
+                    val phoneStatus = rememberPhoneStatus()
+                    RailWidgets(state.railWidgets.notDrawnByCar(state.chrome), state.weather.takeIf { state.weatherInBar }, phoneStatus, horizontal = true, spacing = 10.dp)
                     Spacer(Modifier.weight(1f))
-                    PhoneStatusIcons(state.chrome)
+                    if (state.chrome.phoneSignal) NetworkStatusIcons(phoneStatus)
                 }
                 ContentArea(state, actions, appContent, navMap, Modifier.weight(1f).fillMaxWidth(), launcherHome = true)
                 BottomBar(state, actions)

@@ -71,6 +71,7 @@ import net.prototux.aare.ui.car.withoutApps
 import net.prototux.aare.ui.car.DashCard
 import net.prototux.aare.ui.car.NotificationsScreen
 import net.prototux.aare.ui.car.NowPlaying
+import net.prototux.aare.ui.car.RailWidget
 import net.prototux.aare.ui.car.CarDataScreen
 import net.prototux.aare.ui.car.PhoneScreen
 import net.prototux.aare.ui.car.StandaloneAppScreen
@@ -319,6 +320,7 @@ class CarRuntime(
         ui.dashboardCards = DashCard.parse(settings.dashboardCards)
         ui.weatherInBar = settings.showWeather
         ui.chrome = CarChrome.shown(settings.carChrome, headUnitChrome)
+        ui.railWidgets = RailWidget.parse(settings.railWidgets)
         val wallpaper = settings.wallpaper
         if (wallpaper != ui.wallpaper || (wallpaper == Settings.WALLPAPER_CUSTOM && ui.wallpaperImage == null)) {
             ui.wallpaper = wallpaper
@@ -340,7 +342,7 @@ class CarRuntime(
 
     private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
-            "car_theme", "rail_position", "style_theme", "style_layout", "style_accent", "dark_bar", "car_chrome", "ignore_driving" -> main.post { applyScreenSettings() }
+            "car_theme", "rail_position", "style_theme", "style_layout", "style_accent", "dark_bar", "car_chrome", "rail_widgets", "ignore_driving" -> main.post { applyScreenSettings() }
             "wallpaper" -> main.post { ui.wallpaper = ""; applyScreenSettings() }
             // Each tap on the phone: the rail's spacing at once, not with a reload of the app list.
             "rail_spacing_px" -> main.post { ui.railSpacing = settings.railSpacing }

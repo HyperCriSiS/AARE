@@ -121,7 +121,11 @@ private fun Dock(state: CarUiState, actions: CarActions, horizontal: Boolean = f
             Modifier.fillMaxWidth().height(96.dp).background(MaterialTheme.colorScheme.surfaceContainerLowest).padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) { if (state.chrome.clock) Clock(); PhoneStatusIcons(state.chrome) }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val phoneStatus = rememberPhoneStatus()
+                RailWidgets(state.railWidgets.notDrawnByCar(state.chrome), state.weather.takeIf { state.weatherInBar }, phoneStatus, horizontal = true, spacing = 8.dp)
+                if (state.chrome.phoneSignal) NetworkStatusIcons(phoneStatus)
+            }
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 listOfNotNull(nav, media, phone).forEach { app -> DockIcon(app, 60) { actions.openApp(app) } }
@@ -135,9 +139,9 @@ private fun Dock(state: CarUiState, actions: CarActions, horizontal: Boolean = f
         Modifier.fillMaxHeight().width(96.dp).background(MaterialTheme.colorScheme.surfaceContainerLowest).padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (state.chrome.clock) Clock()
-        PhoneStatusIcons(state.chrome)
-        WeatherChip(state.weather.takeIf { state.weatherInBar })
+        val phoneStatus = rememberPhoneStatus()
+        RailWidgets(state.railWidgets.notDrawnByCar(state.chrome), state.weather.takeIf { state.weatherInBar }, phoneStatus, horizontal = false, spacing = 4.dp)
+        if (state.chrome.phoneSignal) NetworkStatusIcons(phoneStatus)
         // Only the apps are weighted: on a short screen they scroll, and voice and home keep their size.
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
             Column(

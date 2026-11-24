@@ -692,6 +692,8 @@
     <string name="split_open_left">Open on the left</string>
     <string name="split_open_right">Open on the right</string>
     <string name="split_divider">Drag to resize, to an edge to close</string>
+    <string name="car_split_close">Close split screen</string>
+    <string name="car_split_open_beside">Open beside the current app</string>
     <string name="media_action_show_video">Show the phone\'s video</string>
     <string name="media_action_show_art">Show the cover</string>
     <string name="setup_section_rail">Car rail</string>

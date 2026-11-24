@@ -608,6 +608,8 @@
     <string name="split_open_left">Links öffnen</string>
     <string name="split_open_right">Rechts öffnen</string>
     <string name="split_divider">Ziehen zum Ändern der Größe, an den Rand zum Schließen</string>
+    <string name="car_split_close">Geteilten Bildschirm schließen</string>
+    <string name="car_split_open_beside">Neben der aktuellen App öffnen</string>
     <string name="media_action_show_video">Video vom Handy zeigen</string>
     <string name="media_action_show_art">Cover zeigen</string>
     <string name="setup_section_rail">Leiste im Auto</string>

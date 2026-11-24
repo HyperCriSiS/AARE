@@ -35,8 +35,8 @@ internal fun List<DashCard>.withCard(card: DashCard, shown: Boolean): List<DashC
     else -> this - card
 }
 
-/** This order with the card at [index] moved [by] places (clamped to the list). */
-internal fun List<DashCard>.moved(index: Int, by: Int): List<DashCard> {
+/** This order with the item at [index] moved [by] places (clamped to the list). */
+internal fun <T> List<T>.moved(index: Int, by: Int): List<T> {
     if (index !in indices) return this
     val list = toMutableList()
     list.add((index + by).coerceIn(0, lastIndex), list.removeAt(index))

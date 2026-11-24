@@ -105,8 +105,20 @@ fun PhoneStatusIcons(shown: CarChrome = CarChrome.ALL) {
     }
 }
 
+/** Signal bars and Wi-Fi only (no battery): the rail's network status, shown next to its battery widget. */
 @Composable
-private fun SignalBars(level: Int?, fg: Color, dim: Color) {
+internal fun NetworkStatusIcons(status: PhoneStatusInfo?) {
+    val s = status ?: return
+    val fg = MaterialTheme.colorScheme.onSurface
+    val dim = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (s.wifi) Icon(Icons.Rounded.Wifi, stringResource(R.string.phone_status_wifi), tint = fg, modifier = Modifier.size(16.dp))
+        SignalBars(s.signal, fg, dim)
+    }
+}
+
+@Composable
+internal fun SignalBars(level: Int?, fg: Color, dim: Color) {
     Canvas(Modifier.size(16.dp)) {
         val bar = size.width / 5.5f
         for (i in 0 until 4) {
@@ -122,7 +134,7 @@ private fun SignalBars(level: Int?, fg: Color, dim: Color) {
 }
 
 @Composable
-private fun BatteryGauge(percent: Int, charging: Boolean, fg: Color, dim: Color) {
+internal fun BatteryGauge(percent: Int, charging: Boolean, fg: Color, dim: Color) {
     val low = !charging && percent <= 15
     val fill = if (low) MaterialTheme.colorScheme.error else fg
     Canvas(Modifier.size(width = 22.dp, height = 12.dp)) {

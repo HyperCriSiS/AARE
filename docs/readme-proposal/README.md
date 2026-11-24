@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.svg" alt="AARE icon" width="140">
+  <img src="icon.svg" alt="AARE icon" width="160">
 </p>
 
 # AARE

@@ -386,7 +386,8 @@ class CarSession(
             drivingMode.start()
             locationSwitch.start(settings.locationOnInCar)
             net.prototux.aare.notify.CarNotificationListener.sink = { m ->
-                drivingMode.onMessage(m.key, m.group)
+                // An app muted for the car, or not in it at all, doesn't answer in the driver's name either.
+                if (autoReplies(m.packageName, settings.mutedMessageApps, settings.hiddenApps)) drivingMode.onMessage(m.key, m.group)
                 if ((!m.group || settings.groupMessages) && showsMessage(m.packageName, settings.mutedMessageApps, settings.hiddenApps)) {
                     val open = runtime.opener(m.packageName, m.contentIntent, m.dismiss)
                     runtime.remember(m.title, m.text, m.icon, m.actions, open)
@@ -1346,7 +1347,7 @@ class CarSession(
         callSpeaker?.stop(); callSpeaker = null
         bluetoothPower?.stop(); bluetoothPower = null
         locationFeed.close()
-        if (settings.locationOffAfterCar) locationSwitch.stop()
+        if (settings.locationOffAfterCar) locationSwitch.stop(always = settings.locationOffAlways)
         drivingMode.stop()
         cluster?.stop()
         phoneAppsMic?.stop(); phoneAppsMic = null
@@ -1546,6 +1547,9 @@ class CarSession(
 }
 
 private fun androidx.compose.ui.graphics.ImageBitmap.asAndroidBitmapCompat(): Bitmap = asAndroidBitmap()
+
+/** Whether a message from [packageName] gets the driving auto-reply: not when [showsMessage] keeps it off the car. */
+internal fun autoReplies(packageName: String, muted: Set<String>, hidden: Set<String>) = showsMessage(packageName, muted, hidden)
 
 /** Whether a message from [packageName] reaches the car screen: not muted, and its app not set "not in the car" ([hidden]). */
 internal fun showsMessage(packageName: String, muted: Set<String>, hidden: Set<String>) = packageName !in muted && packageName !in hidden
